@@ -8,6 +8,7 @@ public class VeryUEQuestsFabric implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        VeryUERegistries.init();
         ServerLifecycleEvents.SERVER_STARTED.register(server -> QuestEditorServer.start());
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> QuestEditorServer.stop());
     }

@@ -13,6 +13,7 @@ public class Section {
 
 
     // todo; let this be colorable;
+    // todo; also languages...
     private final String name;
     private final Item icon;
 

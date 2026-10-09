@@ -1,6 +1,8 @@
 package dev.veryue.vuequests;
 
 import dev.veryue.vuequests.editor.QuestEditorServer;
+import dev.veryue.vuequests.platform.NeoForgeRegistryHelper;
+import dev.veryue.vuequests.platform.RegistryHelper;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.common.NeoForge;
@@ -13,6 +15,8 @@ import static dev.veryue.vuequests.VeryUEConstants.MOD_ID;
 public class VeryUEQuestsNeoForge {
 
     public VeryUEQuestsNeoForge(IEventBus eventBus) {
+        ((NeoForgeRegistryHelper) RegistryHelper.INSTANCE).init(eventBus);
+        VeryUERegistries.init();
         NeoForge.EVENT_BUS.addListener(this::onServerStarted);
         NeoForge.EVENT_BUS.addListener(this::onServerStopping);
     }
