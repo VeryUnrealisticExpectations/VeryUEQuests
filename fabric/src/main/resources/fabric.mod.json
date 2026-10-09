@@ -15,6 +15,9 @@
     "entrypoints": {
         "main": [
             "dev.veryue.vuequests.VeryUEQuestsFabric"
+        ],
+        "client": [
+            "dev.veryue.vuequests.client.VeryUEQuestsFabricClient"
         ]
     },
     "depends": {

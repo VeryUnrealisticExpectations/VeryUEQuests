@@ -2,3 +2,23 @@ plugins {
     id 'fabric-loom' version '1.8.13' apply false
     id 'net.neoforged.moddev' version '2.0.148' apply false
 }
+
+subprojects {
+    def resourcePatterns = [
+            '**/*.json', '**/*.mcmeta', '**/*.toml',
+            '**/*.png', '**/*.ogg', '**/*.mcfunction', '**/*.nbt',
+            '**/*.properties', '**/*.cfg', '**/*.accesswidener',
+            '**/*.vsh', '**/*.fsh', '**/*.glsl'
+    ]
+
+    tasks.withType(ProcessResources).configureEach {
+        include resourcePatterns
+    }
+
+    tasks.withType(Jar).configureEach {
+        if (name == 'sourcesJar') {
+            include '**/*.java', 'LICENSE*'
+            include resourcePatterns
+        }
+    }
+}
