@@ -58,6 +58,7 @@ repositories {
 }
 
 sourcesJar {
+    include '**/*.java', 'LICENSE*'
     from(rootProject.file('LICENSE')) {
         rename { "${it}_${mod_name}" }
     }

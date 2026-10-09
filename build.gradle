@@ -1,24 +1,44 @@
+import com.github.gradle.node.npm.task.NpmTask
+
 plugins {
     id 'fabric-loom' version '1.8.13' apply false
     id 'net.neoforged.moddev' version '2.0.148' apply false
+    id 'com.github.node-gradle.node' version '7.1.0'
+}
+
+node {
+    download = true
+    version = '22.22.0'
+    nodeProjectDir = layout.projectDirectory.dir('frontend')
+    npmInstallCommand = 'ci'
+}
+
+tasks.named('npmInstall') {
+    args = ['--include=dev', '--no-audit', '--no-fund']
+}
+
+def frontendDirectory = layout.projectDirectory.dir('frontend')
+def frontendDist = frontendDirectory.dir('dist')
+def buildFrontend = tasks.register('buildFrontend', NpmTask) {
+    group = 'build'
+    description = 'Builds the quest editor frontend for inclusion in the mod JARs.'
+    dependsOn tasks.named('npmInstall')
+    args = ['run', 'build']
+    inputs.files(fileTree(frontendDirectory) {
+        include 'src/**', 'public/**', '*.json', '*.ts', '*.js', 'index.html'
+    })
+    outputs.dir(frontendDist)
 }
 
 subprojects {
-    def resourcePatterns = [
-            '**/*.json', '**/*.mcmeta', '**/*.toml',
-            '**/*.png', '**/*.ogg', '**/*.mcfunction', '**/*.nbt',
-            '**/*.properties', '**/*.cfg', '**/*.accesswidener',
-            '**/*.vsh', '**/*.fsh', '**/*.glsl'
-    ]
-
     tasks.withType(ProcessResources).configureEach {
-        include resourcePatterns
+        dependsOn buildFrontend
+        from(frontendDist) {
+            into 'web/vuequests'
+        }
     }
 
-    tasks.withType(Jar).configureEach {
-        if (name == 'sourcesJar') {
-            include '**/*.java', 'LICENSE*'
-            include resourcePatterns
-        }
+    tasks.withType(Javadoc).configureEach {
+        include '**/*.java'
     }
 }
