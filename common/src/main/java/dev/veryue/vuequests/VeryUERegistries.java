@@ -2,7 +2,7 @@ package dev.veryue.vuequests;
 
 import dev.veryue.vuequests.models.objective.QuestObjectiveSerializer;
 import dev.veryue.vuequests.models.reward.RewardTypeSerializer;
-import dev.veryue.vuequests.platform.RegistryHelper;
+import dev.veryue.vuequests.platform.PlatformHelper;
 import dev.veryue.vuequests.registry.QuestObjectiveTypes;
 import dev.veryue.vuequests.registry.RewardTypes;
 import net.minecraft.core.Registry;
@@ -21,11 +21,11 @@ public class VeryUERegistries {
     public static final Registry<QuestObjectiveSerializer> QUEST_OBJECTIVE_TYPES = createRegistry(QUEST_OBJECTIVE_TYPE_KEY);
 
     public static <T> Registry<T> createRegistry(ResourceKey<Registry<T>> key) {
-        return RegistryHelper.INSTANCE.createRegistry(key);
+        return PlatformHelper.INSTANCE.createRegistry(key);
     }
 
     public static <T> T register(Registry<T> registry, ResourceLocation id, T value) {
-        return RegistryHelper.INSTANCE.register(registry, id, value);
+        return PlatformHelper.INSTANCE.register(registry, id, value);
     }
 
     public static void init() {

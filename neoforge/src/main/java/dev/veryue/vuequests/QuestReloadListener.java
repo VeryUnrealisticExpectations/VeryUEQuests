@@ -1,5 +1,6 @@
 package dev.veryue.vuequests;
 
+import dev.veryue.vuequests.data.quest.QuestReloadDelegate;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.neoforged.neoforge.resource.ContextAwareReloadListener;
@@ -17,11 +18,12 @@ public class QuestReloadListener extends ContextAwareReloadListener {
                                           ProfilerFiller reloadProfiler,
                                           Executor backgroundExecutor,
                                           Executor gameExecutor) {
-        return null;
+        return QuestReloadDelegate.INSTANCE.reload(preparationBarrier, resourceManager, getRegistryLookup(),
+                preparationsProfiler, reloadProfiler, backgroundExecutor, gameExecutor);
     }
 
     @Override
     public String getName() {
-        return super.getName();
+        return QuestReloadDelegate.ID.toString();
     }
 }

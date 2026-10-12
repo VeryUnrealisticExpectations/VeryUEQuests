@@ -1,11 +1,17 @@
 package dev.veryue.vuequests.platform;
 
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 
-public class FabricRegistryHelper implements RegistryHelper {
+public class FabricPlatformHelper implements PlatformHelper {
+
+    @Override
+    public boolean isModLoaded(String modId) {
+        return FabricLoader.getInstance().isModLoaded(modId);
+    }
 
     @Override
     public <T> Registry<T> createRegistry(ResourceKey<Registry<T>> key) {

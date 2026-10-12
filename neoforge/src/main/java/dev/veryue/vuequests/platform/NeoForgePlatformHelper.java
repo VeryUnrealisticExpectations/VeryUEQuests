@@ -5,6 +5,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.registries.NewRegistryEvent;
 import net.neoforged.neoforge.registries.RegisterEvent;
 import net.neoforged.neoforge.registries.RegistryBuilder;
@@ -15,9 +16,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-public class NeoForgeRegistryHelper implements RegistryHelper {
+public class NeoForgePlatformHelper implements PlatformHelper {
 
     private final Map<ResourceKey<? extends Registry<?>>, List<Consumer<RegisterEvent>>> pendingRegistrations = new HashMap<>();
+
+    @Override
+    public boolean isModLoaded(String modId) {
+        return ModList.get().isLoaded(modId);
+    }
 
     @Override
     public <T> Registry<T> createRegistry(ResourceKey<Registry<T>> key) {

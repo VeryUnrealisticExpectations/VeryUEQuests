@@ -1,0 +1,45 @@
+{
+  "section_id": "75faf305-8bee-496f-be2b-1bb2ffb95b39",
+  "name": "Getting Started",
+  "icon": "minecraft:oak_log",
+  "disabled": false,
+  "modLoaded": "",
+  "quests": [
+    {
+      "section_id": "75faf305-8bee-496f-be2b-1bb2ffb95b39",
+      "quest_id": "163a3730-b87b-4553-9c0d-6e391272ffb1",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "display": {
+        "title": "Collect Oak Logs",
+        "subtitle": "",
+        "description": "Collect 5 oak logs to earn a diamond.",
+        "icon": "minecraft:oak_log",
+        "tooltip": "Collect 5 oak logs."
+      },
+      "objectives": [
+        {
+          "type": "vuequests:collect_item",
+          "objective_id": "150b8ad1-f854-40ca-9ee5-0cb38f2b4642",
+          "icon": "minecraft:oak_log",
+          "item": {
+            "id": "minecraft:oak_log",
+            "count": 5
+          }
+        }
+      ],
+      "rewards": [
+        {
+          "type": "vuequests:item",
+          "reward_id": "f7d2b0e7-38cc-4672-a0ba-dcb0c2e18324",
+          "item": {
+            "id": "minecraft:diamond",
+            "count": 1
+          }
+        }
+      ]
+    }
+  ]
+}

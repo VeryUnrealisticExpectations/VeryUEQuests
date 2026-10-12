@@ -7,11 +7,13 @@ import net.minecraft.resources.ResourceLocation;
 
 import java.util.ServiceLoader;
 
-public interface RegistryHelper {
+public interface PlatformHelper {
 
-    RegistryHelper INSTANCE = ServiceLoader.load(RegistryHelper.class, VeryUEConstants.class.getClassLoader())
+    PlatformHelper INSTANCE = ServiceLoader.load(PlatformHelper.class, VeryUEConstants.class.getClassLoader())
             .findFirst()
-            .orElseThrow(() -> new IllegalStateException("No registry helper is available for this mod platform"));
+            .orElseThrow(() -> new IllegalStateException("No platform helper is available for this mod platform"));
+
+    boolean isModLoaded(String modId);
 
     <T> Registry<T> createRegistry(ResourceKey<Registry<T>> key);
 
