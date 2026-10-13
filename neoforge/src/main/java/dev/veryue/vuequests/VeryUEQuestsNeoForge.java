@@ -48,7 +48,7 @@ public class VeryUEQuestsNeoForge {
     }
 
     private void onServerStarted(ServerStartedEvent event) {
-        QuestEditorServer.start();
+        QuestEditorServer.start(event.getServer());
     }
 
     private void onAddReloadListeners(AddReloadListenerEvent event) {

@@ -6,6 +6,8 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.ServiceLoader;
+import java.nio.file.Path;
+import java.util.List;
 
 public interface PlatformHelper {
 
@@ -14,6 +16,8 @@ public interface PlatformHelper {
             .orElseThrow(() -> new IllegalStateException("No platform helper is available for this mod platform"));
 
     boolean isModLoaded(String modId);
+
+    default List<Path> assetRoots() { return List.of(); }
 
     <T> Registry<T> createRegistry(ResourceKey<Registry<T>> key);
 

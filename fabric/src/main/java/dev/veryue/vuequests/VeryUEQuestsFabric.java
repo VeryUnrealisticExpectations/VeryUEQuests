@@ -28,7 +28,7 @@ public class VeryUEQuestsFabric implements ModInitializer {
         });
         ResourceManagerHelper.get(PackType.SERVER_DATA)
                 .registerReloadListener(QuestReloadDelegate.ID, QuestReloadListener::new);
-        ServerLifecycleEvents.SERVER_STARTED.register(server -> QuestEditorServer.start());
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> QuestEditorServer.start(server));
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
             QuestEditorServer.stop();
             QuestReloadDelegate.INSTANCE.clear();

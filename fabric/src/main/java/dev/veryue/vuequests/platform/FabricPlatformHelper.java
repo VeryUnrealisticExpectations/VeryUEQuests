@@ -6,7 +6,16 @@ import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 
+import java.nio.file.Path;
+import java.util.List;
+
 public class FabricPlatformHelper implements PlatformHelper {
+
+    @Override
+    public List<Path> assetRoots() {
+        return FabricLoader.getInstance().getAllMods().stream().flatMap(mod -> mod.getRootPaths().stream())
+                .distinct().toList();
+    }
 
     @Override
     public boolean isModLoaded(String modId) {

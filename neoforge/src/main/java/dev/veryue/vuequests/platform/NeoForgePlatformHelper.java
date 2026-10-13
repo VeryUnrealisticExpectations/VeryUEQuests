@@ -15,10 +15,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.nio.file.Path;
 
 public class NeoForgePlatformHelper implements PlatformHelper {
 
     private final Map<ResourceKey<? extends Registry<?>>, List<Consumer<RegisterEvent>>> pendingRegistrations = new HashMap<>();
+
+    @Override
+    public List<Path> assetRoots() {
+        return ModList.get().getModFiles().stream()
+                .map(info -> info.getFile().getSecureJar().getRootPath())
+                .distinct().toList();
+    }
 
     @Override
     public boolean isModLoaded(String modId) {

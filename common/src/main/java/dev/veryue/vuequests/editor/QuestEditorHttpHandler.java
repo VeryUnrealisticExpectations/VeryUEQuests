@@ -2,60 +2,138 @@ package dev.veryue.vuequests.editor;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import com.google.gson.Gson;
+import com.google.gson.JsonParseException;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 public class QuestEditorHttpHandler implements HttpHandler {
 
+    private static final int STATUS_OK = 200;
+    private static final int STATUS_BAD_REQUEST = 400;
+    private static final int STATUS_FORBIDDEN = 403;
+    private static final int STATUS_NOT_FOUND = 404;
+    private static final int STATUS_METHOD_NOT_ALLOWED = 405;
+    private static final int STATUS_CONFLICT = 409;
+    private static final int STATUS_PAYLOAD_TOO_LARGE = 413;
+    private static final int STATUS_INTERNAL_SERVER_ERROR = 500;
+
     public static final String RESOURCE_ROOT = "/web/vuequests/";
+    private static final Gson JSON = new Gson();
+    private static final int MAX_REQUEST_BYTES = 8 * 1024 * 1024;
+    private final QuestEditorService service;
+    private record ErrorResponse(String error) { }
+
+    public QuestEditorHttpHandler(QuestEditorService service) { this.service = service; }
 
     private static final Map<String, String> CONTENT_TYPES = Map.ofEntries(
             Map.entry("html", "text/html; charset=utf-8"),
             Map.entry("js", "text/javascript; charset=utf-8"),
             Map.entry("css", "text/css; charset=utf-8"),
             Map.entry("json", "application/json; charset=utf-8"),
+            Map.entry("mcmeta", "application/json; charset=utf-8"),
             Map.entry("map", "application/json; charset=utf-8"),
             Map.entry("svg", "image/svg+xml"),
             Map.entry("png", "image/png"),
             Map.entry("jpg", "image/jpeg"),
             Map.entry("jpeg", "image/jpeg"),
             Map.entry("ico", "image/x-icon"),
-            Map.entry("ogg", "audio/ogg")
+            Map.entry("ogg", "audio/ogg"),
+            Map.entry("wasm", "application/wasm"),
+            Map.entry("zip", "application/zip")
     );
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
         try (exchange) {
             boolean head = exchange.getRequestMethod().equals("HEAD");
-            if (!head && !exchange.getRequestMethod().equals("GET")) {
-                exchange.getResponseHeaders().set("Allow", "GET, HEAD");
-                sendError(exchange, 405, "Method Not Allowed", false);
+            try {
+                if (exchange.getRequestURI().getPath().startsWith("/api/")) handleApi(exchange, head);
+                else serveFrontend(exchange, head);
+            } catch (Exception exception) {
+                Throwable cause = exception;
+                while ((cause instanceof ExecutionException || cause instanceof CompletionException) && cause.getCause() != null) cause = cause.getCause();
+                int status = cause instanceof QuestEditorService.ConflictException ? STATUS_CONFLICT
+                        : cause instanceof IllegalArgumentException || cause instanceof JsonParseException ? STATUS_BAD_REQUEST : STATUS_INTERNAL_SERVER_ERROR;
+                error(exchange, status, cause.getMessage() == null ? "The editor request failed." : cause.getMessage(), head);
+            }
+        }
+
+    }
+
+    private void handleApi(HttpExchange exchange, boolean head) throws Exception {
+        String path = exchange.getRequestURI().getPath();
+        String method = exchange.getRequestMethod();
+        if (path.equals("/api/editor") && method.equals("PUT")) {
+            String contentType = exchange.getRequestHeaders().getFirst("Content-Type");
+            if (!validOrigin(exchange) || contentType == null || !contentType.startsWith("application/json")) {
+                error(exchange, STATUS_FORBIDDEN, "Save requests must originate from the editor.", head);
                 return;
             }
-
-            String path = exchange.getRequestURI().getPath();
-            if (!isValidPath(path)) {
-                sendError(exchange, 404, "Not Found", head);
+            byte[] body = exchange.getRequestBody().readNBytes(MAX_REQUEST_BYTES + 1);
+            if (body.length > MAX_REQUEST_BYTES) {
+                error(exchange, STATUS_PAYLOAD_TOO_LARGE, "The quest document is too large.", head);
                 return;
             }
-
-            String resource = path.equals("/") ? "index.html" : path.substring(1);
-            try (InputStream input = QuestEditorHttpHandler.class.getResourceAsStream(RESOURCE_ROOT + resource)) {
-                if (input == null) {
-                    sendError(exchange, 404, "Not Found", head);
-                    return;
+            QuestEditorService.SaveRequest request = JSON.fromJson(new String(body, StandardCharsets.UTF_8), QuestEditorService.SaveRequest.class);
+            if (request == null) throw new IllegalArgumentException("Supply a JSON quest document.");
+            json(exchange, STATUS_OK, service.save(request).get(60, TimeUnit.SECONDS), head);
+            return;
+        }
+        if (!method.equals("GET") && !head) {
+            exchange.getResponseHeaders().set("Allow", path.equals("/api/editor") ? "GET, HEAD, PUT" : "GET, HEAD");
+            error(exchange, STATUS_METHOD_NOT_ALLOWED, "Method not allowed.", head);
+            return;
+        }
+        switch (path) {
+            case "/api/editor" -> json(exchange, STATUS_OK, service.load().get(30, TimeUnit.SECONDS), head);
+            case "/api/assets/file" -> {
+                String resourcePath = parameter(exchange, "path");
+                byte[] resource = QuestEditorAssets.read(resourcePath);
+                assetCacheHeaders(exchange);
+                if (resource == null) error(exchange, STATUS_NOT_FOUND, "Resource not found.", head);
+                else {
+                    send(exchange, STATUS_OK, resource, contentType(resourcePath), head);
                 }
-
-                byte[] content = input.readAllBytes();
-                String extension = resource.substring(resource.lastIndexOf('.') + 1).toLowerCase(Locale.ROOT);
-                exchange.getResponseHeaders().set("Content-Type", CONTENT_TYPES.getOrDefault(extension, "application/octet-stream"));
-                exchange.getResponseHeaders().set("X-Content-Type-Options", "nosniff");
-                sendResponse(exchange, 200, content, head);
             }
+            case "/api/assets/list" -> {
+                var files = QuestEditorAssets.list(parameter(exchange, "path"));
+                assetCacheHeaders(exchange);
+                json(exchange, STATUS_OK, files, head);
+            }
+            default -> error(exchange, STATUS_NOT_FOUND, "Endpoint not found.", head);
+        }
+    }
+
+    private void serveFrontend(HttpExchange exchange, boolean head) throws IOException {
+        if (!head && !exchange.getRequestMethod().equals("GET")) {
+            exchange.getResponseHeaders().set("Allow", "GET, HEAD");
+            error(exchange, STATUS_METHOD_NOT_ALLOWED, "Method Not Allowed", false);
+            return;
+        }
+
+        String path = exchange.getRequestURI().getPath();
+        if (!isValidPath(path)) {
+            error(exchange, STATUS_NOT_FOUND, "Not Found", head);
+            return;
+        }
+
+        String resource = path.equals("/") ? "index.html" : path.substring(1);
+        try (InputStream input = QuestEditorHttpHandler.class.getResourceAsStream(RESOURCE_ROOT + resource)) {
+            if (input == null) {
+                error(exchange, STATUS_NOT_FOUND, "Not Found", head);
+                return;
+            }
+            send(exchange, STATUS_OK, input.readAllBytes(), contentType(resource), head);
         }
     }
 
@@ -71,12 +149,49 @@ public class QuestEditorHttpHandler implements HttpHandler {
         return true;
     }
 
-    private void sendError(HttpExchange exchange, int status, String message, boolean head) throws IOException {
-        exchange.getResponseHeaders().set("Content-Type", "text/plain; charset=utf-8");
-        sendResponse(exchange, status, message.getBytes(StandardCharsets.UTF_8), head);
+    private boolean validOrigin(HttpExchange exchange) {
+        String origin = exchange.getRequestHeaders().getFirst("Origin");
+        if (origin == null) return true;
+        String hostname = URI.create(origin).getHost();
+        String host = URI.create("http://" + exchange.getRequestHeaders().getFirst("Host")).getHost();
+        return hostname != null && hostname.equalsIgnoreCase(host);
     }
 
-    private void sendResponse(HttpExchange exchange, int status, byte[] content, boolean head) throws IOException {
+    private String parameter(HttpExchange exchange, String name) {
+        String query = exchange.getRequestURI().getRawQuery();
+        if (query != null) for (String entry : query.split("&")) {
+            String[] pair = entry.split("=", 2);
+            if (URLDecoder.decode(pair[0], StandardCharsets.UTF_8).equals(name)) {
+                return pair.length == 2 ? URLDecoder.decode(pair[1], StandardCharsets.UTF_8) : "";
+            }
+        }
+        throw new IllegalArgumentException("Missing " + name + " parameter.");
+    }
+
+    private void assetCacheHeaders(HttpExchange exchange) {
+        String query = exchange.getRequestURI().getRawQuery();
+        if (query != null && query.contains("revision=") && parameter(exchange, "revision").equals(QuestEditorAssets.revision())) {
+            exchange.getResponseHeaders().set("Cache-Control", "private, max-age=86400, immutable");
+        }
+    }
+
+    private String contentType(String resource) {
+        String extension = resource.substring(resource.lastIndexOf('.') + 1).toLowerCase(Locale.ROOT);
+        return CONTENT_TYPES.getOrDefault(extension, "application/octet-stream");
+    }
+
+    private void error(HttpExchange exchange, int status, String message, boolean head) throws IOException {
+        json(exchange, status, new ErrorResponse(message), head);
+    }
+
+    private void json(HttpExchange exchange, int status, Object body, boolean head) throws IOException {
+        send(exchange, status, JSON.toJson(body).getBytes(StandardCharsets.UTF_8), "application/json; charset=utf-8", head);
+    }
+
+    private void send(HttpExchange exchange, int status, byte[] content, String type, boolean head) throws IOException {
+        exchange.getResponseHeaders().set("Content-Type", type);
+        exchange.getResponseHeaders().set("X-Content-Type-Options", "nosniff");
+        if (!exchange.getResponseHeaders().containsKey("Cache-Control")) exchange.getResponseHeaders().set("Cache-Control", "no-store");
         if (head) {
             exchange.getResponseHeaders().set("Content-Length", Integer.toString(content.length));
             exchange.sendResponseHeaders(status, -1);
