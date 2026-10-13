@@ -2,16 +2,30 @@ package dev.veryue.vuequests;
 
 import dev.veryue.vuequests.data.quest.QuestReloadDelegate;
 import dev.veryue.vuequests.editor.QuestEditorServer;
+import dev.veryue.vuequests.network.QuestSyncPayload;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.packs.PackType;
+
+import java.util.List;
 
 public class VeryUEQuestsFabric implements ModInitializer {
 
     @Override
     public void onInitialize() {
         VeryUERegistries.init();
+        PayloadTypeRegistry.playS2C().register(QuestSyncPayload.TYPE, QuestSyncPayload.STREAM_CODEC);
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> syncQuests(handler.player));
+        ServerLifecycleEvents.END_DATA_PACK_RELOAD.register((server, resourceManager, success) -> {
+            if (success) {
+                server.getPlayerList().getPlayers().forEach(this::syncQuests);
+            }
+        });
         ResourceManagerHelper.get(PackType.SERVER_DATA)
                 .registerReloadListener(QuestReloadDelegate.ID, QuestReloadListener::new);
         ServerLifecycleEvents.SERVER_STARTED.register(server -> QuestEditorServer.start());
@@ -19,5 +33,11 @@ public class VeryUEQuestsFabric implements ModInitializer {
             QuestEditorServer.stop();
             QuestReloadDelegate.INSTANCE.clear();
         });
+    }
+
+    private void syncQuests(ServerPlayer player) {
+        if (ServerPlayNetworking.canSend(player, QuestSyncPayload.TYPE)) {
+            ServerPlayNetworking.send(player, new QuestSyncPayload(List.copyOf(QuestReloadDelegate.INSTANCE.getData().sections().values())));
+        }
     }
 }

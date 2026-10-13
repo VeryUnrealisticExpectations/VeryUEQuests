@@ -1,5 +1,19 @@
 {
     "key.categories.vuequests": "VUE Quests",
     "key.vuequests.open_quest_menu": "Open Quest Menu",
-    "screen.vuequests.quest_menu": "Quest Menu"
+    "screen.vuequests.quest_menu": "Quest Menu",
+
+    "screen.vuequests.section_title": "VUE Quests",
+
+
+    "screen.vuequests.preview": "Preview",
+    "screen.vuequests.objectives": "Objectives",
+    "screen.vuequests.rewards": "Rewards",
+    "screen.vuequests.no_sections": "No quest sections available.",
+    "screen.vuequests.no_quests": "No quests in this section.",
+    "narration.vuequests.position": "%s of %s",
+    "narration.vuequests.selected_section": "Selected section",
+    "narration.vuequests.panel_usage": "Use Tab or the arrow keys to move between entries. Press Enter or Space to select.",
+    "narration.vuequests.canvas_usage": "Use Tab or the arrow keys to browse quests. Hold Shift and press the arrow keys to move the map. Press Home to center it.",
+    "narration.vuequests.preview_usage": "Use the up and down arrows or Page Up and Page Down to scroll. Use Tab to move to the next panel."
 }

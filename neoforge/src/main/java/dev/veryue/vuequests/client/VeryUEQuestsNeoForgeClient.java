@@ -5,6 +5,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.settings.KeyConflictContext;
 import net.neoforged.neoforge.common.NeoForge;
@@ -17,6 +18,7 @@ public class VeryUEQuestsNeoForgeClient {
     public VeryUEQuestsNeoForgeClient(IEventBus eventBus) {
         eventBus.addListener(this::registerKeyMappings);
         NeoForge.EVENT_BUS.addListener(this::onClientTick);
+        NeoForge.EVENT_BUS.addListener(this::onLoggingOut);
     }
 
     private void registerKeyMappings(RegisterKeyMappingsEvent event) {
@@ -26,5 +28,9 @@ public class VeryUEQuestsNeoForgeClient {
 
     private void onClientTick(ClientTickEvent.Post event) {
         VeryUEKeyMappings.onClientTick(Minecraft.getInstance());
+    }
+
+    private void onLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
+        ClientQuestData.clear();
     }
 }

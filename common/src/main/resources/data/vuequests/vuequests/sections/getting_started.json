@@ -40,6 +40,45 @@
           }
         }
       ]
+    },
+    {
+      "section_id": "75faf305-8bee-496f-be2b-1bb2ffb95b39",
+      "quest_id": "e9c5fe5b-f789-49c4-9fd0-e6a62cab7cef",
+      "position": {
+        "x": 80,
+        "y": 25
+      },
+      "display": {
+        "title": "Collect Cobblestone",
+        "subtitle": "",
+        "description": "Collect 8 cobblestone to earn 1 raw iron.",
+        "icon": "minecraft:cobblestone",
+        "tooltip": "Collect 8 cobblestone."
+      },
+      "objectives": [
+        {
+          "type": "vuequests:collect_item",
+          "objective_id": "a93b3a6c-6325-4f7f-9eaa-1a6ef7635817",
+          "icon": "minecraft:cobblestone",
+          "item": {
+            "id": "minecraft:cobblestone",
+            "count": 8
+          }
+        }
+      ],
+      "rewards": [
+        {
+          "type": "vuequests:item",
+          "reward_id": "1b214493-1ca5-4b4d-9e8b-b6f0f5b82aa0",
+          "item": {
+            "id": "minecraft:raw_iron",
+            "count": 1
+          }
+        }
+      ],
+      "dependencies": [
+        "163a3730-b87b-4553-9c0d-6e391272ffb1"
+      ]
     }
   ]
 }
