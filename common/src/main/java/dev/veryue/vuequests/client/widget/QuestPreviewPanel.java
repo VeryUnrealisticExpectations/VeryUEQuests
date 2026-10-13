@@ -1,5 +1,6 @@
 package dev.veryue.vuequests.client.widget;
 
+import dev.veryue.vuequests.client.ClientQuestData;
 import dev.veryue.vuequests.client.models.QuestPreviewEntry;
 import dev.veryue.vuequests.models.quest.Quest;
 import net.minecraft.client.gui.Font;
@@ -15,6 +16,7 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class QuestPreviewPanel extends AbstractScrollWidget {
 

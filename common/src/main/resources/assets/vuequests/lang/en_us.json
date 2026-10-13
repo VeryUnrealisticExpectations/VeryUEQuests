@@ -7,6 +7,8 @@
 
 
     "screen.vuequests.preview": "Preview",
+    "screen.vuequests.prerequisites": "Complete first",
+    "screen.vuequests.unknown_prerequisite": "Unavailable quest",
     "screen.vuequests.objectives": "Objectives",
     "screen.vuequests.rewards": "Rewards",
     "screen.vuequests.no_sections": "No quest sections available.",
