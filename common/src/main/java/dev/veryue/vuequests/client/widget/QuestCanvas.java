@@ -9,16 +9,21 @@ import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
 
 public class QuestCanvas extends QuestPanel {
+
+    private static final double[] ZOOM_LEVELS = {0.25, 0.5, 0.75, 1, 1.5, 2};
+    private static final int DEFAULT_ZOOM_LEVEL = 2;
 
     private final List<QuestNodeWidget> nodes = new ArrayList<>();
     private final List<QuestDependencyLine> dependencyLines = new ArrayList<>();
@@ -26,6 +31,7 @@ public class QuestCanvas extends QuestPanel {
     private Section section;
     private double panX;
     private double panY;
+    private int zoomLevel = DEFAULT_ZOOM_LEVEL;
     private boolean panning;
 
     public QuestCanvas(Font font, Consumer<Quest> onPreview) {
@@ -78,19 +84,51 @@ public class QuestCanvas extends QuestPanel {
         return new ScreenRectangle(getX(), contentTop(), getWidth(), Math.max(0, getBottom() - contentTop() - 11));
     }
 
+    public double getZoom() {
+        return ZOOM_LEVELS[zoomLevel];
+    }
+
+    public double toCanvasX(double screenX) {
+        ScreenRectangle viewport = viewport();
+        return (screenX - viewport.left() - viewport.width() / 2.0 - panX) / getZoom();
+    }
+
+    public double toCanvasY(double screenY) {
+        ScreenRectangle viewport = viewport();
+        return (screenY - viewport.top() - viewport.height() / 2.0 - panY) / getZoom();
+    }
+
     private void recenter() {
         panX = 0;
         panY = 0;
+        zoomLevel = DEFAULT_ZOOM_LEVEL;
         panning = false;
         positionNodes();
     }
 
     private void positionNodes() {
         ScreenRectangle viewport = viewport();
+        double zoom = getZoom();
+        int size = (int) Math.round(QuestNodeWidget.SIZE * zoom);
         for (QuestNodeWidget node : nodes) {
-            node.setX((int) Math.round(viewport.left() + viewport.width() / 2.0 + panX + node.getQuest().position().x() - QuestNodeWidget.SIZE / 2.0));
-            node.setY((int) Math.round(viewport.top() + viewport.height() / 2.0 + panY + node.getQuest().position().y() - QuestNodeWidget.SIZE / 2.0));
+            int x = (int) Math.round(viewport.left() + viewport.width() / 2.0 + panX + node.getQuest().position().x() * zoom - size / 2.0);
+            int y = (int) Math.round(viewport.top() + viewport.height() / 2.0 + panY + node.getQuest().position().y() * zoom - size / 2.0);
+            node.setRectangle(size, size, x, y);
         }
+    }
+
+    private void zoomAt(int direction, double mouseX, double mouseY) {
+        int nextLevel = Mth.clamp(zoomLevel + direction, 0, ZOOM_LEVELS.length - 1);
+        if (nextLevel == zoomLevel) {
+            return;
+        }
+        double x = toCanvasX(mouseX);
+        double y = toCanvasY(mouseY);
+        double previousZoom = getZoom();
+        zoomLevel = nextLevel;
+        panX += x * (previousZoom - getZoom());
+        panY += y * (previousZoom - getZoom());
+        positionNodes();
     }
 
     @Override
@@ -116,6 +154,15 @@ public class QuestCanvas extends QuestPanel {
                     viewport.left() + viewport.width() / 2, viewport.top() + viewport.height() / 2, 0xFFAFAFAF);
         }
         graphics.disableScissor();
+        graphics.enableScissor(getX(), viewport.bottom(), getRight(), getBottom());
+        graphics.drawString(font, Component.translatable("screen.vuequests.canvas_position",
+                        formatCoordinate(toCanvasX(mouseX)), formatCoordinate(toCanvasY(mouseY))),
+                getX() + 4, getBottom() - font.lineHeight - 2, 0xFFE0E0E0);
+        graphics.disableScissor();
+    }
+
+    private static String formatCoordinate(double coordinate) {
+        return String.format(Locale.ROOT, "%.1f", Math.abs(coordinate) < 0.05 ? 0 : coordinate);
     }
 
     public Quest questAt(double mouseX, double mouseY) {
@@ -188,12 +235,29 @@ public class QuestCanvas extends QuestPanel {
     }
 
     @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (!isActive() || !viewport().containsPoint((int) mouseX, (int) mouseY) || scrollY == 0) {
+            return false;
+        }
+        zoomAt(scrollY > 0 ? 1 : -1, mouseX, mouseY);
+        return true;
+    }
+
+    @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (!isActive() || !isFocused()) {
             return false;
         }
+        // todo; add configurable keybinds that are context tied to the UI.
         if (keyCode == GLFW.GLFW_KEY_HOME) {
             recenter();
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_EQUAL || keyCode == GLFW.GLFW_KEY_KP_ADD
+                || keyCode == GLFW.GLFW_KEY_MINUS || keyCode == GLFW.GLFW_KEY_KP_SUBTRACT) {
+            ScreenRectangle viewport = viewport();
+            int direction = keyCode == GLFW.GLFW_KEY_EQUAL || keyCode == GLFW.GLFW_KEY_KP_ADD ? 1 : -1;
+            zoomAt(direction, viewport.left() + viewport.width() / 2.0, viewport.top() + viewport.height() / 2.0);
             return true;
         }
         if ((modifiers & GLFW.GLFW_MOD_SHIFT) != 0) {

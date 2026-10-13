@@ -32,8 +32,10 @@ public record QuestDependencyLine(QuestNodeWidget prerequisite, QuestNodeWidget 
         try {
             pose.translate(startX, startY, -1);
             pose.mulPose(Axis.ZP.rotation((float) Math.atan2(deltaY, deltaX)));
-            float feather = (float) (1.0 / Minecraft.getInstance().getWindow().getGuiScale());
-            render(graphics, (float) distance, feather, BORDER_COLOR, LINE_COLOR);
+            float zoom = prerequisite.getWidth() / (float) QuestNodeWidget.SIZE;
+            pose.scale(zoom, zoom, 1);
+            float feather = (float) (1.0 / (Minecraft.getInstance().getWindow().getGuiScale() * zoom));
+            render(graphics, (float) distance / zoom, feather, BORDER_COLOR, LINE_COLOR);
         } finally {
             pose.popPose();
         }

@@ -1,5 +1,6 @@
 package dev.veryue.vuequests.client.widget;
 
+import com.mojang.blaze3d.vertex.PoseStack;
 import dev.veryue.vuequests.models.quest.Quest;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -31,7 +32,15 @@ public class QuestNodeWidget extends Button {
 
     @Override
     protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        QuestWidgetSprites.blit(graphics, QuestWidgetSprites.QUEST, getX(), getY(), getWidth(), getHeight());
-        graphics.renderItem(icon, getX() + 4, getY() + 4);
+        PoseStack pose = graphics.pose();
+        pose.pushPose();
+        try {
+            pose.translate(getX(), getY(), 0);
+            pose.scale(getWidth() / (float) SIZE, getHeight() / (float) SIZE, 1);
+            QuestWidgetSprites.blit(graphics, QuestWidgetSprites.QUEST, 0, 0, SIZE, SIZE);
+            graphics.renderItem(icon, 4, 4);
+        } finally {
+            pose.popPose();
+        }
     }
 }
