@@ -23,7 +23,6 @@
         {
           "type": "vuequests:collect_item",
           "objective_id": "150b8ad1-f854-40ca-9ee5-0cb38f2b4642",
-          "icon": "minecraft:oak_log",
           "item": {
             "id": "minecraft:oak_log",
             "count": 5
@@ -59,7 +58,6 @@
         {
           "type": "vuequests:collect_item",
           "objective_id": "a93b3a6c-6325-4f7f-9eaa-1a6ef7635817",
-          "icon": "minecraft:cobblestone",
           "item": {
             "id": "minecraft:cobblestone",
             "count": 8

@@ -5,6 +5,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.locale.Language;
 
 import static dev.veryue.vuequests.VeryUEConstants.MOD_ID;
 
@@ -38,7 +39,7 @@ public class QuestWidgetSprites {
 
     public static void renderPanel(GuiGraphics graphics, Font font, AbstractWidget widget, ResourceLocation sprite) {
         blit(graphics, sprite, widget.getX(), widget.getY(), widget.getWidth(), widget.getHeight());
-        graphics.drawString(font, font.substrByWidth(widget.getMessage(), Math.max(1, widget.getWidth() - 8)).getString(),
+        graphics.drawString(font, Language.getInstance().getVisualOrder(font.substrByWidth(widget.getMessage(), Math.max(1, widget.getWidth() - 8))),
                 widget.getX() + 4, widget.getY() + 4, 0xFFE0E0E0);
     }
 }

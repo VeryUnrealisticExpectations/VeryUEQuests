@@ -1,6 +1,7 @@
 package dev.veryue.vuequests.client;
 
 import net.minecraft.client.Minecraft;
+import dev.veryue.vuequests.client.editor.ClientEditorResources;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
@@ -16,6 +17,7 @@ import static dev.veryue.vuequests.VeryUEConstants.MOD_ID;
 public class VeryUEQuestsNeoForgeClient {
 
     public VeryUEQuestsNeoForgeClient(IEventBus eventBus) {
+        ClientEditorResources.initialize();
         eventBus.addListener(this::registerKeyMappings);
         NeoForge.EVENT_BUS.addListener(this::onClientTick);
         NeoForge.EVENT_BUS.addListener(this::onLoggingOut);
@@ -27,6 +29,7 @@ public class VeryUEQuestsNeoForgeClient {
     }
 
     private void onClientTick(ClientTickEvent.Post event) {
+        ClientEditorResources.tick(Minecraft.getInstance());
         VeryUEKeyMappings.onClientTick(Minecraft.getInstance());
     }
 

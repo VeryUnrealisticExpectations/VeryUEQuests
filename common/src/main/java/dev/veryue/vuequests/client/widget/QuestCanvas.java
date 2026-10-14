@@ -60,7 +60,7 @@ public class QuestCanvas extends QuestPanel {
                 }
             }
         }
-        setMessage(section == null ? Component.translatable("screen.vuequests.quest_menu") : Component.literal(section.name()));
+        setMessage(section == null ? Component.translatable("screen.vuequests.quest_menu") : section.name());
         recenter();
     }
 

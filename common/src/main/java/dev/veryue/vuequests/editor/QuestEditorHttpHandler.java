@@ -4,6 +4,8 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.google.gson.Gson;
 import com.google.gson.JsonParseException;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonElement;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,6 +17,7 @@ import java.util.Map;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class QuestEditorHttpHandler implements HttpHandler {
 
@@ -26,6 +29,7 @@ public class QuestEditorHttpHandler implements HttpHandler {
     private static final int STATUS_CONFLICT = 409;
     private static final int STATUS_PAYLOAD_TOO_LARGE = 413;
     private static final int STATUS_INTERNAL_SERVER_ERROR = 500;
+    private static final int STATUS_SERVICE_UNAVAILABLE = 503;
 
     public static final String RESOURCE_ROOT = "/web/vuequests/";
     private static final Gson JSON = new Gson();
@@ -63,6 +67,7 @@ public class QuestEditorHttpHandler implements HttpHandler {
                 Throwable cause = exception;
                 while ((cause instanceof ExecutionException || cause instanceof CompletionException) && cause.getCause() != null) cause = cause.getCause();
                 int status = cause instanceof QuestEditorService.ConflictException ? STATUS_CONFLICT
+                        : cause instanceof EditorResourcesUnavailableException || cause instanceof TimeoutException ? STATUS_SERVICE_UNAVAILABLE
                         : cause instanceof IllegalArgumentException || cause instanceof JsonParseException ? STATUS_BAD_REQUEST : STATUS_INTERNAL_SERVER_ERROR;
                 error(exchange, status, cause.getMessage() == null ? "The editor request failed." : cause.getMessage(), head);
             }
@@ -73,6 +78,13 @@ public class QuestEditorHttpHandler implements HttpHandler {
     private void handleApi(HttpExchange exchange, boolean head) throws Exception {
         String path = exchange.getRequestURI().getPath();
         String method = exchange.getRequestMethod();
+        if ((path.equals("/api/editor/components/preview") || path.equals("/api/editor/components/validate")) && method.equals("POST")) {
+            JsonObject request = readComponentRequest(exchange, path.endsWith("preview") ? 128 * 1024 : MAX_REQUEST_BYTES);
+            Object response = path.endsWith("preview") ? QuestEditorResources.preview(request).get(3, TimeUnit.SECONDS)
+                    : service.validateComponent(request).get(30, TimeUnit.SECONDS);
+            json(exchange, STATUS_OK, response, head);
+            return;
+        }
         if (path.equals("/api/editor") && method.equals("PUT")) {
             String contentType = exchange.getRequestHeaders().getFirst("Content-Type");
             if (!validOrigin(exchange) || contentType == null || !contentType.startsWith("application/json")) {
@@ -90,15 +102,29 @@ public class QuestEditorHttpHandler implements HttpHandler {
             return;
         }
         if (!method.equals("GET") && !head) {
-            exchange.getResponseHeaders().set("Allow", path.equals("/api/editor") ? "GET, HEAD, PUT" : "GET, HEAD");
+            exchange.getResponseHeaders().set("Allow", path.equals("/api/editor") ? "GET, HEAD, PUT" : path.startsWith("/api/editor/components/") ? "POST" : "GET, HEAD");
             error(exchange, STATUS_METHOD_NOT_ALLOWED, "Method not allowed.", head);
             return;
         }
         switch (path) {
             case "/api/editor" -> json(exchange, STATUS_OK, service.load().get(30, TimeUnit.SECONDS), head);
+            case "/api/editor/resources" -> {
+                String currentEtag = "\"" + QuestEditorAssets.revision() + "\"";
+                if (currentEtag.equals(exchange.getRequestHeaders().getFirst("If-None-Match"))) {
+                    exchange.getResponseHeaders().set("ETag", currentEtag);
+                    exchange.getResponseHeaders().set("Cache-Control", "no-cache");
+                    exchange.sendResponseHeaders(304, -1);
+                    return;
+                }
+                JsonObject resources = QuestEditorResources.describe().get(3, TimeUnit.SECONDS);
+                String etag = "\"" + resources.get("assetRevision").getAsString() + "\"";
+                exchange.getResponseHeaders().set("ETag", etag);
+                if (etag.equals(exchange.getRequestHeaders().getFirst("If-None-Match"))) exchange.sendResponseHeaders(304, -1);
+                else json(exchange, STATUS_OK, resources, head);
+            }
             case "/api/assets/file" -> {
                 String resourcePath = parameter(exchange, "path");
-                byte[] resource = QuestEditorAssets.read(resourcePath);
+                byte[] resource = QuestEditorResources.read(resourcePath).get(3, TimeUnit.SECONDS);
                 assetCacheHeaders(exchange);
                 if (resource == null) error(exchange, STATUS_NOT_FOUND, "Resource not found.", head);
                 else {
@@ -106,12 +132,31 @@ public class QuestEditorHttpHandler implements HttpHandler {
                 }
             }
             case "/api/assets/list" -> {
-                var files = QuestEditorAssets.list(parameter(exchange, "path"));
+                var files = QuestEditorResources.list(parameter(exchange, "path")).get(3, TimeUnit.SECONDS);
                 assetCacheHeaders(exchange);
                 json(exchange, STATUS_OK, files, head);
             }
             default -> error(exchange, STATUS_NOT_FOUND, "Endpoint not found.", head);
         }
+    }
+
+    private JsonObject readComponentRequest(HttpExchange exchange, int maximumBytes) throws IOException {
+        String contentType = exchange.getRequestHeaders().getFirst("Content-Type");
+        if (!validOrigin(exchange) || contentType == null || !contentType.startsWith("application/json")) {
+            throw new IllegalArgumentException("Component requests must originate from the editor and contain JSON.");
+        }
+        byte[] body = exchange.getRequestBody().readNBytes(maximumBytes + 1);
+        if (body.length > maximumBytes) throw new IllegalArgumentException("The component request is too large.");
+        JsonObject request = JSON.fromJson(new String(body, StandardCharsets.UTF_8), JsonObject.class);
+        if (request == null) throw new IllegalArgumentException("Supply a component request.");
+        checkJsonDepth(request, 0);
+        return request;
+    }
+
+    private static void checkJsonDepth(JsonElement element, int depth) {
+        if (depth > 64) throw new IllegalArgumentException("Component nesting exceeds 64 levels.");
+        if (element.isJsonObject()) element.getAsJsonObject().entrySet().forEach(entry -> checkJsonDepth(entry.getValue(), depth + 1));
+        else if (element.isJsonArray()) element.getAsJsonArray().forEach(child -> checkJsonDepth(child, depth + 1));
     }
 
     private void serveFrontend(HttpExchange exchange, boolean head) throws IOException {

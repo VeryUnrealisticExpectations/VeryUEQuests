@@ -47,6 +47,12 @@ public final class QuestEditorAssets {
 
     public static synchronized String revision() { return revision; }
 
+    public static synchronized void invalidate() {
+        files.clear();
+        directories.clear();
+        revision = UUID.randomUUID().toString();
+    }
+
     public static synchronized byte[] read(String path) throws IOException {
         validate(path);
         if (!path.startsWith("assets/") || path.split("/").length < 3) return null;
@@ -86,7 +92,7 @@ public final class QuestEditorAssets {
         return result;
     }
 
-    private static void validate(String path) {
+    public static void validate(String path) {
         if (path.isEmpty()) return;
         if ((!path.equals("assets") && !path.startsWith("assets/")) || path.indexOf('\\') >= 0 || path.indexOf('\0') >= 0) {
             throw new IllegalArgumentException("Invalid resource path");

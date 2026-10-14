@@ -61,7 +61,7 @@ public class QuestScreen extends Screen {
         }
         data = latest;
         List<Section> sections = data.sections().values().stream()
-                .sorted(Comparator.comparing(Section::name, String.CASE_INSENSITIVE_ORDER).thenComparing(Section::sectionUUID))
+                .sorted(Comparator.comparing((Section section) -> section.name().getString(), String.CASE_INSENSITIVE_ORDER).thenComparing(Section::sectionUUID))
                 .toList();
         sectionPanel.setSections(sections);
         Section selected = selectedSection == null ? null : data.sections().get(selectedSection);

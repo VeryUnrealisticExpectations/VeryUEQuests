@@ -24,6 +24,7 @@ public class QuestEditorServer {
         String host = System.getProperty(MOD_ID + ".editor.host", "127.0.0.1");
         try {
             QuestEditorAssets.discoverRoots();
+            QuestEditorResources.start(minecraftServer);
             int port = Integer.parseInt(System.getProperty(MOD_ID + ".editor.port", "6700"));
             int boundPort = start(host, port, new QuestEditorService(minecraftServer));
             LOGGER.info("Quest editor available at http://{}:{}/", host, boundPort);
@@ -61,5 +62,6 @@ public class QuestEditorServer {
             executor = null;
         }
         QuestEditorAssets.setRoots(List.of());
+        QuestEditorResources.stop();
     }
 }

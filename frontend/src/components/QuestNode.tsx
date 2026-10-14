@@ -1,14 +1,19 @@
-import type { PointerEvent } from 'react'
-import type { Quest } from '../types.ts'
+import type { MouseEvent, PointerEvent } from 'react'
+import type { ComponentTextContext, Quest } from '../types.ts'
+import { ComponentText } from './ComponentText.tsx'
+import { plainComponentText } from '../lib/components.ts'
 import { ItemIcon } from './ItemIcon.tsx'
 
-export function QuestNode({ quest, selected, prerequisite, epoch, onPointerDown, onSelect, onEdit }:
-  { quest: Quest; selected: boolean; prerequisite: boolean; epoch: number; onPointerDown: (event: PointerEvent<HTMLButtonElement>) => void;
-    onSelect: () => void; onEdit: () => void }) {
-  return <button type="button" className={`quest-node ${selected ? 'selected' : ''} ${prerequisite ? 'connection-source' : ''}`}
-    style={{ left: quest.position.x, top: quest.position.y }} aria-label={quest.display.title} aria-pressed={selected}
-    title={quest.display.tooltip || quest.display.title} onPointerDown={onPointerDown} onClick={onSelect} onDoubleClick={onEdit}
-    onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); onEdit() } }}>
-    <ItemIcon id={quest.display.icon} epoch={epoch} /><span className="quest-label">{quest.display.title}</span>
+export function QuestNode({ quest, selected, prerequisite, connecting, disabled, epoch, textContext, onPointerDown, onContextMenu, onSelect, onEdit }:
+  { quest: Quest; selected: boolean; prerequisite: boolean; connecting: boolean; disabled: boolean; epoch: number;
+    textContext: ComponentTextContext; onPointerDown: (event: PointerEvent<HTMLButtonElement>) => void;
+    onContextMenu: (event: MouseEvent<HTMLButtonElement>) => void; onSelect: (event?: MouseEvent<HTMLButtonElement>) => void;
+    onEdit: (event?: MouseEvent<HTMLButtonElement>) => void }) {
+  const title = plainComponentText(quest.display.title, textContext)
+  return <button type="button" className={`mc-button mc-button--gray mc-button--node quest-node ${selected ? 'selected' : ''} ${prerequisite ? 'connection-source' : ''}`}
+    disabled={disabled} style={{ left: quest.position.x, top: quest.position.y }} aria-label={title} aria-pressed={selected}
+    title={quest.display.tooltip || title} onPointerDown={onPointerDown} onContextMenu={onContextMenu} onClick={onSelect} onDoubleClick={onEdit}
+    onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); if (connecting) onSelect(); else onEdit() } }}>
+    <ItemIcon id={quest.display.icon} epoch={epoch} /><span className="quest-label"><ComponentText value={quest.display.title} textContext={textContext} useInterfaceFont /></span>
   </button>
 }

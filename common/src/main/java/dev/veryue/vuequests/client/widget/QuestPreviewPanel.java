@@ -4,11 +4,13 @@ import dev.veryue.vuequests.client.ClientQuestData;
 import dev.veryue.vuequests.client.models.QuestPreviewEntry;
 import dev.veryue.vuequests.models.quest.Quest;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractScrollWidget;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
@@ -50,12 +52,12 @@ public class QuestPreviewPanel extends AbstractScrollWidget {
         this.quest = quest;
         entries.clear();
         if (quest != null) {
-            addText(Component.literal(quest.display().title()), 0xFFFFFFFF);
-            if (!quest.display().subtitle().isBlank()) {
-                addText(Component.literal(quest.display().subtitle()), MUTED_COLOR);
+            addText(quest.display().title(), 0xFFFFFFFF);
+            if (!quest.display().subtitle().getString().isBlank()) {
+                addText(quest.display().subtitle(), MUTED_COLOR);
             }
-            if (!quest.display().description().isBlank()) {
-                addText(Component.literal(quest.display().description()), TEXT_COLOR);
+            if (!quest.display().description().getString().isBlank()) {
+                addText(quest.display().description(), TEXT_COLOR);
             }
             addText(Component.translatable("screen.vuequests.objectives"), HEADING_COLOR);
         }
@@ -84,6 +86,26 @@ public class QuestPreviewPanel extends AbstractScrollWidget {
         renderContents(graphics, mouseX, mouseY, partialTick);
         graphics.disableScissor();
         renderDecorations(graphics);
+        Style hovered = styleAt(mouseX, mouseY);
+        if (hovered != null) graphics.renderComponentHoverEffect(font, hovered, mouseX, mouseY);
+    }
+
+    private Style styleAt(double mouseX, double mouseY) {
+        if (!isMouseOver(mouseX, mouseY) || mouseY < contentTop()) return null;
+        int y = contentTop() + 1 - (int) scrollAmount();
+        for (QuestPreviewEntry entry : visibleEntries()) {
+            boolean hasIcon = !entry.icon().isEmpty();
+            int textX = getX() + 4 + (hasIcon ? 20 : 0);
+            int textY = y;
+            for (FormattedCharSequence line : font.split(entry.text(), textWidth(hasIcon))) {
+                if (mouseY >= textY && mouseY < textY + font.lineHeight && mouseX >= textX && mouseX < textX + font.width(line)) {
+                    return font.getSplitter().componentStyleAtWidth(line, (int) (mouseX - textX));
+                }
+                textY += font.lineHeight + 1;
+            }
+            y += entryHeight(entry);
+        }
+        return null;
     }
 
     @Override
@@ -158,6 +180,8 @@ public class QuestPreviewPanel extends AbstractScrollWidget {
         if (!isMouseOver(mouseX, mouseY) || button != 0) {
             return false;
         }
+        Style style = styleAt(mouseX, mouseY);
+        if (style != null && Minecraft.getInstance().screen != null && Minecraft.getInstance().screen.handleComponentClicked(style)) return true;
         if (scrollbarVisible() && mouseX >= getRight() - SCROLLBAR_WIDTH && mouseY >= contentTop()) {
             scrolling = true;
             scrollTo(mouseY);

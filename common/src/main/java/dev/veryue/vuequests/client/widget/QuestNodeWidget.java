@@ -18,7 +18,7 @@ public class QuestNodeWidget extends Button {
     private final ItemStack icon;
 
     public QuestNodeWidget(Quest quest, Consumer<Quest> onSelect) {
-        super(0, 0, SIZE, SIZE, Component.literal(quest.display().title()), button -> onSelect.accept(quest), DEFAULT_NARRATION);
+        super(0, 0, SIZE, SIZE, quest.display().title(), button -> onSelect.accept(quest), DEFAULT_NARRATION);
         this.quest = quest;
         icon = new ItemStack(quest.display().icon());
         if (!quest.display().tooltip().isBlank()) {

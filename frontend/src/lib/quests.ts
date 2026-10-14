@@ -16,9 +16,9 @@ export function newQuest(sectionId: string, position: Position): Quest {
 }
 
 export function newTask(kind: 'objective' | 'reward', type: string, id: string = crypto.randomUUID()): Task {
-  const identity = kind === 'objective' ? { objective_id: id, icon: 'minecraft:book' } : { reward_id: id }
-  if (type === 'vuequests:collect_item') return { ...identity, type, icon: 'minecraft:cobblestone', item: { id: 'minecraft:cobblestone', count: 1 } }
-  if (type === 'vuequests:entity') return { ...identity, type, icon: 'minecraft:zombie_spawn_egg', entity: 'minecraft:zombie' }
+  const identity = kind === 'objective' ? { objective_id: id } : { reward_id: id }
+  if (type === 'vuequests:collect_item') return { ...identity, type, item: { id: 'minecraft:cobblestone', count: 1 } }
+  if (type === 'vuequests:entity') return { ...identity, type, entity: 'minecraft:zombie' }
   if (type === 'vuequests:item') return { ...identity, type, item: { id: 'minecraft:diamond', count: 1 } }
   if (type === 'vuequests:experience') return { ...identity, type, experience: 1 }
   return { ...identity, type }
@@ -63,6 +63,31 @@ export function connectQuests(sections: Section[], prerequisite: string, depende
   const problem = dependencyProblem(updated)
   if (problem) throw new Error(problem)
   return updated
+}
+
+export function toggleQuestDependency(sections: Section[], prerequisite: string, dependent: string): Section[] {
+  if (prerequisite === dependent) throw new Error('A quest cannot depend on itself.')
+  const quests = allQuests(sections)
+  const from = quests.find(quest => quest.quest_id === prerequisite)
+  const to = quests.find(quest => quest.quest_id === dependent)
+  if (!from) throw new Error('The prerequisite quest is missing.')
+  if (!to) throw new Error('The dependent quest is missing.')
+  const remove = to.dependencies.includes(prerequisite)
+  const updated = sections.map(section => ({ ...section, quests: section.quests.map(quest => {
+    if (quest.quest_id === dependent) return { ...quest, dependencies: remove
+      ? quest.dependencies.filter(id => id !== prerequisite)
+      : [...new Set([...quest.dependencies, prerequisite])] }
+    if (!remove && quest.quest_id === prerequisite) return { ...quest, dependencies: quest.dependencies.filter(id => id !== dependent) }
+    return quest
+  }) }))
+  const problem = dependencyProblem(updated)
+  if (problem) throw new Error(problem)
+  return updated
+}
+
+export function snapQuestPosition(position: Position, modifiers: { ctrlKey?: boolean; shiftKey?: boolean } = {}): Position {
+  const step = modifiers.ctrlKey ? 5 : 1
+  return { x: Math.round(position.x / step) * step || 0, y: Math.round(position.y / step) * step || 0 }
 }
 
 export function removeQuests(sections: Section[], ids: Set<string>): Section[] {

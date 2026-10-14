@@ -7,6 +7,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
+import net.minecraft.locale.Language;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.function.Consumer;
@@ -19,7 +20,7 @@ public class QuestSectionButton extends Button {
     private boolean selected;
 
     public QuestSectionButton(Font font, Section section, Consumer<Section> onSelect) {
-        super(0, 0, 0, 20, Component.literal(section.name()), button -> onSelect.accept(section), DEFAULT_NARRATION);
+        super(0, 0, 0, 20, section.name(), button -> onSelect.accept(section), DEFAULT_NARRATION);
         this.font = font;
         this.section = section;
         icon = new ItemStack(section.icon());
@@ -37,7 +38,7 @@ public class QuestSectionButton extends Button {
     protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         QuestWidgetSprites.blit(graphics, selected ? QuestWidgetSprites.SECTION_SELECTED : QuestWidgetSprites.SECTION, getX(), getY(), getWidth(), getHeight());
         graphics.renderItem(icon, getX() + 4, getY() + 2);
-        graphics.drawString(font, font.substrByWidth(getMessage(), Math.max(1, getWidth() - 28)).getString(),
+        graphics.drawString(font, Language.getInstance().getVisualOrder(font.substrByWidth(getMessage(), Math.max(1, getWidth() - 28))),
                 getX() + 24, getY() + 5, selected ? 0xFFFFFFFF : 0xFFD0D0D0);
     }
 

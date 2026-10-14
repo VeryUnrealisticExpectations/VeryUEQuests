@@ -16,6 +16,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.SpawnEggItem;
+import net.minecraft.network.chat.ComponentSerialization;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -57,6 +58,18 @@ public class QuestEditorService {
             Document document = new QuestEditorStorage(server.getWorldPath(LevelResource.DATAPACK_DIR)).read(server.getResourceManager());
             return new Snapshot(document.sections(), document.revision(), SharedConstants.getCurrentVersion().getName(),
                     QuestEditorAssets.revision(), createCatalog());
+        });
+    }
+
+    public CompletableFuture<JsonObject> validateComponent(JsonObject request) {
+        return server.submit(() -> {
+            if (!request.has("component")) throw new IllegalArgumentException("Supply a component.");
+            ComponentSerialization.CODEC.parse(server.registryAccess().createSerializationContext(JsonOps.INSTANCE), request.get("component"))
+                    .getOrThrow(IllegalArgumentException::new);
+            JsonObject response = new JsonObject();
+            response.addProperty("valid", true);
+            response.add("component", request.get("component").deepCopy());
+            return response;
         });
     }
 
