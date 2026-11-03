@@ -3,6 +3,9 @@ package dev.veryue.vuequests.editor;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.serialization.JsonOps;
+import dev.veryue.vuequests.editor.api.models.responses.MutationResponse;
+import dev.veryue.vuequests.editor.api.models.QuestApiDocument;
+import dev.veryue.vuequests.editor.api.QuestApiService;
 import dev.veryue.vuequests.models.quest.Quest;
 import dev.veryue.vuequests.models.quest.Section;
 import dev.veryue.vuequests.platform.PlatformHelper;
@@ -30,6 +33,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class QuestEditorService {
@@ -53,6 +58,8 @@ public class QuestEditorService {
         this.server = server;
     }
 
+    public QuestApiService api() { return new QuestApiService(server, this); }
+
     public CompletableFuture<Snapshot> load() {
         return server.submit(() -> {
             Document document = new QuestEditorStorage(server.getWorldPath(LevelResource.DATAPACK_DIR)).read(server.getResourceManager());
@@ -74,16 +81,38 @@ public class QuestEditorService {
     }
 
     public CompletableFuture<Snapshot> save(SaveRequest request) {
+        return persist(previous -> {
+            if (request.revision() == null) throw new IllegalArgumentException("Supply the editor document revision.");
+            checkRevision(previous, request.revision());
+            return request.sections();
+        }).thenCompose(ignored -> load());
+    }
+
+    public <T> CompletableFuture<MutationResponse<T>> mutate(String revision, Function<QuestApiDocument, T> mutation) {
+        AtomicReference<T> result = new AtomicReference<>();
+        return persist(previous -> {
+            checkRevision(previous, revision);
+            QuestApiDocument document = new QuestApiDocument(previous.sections(),
+                    server.registryAccess().createSerializationContext(JsonOps.INSTANCE), PlatformHelper.INSTANCE::isModLoaded);
+            result.set(mutation.apply(document));
+            return document.encode();
+        }).thenApply(savedRevision -> new MutationResponse<>(result.get(), savedRevision));
+    }
+
+    private static void checkRevision(Document previous, String revision) {
+        if (revision != null && !previous.revision().equals(revision)) {
+            throw new ConflictException("Quests changed since this document loaded. Reload before saving.");
+        }
+    }
+
+    private CompletableFuture<String> persist(Function<Document, List<JsonObject>> prepare) {
         if (!saving.compareAndSet(false, true)) {
             return CompletableFuture.failedFuture(new ConflictException("A save is already in progress."));
         }
         return server.submit(() -> {
             QuestEditorStorage storage = new QuestEditorStorage(server.getWorldPath(LevelResource.DATAPACK_DIR));
             Document previous = storage.read(server.getResourceManager());
-            if (!previous.revision().equals(request.revision())) {
-                throw new ConflictException("Quests changed since this editor loaded. Reload before saving.");
-            }
-            List<JsonObject> sections = request.sections();
+            List<JsonObject> sections = prepare.apply(previous);
             validate(sections, server.registryAccess().createSerializationContext(JsonOps.INSTANCE), PlatformHelper.INSTANCE::isModLoaded);
             try {
                 storage.save(previous, sections);
@@ -95,15 +124,18 @@ public class QuestEditorService {
             packs.remove(QuestEditorStorage.PACK_ID);
             packs.add(QuestEditorStorage.PACK_ID);
             return packs;
-        }).thenCompose(server::reloadResources).thenCompose(ignored -> load())
+        }).thenCompose(server::reloadResources).thenCompose(ignored -> server.submit(() ->
+                new QuestEditorStorage(server.getWorldPath(LevelResource.DATAPACK_DIR)).read(server.getResourceManager()).revision()))
                 .whenComplete((result, failure) -> saving.set(false));
     }
 
-    static void validate(List<JsonObject> sections, RegistryOps<JsonElement> ops, Predicate<String> isModLoaded) {
+    public static void validate(List<JsonObject> sections, RegistryOps<JsonElement> ops, Predicate<String> isModLoaded) {
         if (sections == null || sections.size() > 2048) {
             throw new IllegalArgumentException("Supply a quest section list with at most 2048 sections.");
         }
         Set<UUID> sectionIds = new HashSet<>();
+        Set<UUID> objectiveIds = new HashSet<>();
+        Set<UUID> rewardIds = new HashSet<>();
         Map<UUID, Quest> quests = new HashMap<>();
         var sectionIdCodec = UUIDUtil.STRING_CODEC.fieldOf("section_id").codec();
         for (JsonObject json : sections) {
@@ -115,7 +147,7 @@ public class QuestEditorService {
                 throw new IllegalArgumentException("Duplicate section UUID " + sectionId);
             }
             // Match the loader: unavailable mods may supply registry values that cannot be decoded here.
-            if (section == null) continue;
+            if (section == null || section.disabled()) continue;
             for (Quest quest : section.questList()) {
                 UUID id = quest.questId();
                 if (!sectionId.equals(quest.sectionUUID())) {
@@ -123,6 +155,15 @@ public class QuestEditorService {
                 }
                 if (quests.putIfAbsent(id, quest) != null) {
                     throw new IllegalArgumentException("Duplicate quest UUID " + id);
+                }
+                if (new HashSet<>(quest.dependencies()).size() != quest.dependencies().size()) {
+                    throw new IllegalArgumentException("Duplicate dependency on quest " + id);
+                }
+                for (var objective : quest.objectives()) {
+                    if (!objectiveIds.add(objective.getObjectiveId())) throw new IllegalArgumentException("Duplicate objective UUID " + objective.getObjectiveId());
+                }
+                for (var reward : quest.rewards()) {
+                    if (!rewardIds.add(reward.getRewardId())) throw new IllegalArgumentException("Duplicate reward UUID " + reward.getRewardId());
                 }
             }
         }

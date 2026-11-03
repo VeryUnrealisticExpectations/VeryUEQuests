@@ -5,6 +5,7 @@ plugins {
 
 neoForge {
     neoFormVersion = neo_form_version
+    addModdingDependenciesTo sourceSets.test
     // Automatically enable AccessTransformers if the file exists
     def at = file('src/main/resources/META-INF/accesstransformer.cfg')
     if (at.exists()) {
@@ -39,3 +40,15 @@ artifacts {
     commonResources sourceSets.main.resources.sourceDirectories.singleFile
 }
 
+tasks.register('verifyQuestApi', JavaExec) {
+    group = 'verification'
+    description = 'Verifies quest API codecs, authoring, persistence, graph validation and HTTP transport.'
+    dependsOn tasks.named('testClasses')
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'dev.veryue.vuequests.editor.api.QuestApiVerification'
+    workingDir = layout.projectDirectory
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('verifyQuestApi')
+}

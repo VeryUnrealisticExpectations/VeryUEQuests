@@ -1,5 +1,6 @@
 package dev.veryue.vuequests.client.widget;
 
+import com.mojang.blaze3d.vertex.PoseStack;
 import dev.veryue.vuequests.models.quest.Quest;
 import dev.veryue.vuequests.models.quest.Section;
 import net.minecraft.client.gui.Font;
@@ -24,6 +25,8 @@ public class QuestCanvas extends QuestPanel {
 
     private static final double[] ZOOM_LEVELS = {0.25, 0.5, 0.75, 1, 1.5, 2};
     private static final int DEFAULT_ZOOM_LEVEL = 2;
+    private static final double PAN_SMOOTHING_NANOS = 25_000_000.0;
+    private static final double PAN_SNAP_DISTANCE = 0.01;
 
     private final List<QuestNodeWidget> nodes = new ArrayList<>();
     private final List<QuestDependencyLine> dependencyLines = new ArrayList<>();
@@ -31,6 +34,11 @@ public class QuestCanvas extends QuestPanel {
     private Section section;
     private double panX;
     private double panY;
+    private double targetPanX;
+    private double targetPanY;
+    private double renderOffsetX;
+    private double renderOffsetY;
+    private long lastRenderNanos = System.nanoTime();
     private int zoomLevel = DEFAULT_ZOOM_LEVEL;
     private boolean panning;
 
@@ -101,6 +109,8 @@ public class QuestCanvas extends QuestPanel {
     private void recenter() {
         panX = 0;
         panY = 0;
+        targetPanX = 0;
+        targetPanY = 0;
         zoomLevel = DEFAULT_ZOOM_LEVEL;
         panning = false;
         positionNodes();
@@ -110,11 +120,35 @@ public class QuestCanvas extends QuestPanel {
         ScreenRectangle viewport = viewport();
         double zoom = getZoom();
         int size = (int) Math.round(QuestNodeWidget.SIZE * zoom);
+        double layoutPanX = Math.ceil(panX);
+        double layoutPanY = Math.ceil(panY);
+        renderOffsetX = panX - layoutPanX;
+        renderOffsetY = panY - layoutPanY;
+        double originX = viewport.left() + viewport.width() / 2.0 + layoutPanX - size / 2.0;
+        double originY = viewport.top() + viewport.height() / 2.0 + layoutPanY - size / 2.0;
         for (QuestNodeWidget node : nodes) {
-            int x = (int) Math.round(viewport.left() + viewport.width() / 2.0 + panX + node.getQuest().position().x() * zoom - size / 2.0);
-            int y = (int) Math.round(viewport.top() + viewport.height() / 2.0 + panY + node.getQuest().position().y() * zoom - size / 2.0);
+            int x = (int) Math.round(originX + node.getQuest().position().x() * zoom);
+            int y = (int) Math.round(originY + node.getQuest().position().y() * zoom);
             node.setRectangle(size, size, x, y);
         }
+    }
+
+    private void updatePan() {
+        long now = System.nanoTime();
+        long elapsed = now - lastRenderNanos;
+        lastRenderNanos = now;
+        if (panX == targetPanX && panY == targetPanY) {
+            return;
+        }
+        double amount = -Math.expm1(-elapsed / PAN_SMOOTHING_NANOS);
+        panX = interpolatePan(panX, targetPanX, amount);
+        panY = interpolatePan(panY, targetPanY, amount);
+        positionNodes();
+    }
+
+    private static double interpolatePan(double pan, double target, double amount) {
+        double next = Mth.lerp(amount, pan, target);
+        return Math.abs(target - next) < PAN_SNAP_DISTANCE ? target : next;
     }
 
     private void zoomAt(int direction, double mouseX, double mouseY) {
@@ -126,28 +160,42 @@ public class QuestCanvas extends QuestPanel {
         double y = toCanvasY(mouseY);
         double previousZoom = getZoom();
         zoomLevel = nextLevel;
-        panX += x * (previousZoom - getZoom());
-        panY += y * (previousZoom - getZoom());
+        double zoomChange = previousZoom - getZoom();
+        double shiftX = x * zoomChange;
+        double shiftY = y * zoomChange;
+        panX += shiftX;
+        panY += shiftY;
+        targetPanX += shiftX;
+        targetPanY += shiftY;
         positionNodes();
     }
 
     @Override
     protected void renderContents(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        updatePan();
         ScreenRectangle viewport = viewport();
         Quest hovered = questAt(mouseX, mouseY);
         if (hovered != null) {
             onPreview.accept(hovered);
         }
         graphics.enableScissor(viewport.left(), viewport.top(), viewport.right(), viewport.bottom());
-        for (QuestDependencyLine line : dependencyLines) {
-            line.render(graphics);
-        }
-        graphics.flush();
-        boolean hoverAllowed = !panning && viewport.containsPoint(mouseX, mouseY);
-        for (QuestNodeWidget node : nodes) {
-            if (viewport.overlaps(node.getRectangle())) {
-                node.render(graphics, hoverAllowed ? mouseX : -1, hoverAllowed ? mouseY : -1, partialTick);
+        PoseStack pose = graphics.pose();
+        pose.pushPose();
+        try {
+            pose.translate(renderOffsetX, renderOffsetY, 0);
+            for (QuestDependencyLine line : dependencyLines) {
+                line.render(graphics);
             }
+            graphics.flush();
+            boolean hoverAllowed = !panning && viewport.containsPoint(mouseX, mouseY);
+            for (QuestNodeWidget node : nodes) {
+                if (node.getRight() + renderOffsetX > viewport.left() && node.getX() + renderOffsetX < viewport.right()
+                        && node.getBottom() + renderOffsetY > viewport.top() && node.getY() + renderOffsetY < viewport.bottom()) {
+                    node.render(graphics, hoverAllowed ? mouseX : -1, hoverAllowed ? mouseY : -1, partialTick);
+                }
+            }
+        } finally {
+            pose.popPose();
         }
         if (nodes.isEmpty()) {
             graphics.drawCenteredString(font, Component.translatable("screen.vuequests.no_quests"),
@@ -176,7 +224,7 @@ public class QuestCanvas extends QuestPanel {
         }
         for (int i = nodes.size() - 1; i >= 0; i--) {
             QuestNodeWidget node = nodes.get(i);
-            if (node.isMouseOver(mouseX, mouseY)) {
+            if (node.isMouseOver(mouseX - renderOffsetX, mouseY - renderOffsetY)) {
                 return node;
             }
         }
@@ -189,11 +237,13 @@ public class QuestCanvas extends QuestPanel {
         if (focused instanceof QuestNodeWidget node) {
             if (!panning) {
                 ScreenRectangle viewport = viewport();
-                if (node.getX() < viewport.left() || node.getRight() > viewport.right()) {
-                    panX += viewport.left() + viewport.width() / 2.0 - node.getX() - node.getWidth() / 2.0;
+                if (node.getX() + renderOffsetX < viewport.left() || node.getRight() + renderOffsetX > viewport.right()) {
+                    panX += viewport.left() + viewport.width() / 2.0 - node.getX() - renderOffsetX - node.getWidth() / 2.0;
+                    targetPanX = panX;
                 }
-                if (node.getY() < viewport.top() || node.getBottom() > viewport.bottom()) {
-                    panY += viewport.top() + viewport.height() / 2.0 - node.getY() - node.getHeight() / 2.0;
+                if (node.getY() + renderOffsetY < viewport.top() || node.getBottom() + renderOffsetY > viewport.bottom()) {
+                    panY += viewport.top() + viewport.height() / 2.0 - node.getY() - renderOffsetY - node.getHeight() / 2.0;
+                    targetPanY = panY;
                 }
                 positionNodes();
             }
@@ -217,9 +267,8 @@ public class QuestCanvas extends QuestPanel {
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
         if (button == 0 && panning && isActive()) {
-            panX += dragX;
-            panY += dragY;
-            positionNodes();
+            targetPanX += dragX;
+            targetPanY += dragY;
             return true;
         }
         return false;
@@ -262,13 +311,12 @@ public class QuestCanvas extends QuestPanel {
         }
         if ((modifiers & GLFW.GLFW_MOD_SHIFT) != 0) {
             switch (keyCode) {
-                case GLFW.GLFW_KEY_LEFT -> panX += 24;
-                case GLFW.GLFW_KEY_RIGHT -> panX -= 24;
-                case GLFW.GLFW_KEY_UP -> panY += 24;
-                case GLFW.GLFW_KEY_DOWN -> panY -= 24;
+                case GLFW.GLFW_KEY_LEFT -> targetPanX += 24;
+                case GLFW.GLFW_KEY_RIGHT -> targetPanX -= 24;
+                case GLFW.GLFW_KEY_UP -> targetPanY += 24;
+                case GLFW.GLFW_KEY_DOWN -> targetPanY -= 24;
                 default -> { return super.keyPressed(keyCode, scanCode, modifiers); }
             }
-            positionNodes();
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);

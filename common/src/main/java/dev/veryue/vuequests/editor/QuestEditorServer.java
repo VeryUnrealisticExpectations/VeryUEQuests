@@ -1,6 +1,7 @@
 package dev.veryue.vuequests.editor;
 
 import net.minecraft.server.MinecraftServer;
+import dev.veryue.vuequests.editor.api.QuestApiHttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +14,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static dev.veryue.vuequests.VeryUEConstants.MOD_ID;
+import static dev.veryue.vuequests.editor.QuestEditorConstants.API_CONTEXTS;
 
 public class QuestEditorServer {
 
@@ -42,6 +44,10 @@ public class QuestEditorServer {
         ExecutorService workers = Executors.newVirtualThreadPerTaskExecutor();
         try {
             listener.createContext("/", new QuestEditorHttpHandler(service));
+            QuestApiHttpHandler api = new QuestApiHttpHandler(service.api());
+            for (String route : API_CONTEXTS) {
+                listener.createContext(route, api);
+            }
             listener.setExecutor(workers);
             listener.start();
         } catch (RuntimeException exception) {

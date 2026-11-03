@@ -1,0 +1,2122 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "VeryUE Quests Agent API",
+    "version": "1.0.0",
+    "description": "Local questline authoring API available while a Minecraft world/server is running. Default listener: 127.0.0.1:6700 (same listener as the editor). Mutations run on the game thread and share the editor's save lock, write datapack overrides, and reload quests before returning a revision. Send application/json for POST requests. Requests are limited to 1 MiB and 64 nesting levels. Configure vuequests.api.token to require bearer authentication on API routes; without it, no authentication is required. Revisions are optional for API writes. Validation is performed before persistence; disk/reload errors can leave overrides written. Use explicit UUIDs and read back state before retrying a timed-out creation."
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:6700/api",
+      "description": "Default listener; vuequests.editor.host and vuequests.editor.port override the address."
+    }
+  ],
+  "security": [
+    {},
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/create/section": {
+      "post": {
+        "operationId": "createSection",
+        "summary": "Create an enabled section",
+        "description": "Create an enabled section. Returns data.sectionId; name accepts native Minecraft text components.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSectionRequest"
+              },
+              "example": {
+                "name": {
+                  "text": "Getting started",
+                  "color": "gold"
+                },
+                "icon": "minecraft:book"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SectionMutationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    },
+    "/create/quest": {
+      "post": {
+        "operationId": "createQuest",
+        "summary": "Create a quest in an available enabled section",
+        "description": "Create a quest in an available enabled section. Defaults: position (0,0), title New quest, empty subtitle/description/tooltip and lists, book icon. Returns generated quest, objective and reward UUIDs.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateQuestRequest"
+              },
+              "example": {
+                "sectionId": "10000000-0000-4000-8000-000000000001",
+                "position": {
+                  "x": 80,
+                  "y": 0
+                },
+                "title": {
+                  "text": "Gather wood",
+                  "color": "green"
+                },
+                "objectives": [
+                  {
+                    "type": "vuequests:collect_item",
+                    "item": {
+                      "id": "minecraft:oak_log",
+                      "count": 5
+                    }
+                  }
+                ],
+                "rewards": [
+                  {
+                    "type": "vuequests:experience",
+                    "experience": 10
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestMutationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    },
+    "/create/questline": {
+      "post": {
+        "operationId": "createQuestline",
+        "summary": "Create sections and quests together with one validation, save and reload",
+        "description": "Create sections and quests together with one validation, save and reload. Supply at least one section or quest. Use client-generated UUIDs for sections and quests referenced by other entries. Quest dependencies may reference any quest in the batch, including later entries, or existing quests. Nested revision fields are ignored; use the top-level revision.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateQuestlineRequest"
+              },
+              "example": {
+                "sections": [
+                  {
+                    "sectionId": "10000000-0000-4000-8000-000000000001",
+                    "name": "Getting started"
+                  }
+                ],
+                "quests": [
+                  {
+                    "sectionId": "10000000-0000-4000-8000-000000000001",
+                    "questId": "20000000-0000-4000-8000-000000000001",
+                    "title": "Gather wood",
+                    "position": {
+                      "x": 0,
+                      "y": 0
+                    },
+                    "objectives": [
+                      {
+                        "type": "vuequests:collect_item",
+                        "item": {
+                          "id": "minecraft:oak_log",
+                          "count": 5
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "sectionId": "10000000-0000-4000-8000-000000000001",
+                    "questId": "20000000-0000-4000-8000-000000000002",
+                    "title": "Gather stone",
+                    "position": {
+                      "x": 80,
+                      "y": 0
+                    },
+                    "dependencies": [
+                      "20000000-0000-4000-8000-000000000001"
+                    ],
+                    "objectives": [
+                      {
+                        "type": "vuequests:collect_item",
+                        "item": {
+                          "id": "minecraft:cobblestone",
+                          "count": 8
+                        }
+                      }
+                    ],
+                    "rewards": [
+                      {
+                        "type": "vuequests:item",
+                        "item": {
+                          "id": "minecraft:diamond"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestlineMutationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    },
+    "/create/dependency": {
+      "post": {
+        "operationId": "createDependency",
+        "summary": "Require one quest before another",
+        "description": "Require one quest before another. Cross-section dependencies are supported. Repeated edges succeed without duplication; missing prerequisites and cycles are rejected.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDependencyRequest"
+              },
+              "example": {
+                "questId": "20000000-0000-4000-8000-000000000002",
+                "dependencyId": "20000000-0000-4000-8000-000000000001"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DependencyMutationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    },
+    "/modify/quest/text": {
+      "post": {
+        "operationId": "modifyQuestText",
+        "summary": "Update one or more quest text fields",
+        "description": "Update one or more quest text fields. Omitted/null fields are unchanged; supply at least one non-null text field. Use an empty string to clear text. Tooltip is plain text; title, subtitle and description use Minecraft components.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifyQuestTextRequest"
+              },
+              "example": {
+                "questId": "20000000-0000-4000-8000-000000000001",
+                "title": {
+                  "text": "Gather wood",
+                  "bold": true
+                },
+                "description": {
+                  "translate": "quest.gather.wood",
+                  "fallback": "Collect five logs"
+                },
+                "tooltip": "Collect five logs"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestMutationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    },
+    "/modify/quest/objectives": {
+      "post": {
+        "operationId": "modifyQuestObjectives",
+        "summary": "Append or replace objectives",
+        "description": "Append or replace objectives. Objective UUIDs are generated when omitted and returned in data.objectiveIds. Duplicate objective UUIDs across active quests fail validation.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifyQuestObjectivesRequest"
+              },
+              "example": {
+                "questId": "20000000-0000-4000-8000-000000000001",
+                "mode": "append",
+                "objectives": [
+                  {
+                    "type": "vuequests:entity",
+                    "entity": "minecraft:zombie"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestMutationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    },
+    "/modify/quest/rewards": {
+      "post": {
+        "operationId": "modifyQuestRewards",
+        "summary": "Append or replace rewards",
+        "description": "Append or replace rewards. Reward UUIDs are generated when omitted and returned in data.rewardIds. Duplicate reward UUIDs across active quests fail validation.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifyQuestRewardsRequest"
+              },
+              "example": {
+                "questId": "20000000-0000-4000-8000-000000000001",
+                "mode": "replace",
+                "rewards": [
+                  {
+                    "type": "vuequests:item",
+                    "item": {
+                      "id": "minecraft:diamond",
+                      "count": 1
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestMutationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    },
+    "/modify/quest/icon": {
+      "post": {
+        "operationId": "modifyQuestIcon",
+        "summary": "Change the quest icon using a loaded item registry ID",
+        "description": "Change the quest icon using a loaded item registry ID.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifyQuestIconRequest"
+              },
+              "example": {
+                "questId": "20000000-0000-4000-8000-000000000001",
+                "icon": "minecraft:oak_log"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestMutationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    },
+    "/modify/quest/position": {
+      "post": {
+        "operationId": "modifyQuestPosition",
+        "summary": "Move a quest on the quest canvas",
+        "description": "Move a quest on the quest canvas. Both coordinates must be 32-bit integers.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifyQuestPositionRequest"
+              },
+              "example": {
+                "questId": "20000000-0000-4000-8000-000000000001",
+                "position": {
+                  "x": 0,
+                  "y": 80
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestMutationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    },
+    "/check/objectives": {
+      "get": {
+        "operationId": "checkObjectives",
+        "summary": "List all currently registered objective types and their authoring schemas",
+        "description": "List all currently registered objective types and their authoring schemas. Built-ins provide complete metadata; external mods can register JsonSchema metadata alongside a codec. Codecs without metadata remain discoverable with schemaComplete=false and known field names.",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TypeDescription"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    },
+    "/check/rewards": {
+      "get": {
+        "operationId": "checkRewards",
+        "summary": "List all currently registered reward types and their authoring schemas",
+        "description": "List all currently registered reward types and their authoring schemas. A schemaComplete=false entry exposes codec field names, without inferring field types or requiredness.",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TypeDescription"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    },
+    "/check/registries": {
+      "get": {
+        "operationId": "checkRegistries",
+        "summary": "List registries referenced by the built-in quest implementation: minecraft:item, minecraft:entity_type and minecraft:data_component_type",
+        "description": "List registries referenced by the built-in quest implementation: minecraft:item, minecraft:entity_type and minecraft:data_component_type. Includes loaded sizes and usage. Data component value shapes remain native codec-defined.",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RegistryDescription"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    },
+    "/check/sections": {
+      "get": {
+        "operationId": "checkSections",
+        "summary": "Read sections and their quests with the current document revision",
+        "description": "Read sections and their quests with the current document revision. Sections requiring absent mods are omitted; disabled sections are included and cannot be edited through quest routes. Definitions use datapack snake_case field names.",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SectionsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    },
+    "/check/quest": {
+      "get": {
+        "operationId": "checkQuest",
+        "summary": "Read a quest and its native definition with the current document revision",
+        "description": "Read a quest and its native definition with the current document revision.",
+        "parameters": [
+          {
+            "name": "questId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestReadResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    },
+    "/check/quest/position": {
+      "get": {
+        "operationId": "checkQuestPosition",
+        "summary": "Read a quest's section and canvas X/Y coordinates with the current revision",
+        "description": "Read a quest's section and canvas X/Y coordinates with the current revision.",
+        "parameters": [
+          {
+            "name": "questId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PositionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    },
+    "/search": {
+      "get": {
+        "operationId": "searchRegistry",
+        "summary": "Search loaded registry IDs by namespace and/or path",
+        "description": "Search loaded registry IDs by namespace and/or path. Matching uses case-insensitive substrings; filters are combined with AND. Omit both filters to browse all entries. Results are sorted by registry ID and paginated.",
+        "parameters": [
+          {
+            "name": "registry",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "minecraft:item",
+                "minecraft:entity_type",
+                "minecraft:data_component_type"
+              ]
+            }
+          },
+          {
+            "name": "namespace",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 500,
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistrySearchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "operationId": "getOpenApi",
+        "summary": "Download this bundled Swagger/OpenAPI contract",
+        "description": "Download this bundled Swagger/OpenAPI contract.",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Required only when the vuequests.api.token JVM property is configured."
+      }
+    },
+    "schemas": {
+      "Component": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "$ref": "#/components/schemas/ComponentObject"
+          },
+          {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/Component"
+            }
+          }
+        ],
+        "description": "Minecraft 1.21.1 native text component, validated by ComponentSerialization.CODEC. Supports literal strings, component objects and component arrays, including translations, styles, click/hover events, score, selector, keybind and NBT components."
+      },
+      "ComponentObject": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "translate": {
+            "type": "string"
+          },
+          "fallback": {
+            "type": "string"
+          },
+          "with": {
+            "type": "array",
+            "items": {}
+          },
+          "extra": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Component"
+            }
+          },
+          "color": {
+            "type": "string"
+          },
+          "font": {
+            "type": "string"
+          },
+          "bold": {
+            "type": "boolean"
+          },
+          "italic": {
+            "type": "boolean"
+          },
+          "underlined": {
+            "type": "boolean"
+          },
+          "strikethrough": {
+            "type": "boolean"
+          },
+          "obfuscated": {
+            "type": "boolean"
+          },
+          "insertion": {
+            "type": "string"
+          },
+          "clickEvent": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action",
+              "value"
+            ]
+          },
+          "hoverEvent": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "keybind": {
+            "type": "string"
+          },
+          "selector": {
+            "type": "string"
+          },
+          "separator": {
+            "$ref": "#/components/schemas/Component"
+          },
+          "score": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "objective": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "objective"
+            ]
+          },
+          "nbt": {
+            "type": "string"
+          },
+          "interpret": {
+            "type": "boolean"
+          },
+          "block": {
+            "type": "string"
+          },
+          "entity": {
+            "type": "string"
+          },
+          "storage": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "Position": {
+        "type": "object",
+        "properties": {
+          "x": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "y": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "required": [
+          "x",
+          "y"
+        ]
+      },
+      "ItemStack": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Loaded minecraft:item ID; air is not a valid stack."
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 99,
+            "default": 1
+          },
+          "components": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Minecraft data component patch; validated by the registry-aware native ItemStack codec.",
+            "example": {
+              "minecraft:custom_name": "{\"text\":\"Quest log\"}"
+            }
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "Objective": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Registered objective type ID. Discover the current schema through /check/objectives."
+          },
+          "objective_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Generated if omitted."
+          },
+          "item": {
+            "$ref": "#/components/schemas/ItemStack"
+          },
+          "entity": {
+            "type": "string",
+            "description": "For vuequests:entity: a loaded minecraft:entity_type ID."
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "additionalProperties": true,
+        "description": "Dispatched to the registered objective codec. vuequests:collect_item requires item; vuequests:entity requires entity. Other mods can supply arbitrary codec fields."
+      },
+      "Reward": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Registered reward type ID. Discover the current schema through /check/rewards."
+          },
+          "reward_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Generated if omitted."
+          },
+          "item": {
+            "$ref": "#/components/schemas/ItemStack"
+          },
+          "experience": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "additionalProperties": true,
+        "description": "Dispatched to the registered reward codec. vuequests:item requires item; vuequests:experience requires experience. Other mods can supply arbitrary codec fields."
+      },
+      "ListMode": {
+        "type": "string",
+        "enum": [
+          "append",
+          "replace"
+        ],
+        "default": "append",
+        "description": "append keeps existing entries; replace overwrites the list. An empty replacement clears the list."
+      },
+      "CreateSectionRequest": {
+        "type": "object",
+        "properties": {
+          "sectionId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Optional client-generated UUID; an existing UUID returns 409."
+          },
+          "name": {
+            "$ref": "#/components/schemas/Component"
+          },
+          "icon": {
+            "type": "string",
+            "description": "Loaded item registry ID.",
+            "default": "minecraft:book"
+          },
+          "revision": {
+            "type": "string",
+            "description": "Optional optimistic concurrency token from the latest read/write response. A stale revision returns 409. Omission applies the change to the current document."
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "CreateQuestRequest": {
+        "type": "object",
+        "properties": {
+          "sectionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "questId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Optional client-generated UUID; an existing UUID returns 409."
+          },
+          "position": {
+            "$ref": "#/components/schemas/Position"
+          },
+          "title": {
+            "$ref": "#/components/schemas/Component"
+          },
+          "subtitle": {
+            "$ref": "#/components/schemas/Component"
+          },
+          "description": {
+            "$ref": "#/components/schemas/Component"
+          },
+          "tooltip": {
+            "type": "string",
+            "description": "Plain text. Omission defaults to an empty string."
+          },
+          "icon": {
+            "type": "string",
+            "default": "minecraft:book"
+          },
+          "objectives": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Objective"
+            }
+          },
+          "rewards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Reward"
+            }
+          },
+          "dependencies": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "revision": {
+            "type": "string",
+            "description": "Optional optimistic concurrency token from the latest read/write response. A stale revision returns 409. Omission applies the change to the current document."
+          }
+        },
+        "required": [
+          "sectionId"
+        ]
+      },
+      "CreateDependencyRequest": {
+        "type": "object",
+        "properties": {
+          "questId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "dependencyId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of the prerequisite quest. Repeating an existing edge is a no-op. Both quests must be available; cycles are rejected before saving."
+          },
+          "revision": {
+            "type": "string",
+            "description": "Optional optimistic concurrency token from the latest read/write response. A stale revision returns 409. Omission applies the change to the current document."
+          }
+        },
+        "required": [
+          "questId",
+          "dependencyId"
+        ]
+      },
+      "ModifyQuestTextRequest": {
+        "type": "object",
+        "properties": {
+          "questId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "$ref": "#/components/schemas/Component"
+          },
+          "subtitle": {
+            "$ref": "#/components/schemas/Component"
+          },
+          "description": {
+            "$ref": "#/components/schemas/Component"
+          },
+          "tooltip": {
+            "type": "string",
+            "description": "Plain text only."
+          },
+          "revision": {
+            "type": "string",
+            "description": "Optional optimistic concurrency token from the latest read/write response. A stale revision returns 409. Omission applies the change to the current document."
+          }
+        },
+        "required": [
+          "questId"
+        ]
+      },
+      "ModifyQuestObjectivesRequest": {
+        "type": "object",
+        "properties": {
+          "questId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "objectives": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Objective"
+            }
+          },
+          "mode": {
+            "$ref": "#/components/schemas/ListMode"
+          },
+          "revision": {
+            "type": "string",
+            "description": "Optional optimistic concurrency token from the latest read/write response. A stale revision returns 409. Omission applies the change to the current document."
+          }
+        },
+        "required": [
+          "questId",
+          "objectives"
+        ]
+      },
+      "ModifyQuestRewardsRequest": {
+        "type": "object",
+        "properties": {
+          "questId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rewards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Reward"
+            }
+          },
+          "mode": {
+            "$ref": "#/components/schemas/ListMode"
+          },
+          "revision": {
+            "type": "string",
+            "description": "Optional optimistic concurrency token from the latest read/write response. A stale revision returns 409. Omission applies the change to the current document."
+          }
+        },
+        "required": [
+          "questId",
+          "rewards"
+        ]
+      },
+      "ModifyQuestIconRequest": {
+        "type": "object",
+        "properties": {
+          "questId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "string",
+            "description": "Optional optimistic concurrency token from the latest read/write response. A stale revision returns 409. Omission applies the change to the current document."
+          }
+        },
+        "required": [
+          "questId",
+          "icon"
+        ]
+      },
+      "ModifyQuestPositionRequest": {
+        "type": "object",
+        "properties": {
+          "questId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "position": {
+            "$ref": "#/components/schemas/Position"
+          },
+          "revision": {
+            "type": "string",
+            "description": "Optional optimistic concurrency token from the latest read/write response. A stale revision returns 409. Omission applies the change to the current document."
+          }
+        },
+        "required": [
+          "questId",
+          "position"
+        ]
+      },
+      "CreateQuestlineRequest": {
+        "type": "object",
+        "properties": {
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateSectionRequest"
+            }
+          },
+          "quests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateQuestRequest"
+            }
+          },
+          "revision": {
+            "type": "string",
+            "description": "Optional optimistic concurrency token from the latest read/write response. A stale revision returns 409. Omission applies the change to the current document."
+          }
+        }
+      },
+      "QuestResult": {
+        "type": "object",
+        "properties": {
+          "questId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sectionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "position": {
+            "$ref": "#/components/schemas/Position"
+          },
+          "objectiveIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "rewardIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "questId",
+          "sectionId",
+          "position",
+          "objectiveIds",
+          "rewardIds"
+        ]
+      },
+      "SectionResult": {
+        "type": "object",
+        "properties": {
+          "sectionId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "sectionId"
+        ]
+      },
+      "DependencyResult": {
+        "type": "object",
+        "properties": {
+          "questId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "dependencyId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "questId",
+          "dependencyId"
+        ]
+      },
+      "QuestlineResult": {
+        "type": "object",
+        "properties": {
+          "sectionIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "quests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuestResult"
+            }
+          }
+        },
+        "required": [
+          "sectionIds",
+          "quests"
+        ]
+      },
+      "QuestDisplay": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "$ref": "#/components/schemas/Component"
+          },
+          "subtitle": {
+            "$ref": "#/components/schemas/Component"
+          },
+          "description": {
+            "$ref": "#/components/schemas/Component"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "tooltip": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "subtitle",
+          "description",
+          "icon",
+          "tooltip"
+        ]
+      },
+      "Quest": {
+        "type": "object",
+        "properties": {
+          "quest_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "section_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "position": {
+            "$ref": "#/components/schemas/Position"
+          },
+          "display": {
+            "$ref": "#/components/schemas/QuestDisplay"
+          },
+          "objectives": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Objective"
+            }
+          },
+          "rewards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Reward"
+            }
+          },
+          "dependencies": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "quest_id",
+          "section_id",
+          "position",
+          "display"
+        ]
+      },
+      "Section": {
+        "type": "object",
+        "properties": {
+          "section_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "$ref": "#/components/schemas/Component"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "disabled": {
+            "type": "boolean"
+          },
+          "modLoaded": {
+            "type": "string"
+          },
+          "quests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Quest"
+            }
+          }
+        },
+        "required": [
+          "section_id",
+          "name",
+          "icon",
+          "disabled"
+        ]
+      },
+      "QuestReadResponse": {
+        "type": "object",
+        "properties": {
+          "quest": {
+            "$ref": "#/components/schemas/Quest"
+          },
+          "revision": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "quest",
+          "revision"
+        ]
+      },
+      "SectionsResponse": {
+        "type": "object",
+        "properties": {
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Section"
+            }
+          },
+          "revision": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sections",
+          "revision"
+        ]
+      },
+      "PositionResponse": {
+        "type": "object",
+        "properties": {
+          "questId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sectionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "x": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "y": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "revision": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "questId",
+          "sectionId",
+          "x",
+          "y",
+          "revision"
+        ]
+      },
+      "TypeDescription": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "schema": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Authoring schema registered with this codec. If metadata is absent, only codec field names are available."
+          },
+          "schemaComplete": {
+            "type": "boolean",
+            "description": "False when the codec has not registered schema metadata. Native codec validation still applies."
+          }
+        },
+        "required": [
+          "id",
+          "fields",
+          "schema",
+          "schemaComplete"
+        ]
+      },
+      "RegistryDescription": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "usedBy": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "size",
+          "usedBy"
+        ]
+      },
+      "RegistrySearchEntry": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "namespace": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "namespace",
+          "path"
+        ]
+      },
+      "RegistrySearchResponse": {
+        "type": "object",
+        "properties": {
+          "registry": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegistrySearchEntry"
+            }
+          }
+        },
+        "required": [
+          "registry",
+          "total",
+          "offset",
+          "limit",
+          "entries"
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "QuestMutationResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/QuestResult"
+          },
+          "revision": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "revision"
+        ]
+      },
+      "SectionMutationResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SectionResult"
+          },
+          "revision": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "revision"
+        ]
+      },
+      "DependencyMutationResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DependencyResult"
+          },
+          "revision": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "revision"
+        ]
+      },
+      "QuestlineMutationResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/QuestlineResult"
+          },
+          "revision": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "revision"
+        ]
+      }
+    },
+    "responses": {
+      "Error400": {
+        "description": "Invalid request or codec/graph validation failed; no data was saved.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Error401": {
+        "description": "Configured bearer token is missing or invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Error403": {
+        "description": "Cross-origin browser writes are forbidden.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Error404": {
+        "description": "Endpoint, section or quest not found.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Error405": {
+        "description": "Wrong HTTP method; Allow lists the supported methods.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Error409": {
+        "description": "Stale revision, duplicate creation UUID, unavailable section, or another save is in progress.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Error413": {
+        "description": "Body exceeds 1 MiB.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Error415": {
+        "description": "Content-Type must be application/json.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Error500": {
+        "description": "Persistence or reload failed; inspect the server log.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Error503": {
+        "description": "Timed out waiting for the game thread or reload. The write may finish after the HTTP response; inspect the document before retrying.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
+    }
+  }
+}

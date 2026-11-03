@@ -19,6 +19,15 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import static dev.veryue.vuequests.editor.QuestEditorConstants.API;
+import static dev.veryue.vuequests.editor.QuestEditorConstants.ASSETS_FILE;
+import static dev.veryue.vuequests.editor.QuestEditorConstants.ASSETS_LIST;
+import static dev.veryue.vuequests.editor.QuestEditorConstants.EDITOR;
+import static dev.veryue.vuequests.editor.QuestEditorConstants.EDITOR_COMPONENTS;
+import static dev.veryue.vuequests.editor.QuestEditorConstants.EDITOR_COMPONENT_PREVIEW;
+import static dev.veryue.vuequests.editor.QuestEditorConstants.EDITOR_COMPONENT_VALIDATE;
+import static dev.veryue.vuequests.editor.QuestEditorConstants.EDITOR_RESOURCES;
+
 public class QuestEditorHttpHandler implements HttpHandler {
 
     private static final int STATUS_OK = 200;
@@ -61,7 +70,7 @@ public class QuestEditorHttpHandler implements HttpHandler {
         try (exchange) {
             boolean head = exchange.getRequestMethod().equals("HEAD");
             try {
-                if (exchange.getRequestURI().getPath().startsWith("/api/")) handleApi(exchange, head);
+                if (exchange.getRequestURI().getPath().startsWith(API + "/")) handleApi(exchange, head);
                 else serveFrontend(exchange, head);
             } catch (Exception exception) {
                 Throwable cause = exception;
@@ -78,14 +87,14 @@ public class QuestEditorHttpHandler implements HttpHandler {
     private void handleApi(HttpExchange exchange, boolean head) throws Exception {
         String path = exchange.getRequestURI().getPath();
         String method = exchange.getRequestMethod();
-        if ((path.equals("/api/editor/components/preview") || path.equals("/api/editor/components/validate")) && method.equals("POST")) {
-            JsonObject request = readComponentRequest(exchange, path.endsWith("preview") ? 128 * 1024 : MAX_REQUEST_BYTES);
-            Object response = path.endsWith("preview") ? QuestEditorResources.preview(request).get(3, TimeUnit.SECONDS)
+        if ((path.equals(API + EDITOR_COMPONENT_PREVIEW) || path.equals(API + EDITOR_COMPONENT_VALIDATE)) && method.equals("POST")) {
+            JsonObject request = readComponentRequest(exchange, path.equals(API + EDITOR_COMPONENT_PREVIEW) ? 128 * 1024 : MAX_REQUEST_BYTES);
+            Object response = path.equals(API + EDITOR_COMPONENT_PREVIEW) ? QuestEditorResources.preview(request).get(3, TimeUnit.SECONDS)
                     : service.validateComponent(request).get(30, TimeUnit.SECONDS);
             json(exchange, STATUS_OK, response, head);
             return;
         }
-        if (path.equals("/api/editor") && method.equals("PUT")) {
+        if (path.equals(API + EDITOR) && method.equals("PUT")) {
             String contentType = exchange.getRequestHeaders().getFirst("Content-Type");
             if (!validOrigin(exchange) || contentType == null || !contentType.startsWith("application/json")) {
                 error(exchange, STATUS_FORBIDDEN, "Save requests must originate from the editor.", head);
@@ -102,13 +111,13 @@ public class QuestEditorHttpHandler implements HttpHandler {
             return;
         }
         if (!method.equals("GET") && !head) {
-            exchange.getResponseHeaders().set("Allow", path.equals("/api/editor") ? "GET, HEAD, PUT" : path.startsWith("/api/editor/components/") ? "POST" : "GET, HEAD");
+            exchange.getResponseHeaders().set("Allow", path.equals(API + EDITOR) ? "GET, HEAD, PUT" : path.startsWith(API + EDITOR_COMPONENTS) ? "POST" : "GET, HEAD");
             error(exchange, STATUS_METHOD_NOT_ALLOWED, "Method not allowed.", head);
             return;
         }
         switch (path) {
-            case "/api/editor" -> json(exchange, STATUS_OK, service.load().get(30, TimeUnit.SECONDS), head);
-            case "/api/editor/resources" -> {
+            case API + EDITOR -> json(exchange, STATUS_OK, service.load().get(30, TimeUnit.SECONDS), head);
+            case API + EDITOR_RESOURCES -> {
                 String currentEtag = "\"" + QuestEditorAssets.revision() + "\"";
                 if (currentEtag.equals(exchange.getRequestHeaders().getFirst("If-None-Match"))) {
                     exchange.getResponseHeaders().set("ETag", currentEtag);
@@ -122,7 +131,7 @@ public class QuestEditorHttpHandler implements HttpHandler {
                 if (etag.equals(exchange.getRequestHeaders().getFirst("If-None-Match"))) exchange.sendResponseHeaders(304, -1);
                 else json(exchange, STATUS_OK, resources, head);
             }
-            case "/api/assets/file" -> {
+            case API + ASSETS_FILE -> {
                 String resourcePath = parameter(exchange, "path");
                 byte[] resource = QuestEditorResources.read(resourcePath).get(3, TimeUnit.SECONDS);
                 assetCacheHeaders(exchange);
@@ -131,7 +140,7 @@ public class QuestEditorHttpHandler implements HttpHandler {
                     send(exchange, STATUS_OK, resource, contentType(resourcePath), head);
                 }
             }
-            case "/api/assets/list" -> {
+            case API + ASSETS_LIST -> {
                 var files = QuestEditorResources.list(parameter(exchange, "path")).get(3, TimeUnit.SECONDS);
                 assetCacheHeaders(exchange);
                 json(exchange, STATUS_OK, files, head);
