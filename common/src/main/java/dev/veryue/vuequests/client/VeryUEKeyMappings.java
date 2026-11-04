@@ -17,10 +17,14 @@ public class VeryUEKeyMappings {
             "key.categories." + MOD_ID
     );
 
-    public static void onClientTick(Minecraft client) {
+    public static void onClientTick(Minecraft client, Runnable onQuestScreenOpened) {
         while (OPEN_QUEST_MENU.consumeClick()) {
             if (client.player != null && client.screen == null) {
-                client.setScreen(new QuestScreen());
+                QuestScreen screen = new QuestScreen();
+                client.setScreen(screen);
+                if (client.screen == screen) {
+                    onQuestScreenOpened.run();
+                }
             }
         }
     }

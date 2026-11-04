@@ -2,6 +2,7 @@ package dev.veryue.vuequests;
 
 import dev.veryue.vuequests.data.quest.QuestReloadDelegate;
 import dev.veryue.vuequests.editor.QuestEditorServer;
+import dev.veryue.vuequests.network.QuestScreenOpenedPayload;
 import dev.veryue.vuequests.network.QuestSyncPayload;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -20,6 +21,9 @@ public class VeryUEQuestsFabric implements ModInitializer {
     public void onInitialize() {
         VeryUERegistries.init();
         PayloadTypeRegistry.playS2C().register(QuestSyncPayload.TYPE, QuestSyncPayload.STREAM_CODEC);
+        PayloadTypeRegistry.playC2S().register(QuestScreenOpenedPayload.TYPE, QuestScreenOpenedPayload.STREAM_CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(QuestScreenOpenedPayload.TYPE,
+                (payload, context) -> payload.handle(context.player()));
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> syncQuests(handler.player));
         ServerLifecycleEvents.END_DATA_PACK_RELOAD.register((server, resourceManager, success) -> {
             if (success) {
