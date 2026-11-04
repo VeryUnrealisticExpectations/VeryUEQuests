@@ -3,6 +3,7 @@ package dev.veryue.vuequests.editor;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import dev.veryue.vuequests.exceptions.EditorResourcesUnavailableException;
 import net.minecraft.server.MinecraftServer;
 
 import java.io.IOException;

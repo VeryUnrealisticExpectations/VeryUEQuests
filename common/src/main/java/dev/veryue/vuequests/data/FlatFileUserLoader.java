@@ -6,6 +6,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
 import dev.veryue.vuequests.VeryUEConstants;
+import dev.veryue.vuequests.exceptions.PlayerDoesNotExistException;
 import dev.veryue.vuequests.models.PlayerUser;
 import dev.veryue.vuequests.models.User;
 import net.minecraft.server.MinecraftServer;
@@ -38,7 +39,7 @@ public class FlatFileUserLoader extends UserLoader {
     }
 
     @Override
-    public User loadUser(UUID uuid) {
+    public User loadUser(UUID uuid) throws PlayerDoesNotExistException, IllegalStateException {
         Path path = userPath(uuid);
         try (Reader reader = Files.newBufferedReader(path)) {
             PlayerUser user = PlayerUser.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseReader(reader)).getOrThrow();
@@ -47,7 +48,7 @@ public class FlatFileUserLoader extends UserLoader {
             }
             return user;
         } catch (NoSuchFileException exception) {
-            return new PlayerUser(uuid);
+            throw new PlayerDoesNotExistException(uuid, exception);
         } catch (IOException | RuntimeException exception) {
             throw new IllegalStateException("Could not load user data from " + path, exception);
         }

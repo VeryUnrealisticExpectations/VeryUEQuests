@@ -15,7 +15,7 @@ import net.minecraft.server.packs.PackType;
 
 import java.util.List;
 
-public class VeryUEQuestsFabric implements ModInitializer {
+public class VeryUEQuestsFabric extends VeryUEMod implements ModInitializer {
 
     @Override
     public void onInitialize() {
@@ -24,7 +24,10 @@ public class VeryUEQuestsFabric implements ModInitializer {
         PayloadTypeRegistry.playC2S().register(QuestScreenOpenedPayload.TYPE, QuestScreenOpenedPayload.STREAM_CODEC);
         ServerPlayNetworking.registerGlobalReceiver(QuestScreenOpenedPayload.TYPE,
                 (payload, context) -> payload.handle(context.player()));
-        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> syncQuests(handler.player));
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            loadPlayer(handler.player.getUUID());
+            syncQuests(handler.player);
+        });
         ServerLifecycleEvents.END_DATA_PACK_RELOAD.register((server, resourceManager, success) -> {
             if (success) {
                 server.getPlayerList().getPlayers().forEach(this::syncQuests);
@@ -32,11 +35,13 @@ public class VeryUEQuestsFabric implements ModInitializer {
         });
         ResourceManagerHelper.get(PackType.SERVER_DATA)
                 .registerReloadListener(QuestReloadDelegate.ID, QuestReloadListener::new);
+        ServerLifecycleEvents.SERVER_STARTING.register(this::start);
         ServerLifecycleEvents.SERVER_STARTED.register(server -> QuestEditorServer.start(server));
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
             QuestEditorServer.stop();
             QuestReloadDelegate.INSTANCE.clear();
         });
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> this.stop());
     }
 
     private void syncQuests(ServerPlayer player) {

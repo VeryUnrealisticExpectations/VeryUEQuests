@@ -6,7 +6,7 @@ import dev.veryue.vuequests.client.mixin.ClientLanguageAccessor;
 import dev.veryue.vuequests.client.mixin.FontManagerAccessor;
 import dev.veryue.vuequests.client.mixin.MinecraftAccessor;
 import dev.veryue.vuequests.editor.EditorResourceSource;
-import dev.veryue.vuequests.editor.EditorResourcesUnavailableException;
+import dev.veryue.vuequests.exceptions.EditorResourcesUnavailableException;
 import dev.veryue.vuequests.editor.QuestEditorAssets;
 import dev.veryue.vuequests.editor.QuestEditorResources;
 import net.minecraft.client.KeyMapping;

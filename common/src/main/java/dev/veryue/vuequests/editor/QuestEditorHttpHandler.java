@@ -6,6 +6,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonElement;
+import dev.veryue.vuequests.exceptions.EditorResourcesUnavailableException;
 
 import java.io.IOException;
 import java.io.InputStream;

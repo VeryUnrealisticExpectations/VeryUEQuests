@@ -10,7 +10,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.VertexSorting;
 import com.mojang.serialization.JsonOps;
-import dev.veryue.vuequests.editor.EditorResourcesUnavailableException;
+import dev.veryue.vuequests.exceptions.EditorResourcesUnavailableException;
 import dev.veryue.vuequests.editor.QuestEditorAssets;
 import dev.veryue.vuequests.editor.QuestEditorResources;
 import dev.veryue.vuequests.editor.QuestEditorService.ConflictException;
