@@ -25,6 +25,7 @@ export interface ComponentTextContext {
   fonts: { id: string; loaded: boolean }[]
   translations: { key: string; value: string }[]
   keybinds: { key: string; label: string; resolved: string }[]
+  questBackgrounds?: string[]
 }
 export interface ComponentPreviewFragment { id: string; component: ChatComponent; literal?: string }
 export interface ComponentPreviewRequest {
@@ -66,7 +67,7 @@ export interface Quest {
   quest_id: string
   section_id: string
   position: Position
-  display: { title: ChatComponent; subtitle: ChatComponent; description: ChatComponent; icon: string; tooltip: string }
+  display: { title: ChatComponent; subtitle: ChatComponent; description: ChatComponent; icon: string; tooltip: string; background_sprite?: string }
   objectives: Task[]
   rewards: Task[]
   dependencies: string[]

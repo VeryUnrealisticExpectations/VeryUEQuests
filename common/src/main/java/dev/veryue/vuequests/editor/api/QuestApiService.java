@@ -115,7 +115,7 @@ public class QuestApiService {
                     QuestDisplay display = new QuestDisplay(request.title() == null ? old.title() : request.title(),
                             request.subtitle() == null ? old.subtitle() : request.subtitle(),
                             request.description() == null ? old.description() : request.description(), old.icon(),
-                            request.tooltip() == null ? old.tooltip() : request.tooltip());
+                            request.tooltip() == null ? old.tooltip() : request.tooltip(), old.backgroundSprite());
                     Quest updated = copy(quest, quest.position(), display, quest.objectives(), quest.rewards(), quest.dependencies());
                     document.update(updated);
                     return QuestResult.of(updated);
@@ -136,7 +136,8 @@ public class QuestApiService {
                     if (request.icon() == null) throw new IllegalArgumentException("Supply icon.");
                     Quest quest = document.quest(request.questId());
                     QuestDisplay old = quest.display();
-                    QuestDisplay display = new QuestDisplay(old.title(), old.subtitle(), old.description(), item(request.icon(), Items.BOOK), old.tooltip());
+                    QuestDisplay display = new QuestDisplay(old.title(), old.subtitle(), old.description(),
+                            item(request.icon(), Items.BOOK), old.tooltip(), old.backgroundSprite());
                     Quest updated = copy(quest, quest.position(), display, quest.objectives(), quest.rewards(), quest.dependencies());
                     document.update(updated);
                     return QuestResult.of(updated);

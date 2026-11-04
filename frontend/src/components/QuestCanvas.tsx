@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { MouseEvent, PointerEvent } from 'react'
+import type { CSSProperties, MouseEvent, PointerEvent } from 'react'
 import type { ComponentTextContext, Position, Quest, Section } from '../types.ts'
 import { snapQuestPosition } from '../lib/quests.ts'
 import { ComponentText } from './ComponentText.tsx'
@@ -8,7 +8,9 @@ import { QuestNode } from './QuestNode.tsx'
 import { StoneBackdrop } from './StoneBackdrop.tsx'
 import { ButtonSymbol } from './ButtonSymbol.tsx'
 
-const ZOOM_LEVELS = [0.5, 0.75, 1, 1.5, 2]
+const ZOOM_LEVELS = [0.25, 0.5, 0.75, 1, 1.5, 2]
+const DEFAULT_ZOOM_LEVEL = ZOOM_LEVELS.indexOf(1)
+const CSS_PIXELS_PER_GUI_UNIT = 2
 type Gesture = { type: 'pan' | 'quest'; id?: string; pointer: number; capture: HTMLElement; start: Position; origin: Position; moved: boolean }
 type Connection = { active: boolean; source?: string; disabled: boolean; section?: string }
 
@@ -22,7 +24,7 @@ export function QuestCanvas({ section, selected, epoch, assetRevision, textConte
   const connectionClick = useRef<string>(undefined)
   const [size, setSize] = useState({ x: 0, y: 0 })
   const [pan, setPan] = useState<Position>({ x: 0, y: 0 })
-  const [zoomLevel, setZoomLevel] = useState(2)
+  const [zoomLevel, setZoomLevel] = useState(DEFAULT_ZOOM_LEVEL)
   const [mouse, setMouse] = useState<Position>({ x: 0, y: 0 })
   const [connection, setConnection] = useState<Connection>({ active: false, disabled, section: section?.section_id })
   if (connection.disabled !== disabled || connection.section !== section?.section_id) {
@@ -31,6 +33,7 @@ export function QuestCanvas({ section, selected, epoch, assetRevision, textConte
   const connecting = connection.active && !disabled
   const source = connecting ? connection.source : undefined
   const zoom = ZOOM_LEVELS[zoomLevel]
+  const scale = zoom * CSS_PIXELS_PER_GUI_UNIT
   const cancelConnection = () => setConnection({ active: false, disabled, section: section?.section_id })
   useEffect(() => {
     const element = viewport.current!
@@ -38,24 +41,29 @@ export function QuestCanvas({ section, selected, epoch, assetRevision, textConte
     observer.observe(element)
     return () => observer.disconnect()
   }, [])
-  const toWorld = (point: Position): Position => ({ x: (point.x - size.x / 2 - pan.x) / zoom, y: (point.y - size.y / 2 - pan.y) / zoom })
+  const toWorld = useCallback((point: Position): Position => ({
+    x: (point.x - size.x / 2 - pan.x) / scale,
+    y: (point.y - size.y / 2 - pan.y) / scale,
+  }), [size, pan, scale])
   const local = useCallback((clientX: number, clientY: number): Position => {
     const bounds = viewport.current!.getBoundingClientRect()
     return { x: clientX - bounds.left, y: clientY - bounds.top }
   }, [])
   const zoomAt = useCallback((direction: number, point: Position = { x: size.x / 2, y: size.y / 2 }) => {
     const next = Math.max(0, Math.min(ZOOM_LEVELS.length - 1, zoomLevel + direction))
-    const world = { x: (point.x - size.x / 2 - pan.x) / zoom, y: (point.y - size.y / 2 - pan.y) / zoom }
-    setPan({ x: pan.x + world.x * (zoom - ZOOM_LEVELS[next]), y: pan.y + world.y * (zoom - ZOOM_LEVELS[next]) })
+    if (next === zoomLevel) return
+    const world = toWorld(point)
+    const scaleChange = scale - ZOOM_LEVELS[next] * CSS_PIXELS_PER_GUI_UNIT
+    setPan({ x: pan.x + world.x * scaleChange, y: pan.y + world.y * scaleChange })
     setZoomLevel(next)
-  }, [size, pan, zoom, zoomLevel])
+  }, [size, pan, scale, toWorld, zoomLevel])
   useEffect(() => {
     const element = viewport.current!
     const wheel = (event: WheelEvent) => { event.preventDefault(); if (event.deltaY) zoomAt(event.deltaY < 0 ? 1 : -1, local(event.clientX, event.clientY)) }
     element.addEventListener('wheel', wheel, { passive: false })
     return () => element.removeEventListener('wheel', wheel)
   }, [zoomAt, local])
-  const reset = () => { setPan({ x: 0, y: 0 }); setZoomLevel(2) }
+  const reset = () => { setPan({ x: 0, y: 0 }); setZoomLevel(DEFAULT_ZOOM_LEVEL) }
   const selectQuest = (quest: Quest, event?: MouseEvent<HTMLButtonElement>) => {
     if (event && event.detail > 1) return
     if (didDrag.current) { didDrag.current = false; return }
@@ -104,7 +112,9 @@ export function QuestCanvas({ section, selected, epoch, assetRevision, textConte
     cancelConnection()
     const center = toWorld({ x: size.x / 2, y: size.y / 2 })
     const point = snapQuestPosition(center)
-    while (section?.quests.some(quest => Math.abs(quest.position.x - point.x) < 56 && Math.abs(quest.position.y - point.y) < 56)) point.x += 80
+    const clearance = 56 / CSS_PIXELS_PER_GUI_UNIT
+    while (section?.quests.some(quest => Math.abs(quest.position.x - point.x) < clearance
+      && Math.abs(quest.position.y - point.y) < clearance)) point.x += 80 / CSS_PIXELS_PER_GUI_UNIT
     onAdd(point)
   }
   return <main className="quest-canvas" aria-label="Quest canvas" onKeyDown={event => {
@@ -124,7 +134,7 @@ export function QuestCanvas({ section, selected, epoch, assetRevision, textConte
         const dx = event.clientX - current.start.x, dy = event.clientY - current.start.y
         if (Math.abs(dx) + Math.abs(dy) > 3) current.moved = true
         if (current.type === 'pan') setPan({ x: current.origin.x + dx, y: current.origin.y + dy })
-        else if (!disabled && current.moved) onMove(current.id!, snapQuestPosition({ x: current.origin.x + dx / zoom, y: current.origin.y + dy / zoom }, event))
+        else if (!disabled && current.moved) onMove(current.id!, snapQuestPosition({ x: current.origin.x + dx / scale, y: current.origin.y + dy / scale }, event))
       }} onPointerUp={event => finishGesture(event)} onPointerCancel={event => finishGesture(event, true)}
       onLostPointerCapture={event => {
         const current = gesture.current
@@ -144,7 +154,10 @@ export function QuestCanvas({ section, selected, epoch, assetRevision, textConte
         }
       }}>
       <StoneBackdrop assetRevision={assetRevision} size={size} pan={pan} zoom={zoom} />
-      <div className="canvas-world" style={{ transform: 'translate(' + (size.x / 2 + pan.x) + 'px, ' + (size.y / 2 + pan.y) + 'px) scale(' + zoom + ')' }}>
+      <div className="canvas-world" style={{
+        '--css-pixels-per-gui-unit': CSS_PIXELS_PER_GUI_UNIT,
+        transform: `translate(${size.x / 2 + pan.x}px, ${size.y / 2 + pan.y}px) scale(${scale})`,
+      } as CSSProperties}>
         <DependencyLines quests={section?.quests ?? []} />
         {section?.quests.map(quest => <QuestNode key={quest.quest_id} quest={quest} selected={selected === quest.quest_id}
           prerequisite={source === quest.quest_id} connecting={connecting} disabled={disabled} epoch={epoch} textContext={textContext}

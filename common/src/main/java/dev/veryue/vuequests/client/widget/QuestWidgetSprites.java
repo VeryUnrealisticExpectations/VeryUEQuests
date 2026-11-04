@@ -17,7 +17,6 @@ public class QuestWidgetSprites {
     public static final ResourceLocation CANVAS = sprite("canvas");
     public static final ResourceLocation PREVIEW = sprite("preview");
     public static final ResourceLocation SECTION = sprite("section");
-    public static final ResourceLocation QUEST = sprite("quest");
     public static final ResourceLocation SECTION_SELECTED = sprite("section_selected");
     public static final ResourceLocation SCROLLBAR = sprite("scrollbar");
 

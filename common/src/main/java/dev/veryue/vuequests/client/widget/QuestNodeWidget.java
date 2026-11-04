@@ -37,7 +37,7 @@ public class QuestNodeWidget extends Button {
         try {
             pose.translate(getX(), getY(), 0);
             pose.scale(getWidth() / (float) SIZE, getHeight() / (float) SIZE, 1);
-            QuestWidgetSprites.blit(graphics, QuestWidgetSprites.QUEST, 0, 0, SIZE, SIZE);
+            QuestWidgetSprites.blit(graphics, quest.display().backgroundSprite(), 0, 0, SIZE, SIZE);
             graphics.renderItem(icon, 4, 4);
         } finally {
             pose.popPose();

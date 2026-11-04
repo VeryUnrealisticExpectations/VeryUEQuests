@@ -1689,6 +1689,11 @@
           },
           "tooltip": {
             "type": "string"
+          },
+          "background_sprite": {
+            "type": "string",
+            "description": "Namespaced GUI sprite ID for the quest node background.",
+            "default": "vuequests:quest_backgrounds/background_icon_square"
           }
         },
         "required": [

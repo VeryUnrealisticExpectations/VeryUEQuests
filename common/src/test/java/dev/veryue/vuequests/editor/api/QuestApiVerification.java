@@ -13,19 +13,24 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 import com.mojang.serialization.JsonOps;
 import com.sun.net.httpserver.HttpServer;
 import dev.veryue.vuequests.VeryUERegistries;
+import dev.veryue.vuequests.editor.QuestEditorAssets;
+import dev.veryue.vuequests.editor.QuestEditorResources;
 import dev.veryue.vuequests.editor.QuestEditorService;
 import dev.veryue.vuequests.editor.QuestEditorStorage;
 import dev.veryue.vuequests.editor.QuestEditorStorage.Document;
 import dev.veryue.vuequests.models.quest.Quest;
+import dev.veryue.vuequests.models.quest.QuestDisplay;
 import dev.veryue.vuequests.models.quest.Section;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.RegistryOps;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.Bootstrap;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -58,6 +63,7 @@ public class QuestApiVerification {
         var ops = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY).createSerializationContext(JsonOps.INSTANCE);
         Gson json = QuestApiJson.create(ops);
         verifyModels(json, ops);
+        verifyQuestBackgrounds();
         verifyHttp();
         System.out.println("Quest API verification passed: " + checks + " checks.");
     }
@@ -95,8 +101,17 @@ public class QuestApiVerification {
         QuestApiService.createQuest(document, second);
         QuestEditorService.validate(document.encode(), ops, ignored -> false);
         check(true, "Cross-quest dependency validated");
-        Quest loaded = json.fromJson(json.toJson(document.quest(firstId)), Quest.class);
+        JsonObject questJson = json.toJsonTree(document.quest(firstId)).getAsJsonObject();
+        JsonObject display = questJson.getAsJsonObject("display");
+        check(!display.has("background_sprite"), "Default background is omitted in serialized quests");
+        Quest loaded = json.fromJson(questJson, Quest.class);
         check(loaded.objectives().get(1).getValue().equals(42), "Native quest response round trip");
+        check(loaded.display().backgroundSprite().equals(QuestDisplay.DEFAULT_BACKGROUND_SPRITE), "Legacy quest display uses the square background");
+        String customBackground = "test:quest_backgrounds/shapes/diamond";
+        display.addProperty("background_sprite", customBackground);
+        Quest custom = json.fromJson(questJson, Quest.class);
+        check(custom.display().backgroundSprite().equals(ResourceLocation.parse(customBackground)), "Custom background decodes as a sprite ID");
+        document.update(custom);
         Quest old = document.quest(firstId);
         document.update(new Quest(old.position(), old.display(), old.sectionUUID(), old.questId(), old.objectives(), old.rewards(), List.of(secondId)));
         expect(IllegalArgumentException.class, () -> QuestEditorService.validate(document.encode(), ops, ignored -> false), "Cycle rejected before persistence");
@@ -138,6 +153,43 @@ public class QuestApiVerification {
         Path saved = root.resolve(QuestEditorStorage.PACK_NAME).resolve("data/vuequests/vuequests/sections/editor_" + sectionId + ".json");
         Section savedSection = json.fromJson(Files.readString(saved), Section.class);
         check(savedSection.questList().size() == 2 && savedSection.questList().get(0).objectives().get(1).getValue().equals(42), "Typed changes persist as valid datapack definitions");
+        check(savedSection.questList().getFirst().display().backgroundSprite().equals(custom.display().backgroundSprite()), "Custom background survives datapack persistence");
+    }
+
+    private static void verifyQuestBackgrounds() throws Exception {
+        Path assets = Path.of("src/main/resources").toAbsolutePath();
+        Path extra = Files.createTempDirectory(Path.of("build"), "quest-backgrounds-");
+        String textureDirectory = QuestEditorAssets.QUEST_BACKGROUND_TEXTURE_DIRECTORY;
+        String squarePath = "assets/vuequests/" + textureDirectory + "/background_icon_square.png";
+        String diamondPath = "assets/test/" + textureDirectory + "/shapes/diamond.png";
+        Files.createDirectories(extra.resolve(diamondPath).getParent());
+        Files.createDirectories(extra.resolve(squarePath).getParent());
+        Files.copy(assets.resolve(squarePath), extra.resolve(diamondPath));
+        Files.copy(assets.resolve(squarePath + ".mcmeta"), extra.resolve(diamondPath + ".mcmeta"));
+        Files.copy(assets.resolve(squarePath), extra.resolve(squarePath));
+        QuestEditorAssets.setRoots(List.of(assets));
+        try {
+            var bundled = QuestEditorAssets.questBackgrounds();
+            for (String shape : List.of("circle", "four_point_star", "rounded_square")) {
+                String spriteName = "background_icon_" + shape;
+                var spriteId = ResourceLocation.parse("vuequests:quest_backgrounds/" + spriteName);
+                check(bundled.contains(spriteId), "Bundled " + shape + " sprite appears in the editor catalog");
+                check(QuestEditorResources.read("assets/vuequests/" + textureDirectory + "/" + spriteName + ".png.mcmeta").join() != null,
+                        "Bundled " + shape + " has a sprite sidecar");
+            }
+            QuestEditorAssets.setRoots(List.of(extra, assets));
+            var catalog = QuestEditorResources.describe().join().getAsJsonArray("questBackgrounds");
+            check(catalog.size() == bundled.size() + 1, "Background discovery includes nested PNGs and deduplicates across asset roots");
+            check(catalog.contains(new JsonPrimitive("test:quest_backgrounds/shapes/diamond")), "Custom namespaced sprite appears in the editor catalog");
+            check(catalog.contains(new JsonPrimitive(QuestDisplay.DEFAULT_BACKGROUND_SPRITE.toString())), "Bundled square appears in the editor catalog");
+            check(QuestEditorResources.read(diamondPath + ".mcmeta").join() != null, "Sprite sidecar is available through the asset reader");
+            Files.copy(assets.resolve(squarePath), extra.resolve(diamondPath).resolveSibling("circle.png"));
+            QuestEditorAssets.invalidate();
+            check(QuestEditorResources.describe().join().getAsJsonArray("questBackgrounds").size() == bundled.size() + 2,
+                    "Background catalog updates after asset invalidation");
+        } finally {
+            QuestEditorAssets.setRoots(List.of());
+        }
     }
 
     private static void verifyHttp() throws Exception {

@@ -1,10 +1,11 @@
 import { useCallback, useState } from 'react'
 import type { Catalog, ComponentTextContext, Position, Quest, Section } from '../types.ts'
-import { dependencyProblem, newQuest, updateQuest } from '../lib/quests.ts'
+import { DEFAULT_QUEST_BACKGROUND, dependencyProblem, newQuest, updateQuest } from '../lib/quests.ts'
 import { ComponentEditor } from './ComponentEditor.tsx'
 import { ComponentText } from './ComponentText.tsx'
 import { Dialog } from './Dialog.tsx'
-import { ItemIcon } from './ItemIcon.tsx'
+import { QuestBackgroundPicker } from './QuestBackgroundPicker.tsx'
+import { QuestNodeIcon } from './QuestNodeIcon.tsx'
 import { RegistryPicker } from './RegistryPicker.tsx'
 import { TaskListEditor } from './TaskListEditor.tsx'
 import { taskEditorId, taskProblem } from '../lib/taskEditor.ts'
@@ -40,7 +41,8 @@ export function QuestEditorDialog({ quest, section, sections, position, catalog,
       else onApply(draft)
     }}>
       <div className="dialog-body quest-form">
-        <div className="form-intro"><ItemIcon id={draft.display.icon} epoch={epoch} /><p><ComponentText value={section.name} textContext={textContext} /></p></div>
+        <div className="form-intro"><QuestNodeIcon display={draft.display} epoch={epoch} revision={textContext.assetRevision} />
+          <p><ComponentText value={section.name} textContext={textContext} /></p></div>
         <div className="form-grid quest-text-fields">
           <ComponentEditor label="Quest title" required maxLiteralLength={160} value={draft.display.title} onChange={title => display({ title })}
             textContext={textContext} onValidityChange={titleValidity} catalog={catalog} epoch={epoch} />
@@ -50,6 +52,9 @@ export function QuestEditorDialog({ quest, section, sections, position, catalog,
         <ComponentEditor label="Description" multiline value={draft.display.description} onChange={description => display({ description })}
           textContext={textContext} onValidityChange={descriptionValidity} catalog={catalog} epoch={epoch} />
         <RegistryPicker label="Quest icon" value={draft.display.icon} onChange={icon => display({ icon })} catalog={catalog} epoch={epoch} />
+        <QuestBackgroundPicker value={draft.display.background_sprite ?? DEFAULT_QUEST_BACKGROUND}
+          backgrounds={textContext.questBackgrounds ?? []} revision={textContext.assetRevision}
+          onChange={id => display({ background_sprite: id === DEFAULT_QUEST_BACKGROUND ? undefined : id })} />
         <div className="form-grid">
           <label className="field">Tooltip<input value={draft.display.tooltip} onChange={event => display({ tooltip: event.target.value })} /></label>
           <div className="field-row"><label className="field">X<input type="number" required step={1} value={draft.position.x}

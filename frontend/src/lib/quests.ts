@@ -1,5 +1,7 @@
 import type { Position, Quest, Section, Task } from '../types.ts'
 
+export const DEFAULT_QUEST_BACKGROUND = 'vuequests:quest_backgrounds/background_icon_square'
+
 export const allQuests = (sections: Section[]) => sections.flatMap(section => section.quests)
 export const labelFor = (id: string) => id.split(':').at(-1)!.replaceAll('_', ' ').replaceAll('/', ' / ')
 

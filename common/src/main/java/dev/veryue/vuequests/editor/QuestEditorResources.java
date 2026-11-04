@@ -112,6 +112,9 @@ public class QuestEditorResources {
         result.add("fonts", fonts);
         result.add("translations", translations);
         result.add("keybinds", new JsonArray());
+        JsonArray questBackgrounds = new JsonArray();
+        QuestEditorAssets.questBackgrounds().forEach(id -> questBackgrounds.add(id.toString()));
+        result.add("questBackgrounds", questBackgrounds);
         return result;
     }
 }

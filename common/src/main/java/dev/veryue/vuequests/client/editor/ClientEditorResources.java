@@ -105,6 +105,12 @@ public class ClientEditorResources implements EditorResourceSource {
             response.add("fonts", fonts);
             response.add("translations", translations);
             response.add("keybinds", keybinds);
+            JsonArray questBackgrounds = new JsonArray();
+            minecraft.getResourceManager().listResources(QuestEditorAssets.QUEST_BACKGROUND_TEXTURE_DIRECTORY,
+                            id -> id.getPath().endsWith(".png")).keySet().stream()
+                    .map(QuestEditorAssets.GUI_SPRITE_FILES::fileToId).sorted()
+                    .forEach(id -> questBackgrounds.add(id.toString()));
+            response.add("questBackgrounds", questBackgrounds);
             catalog = response;
             catalogRevision = revision;
             return response.deepCopy();
