@@ -14,6 +14,7 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
 import net.neoforged.neoforge.event.OnDatapackSyncEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
@@ -39,6 +40,7 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
         NeoForge.EVENT_BUS.addListener(this::onServerStopping);
         NeoForge.EVENT_BUS.addListener(this::onServerStopped);
         NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedIn);
+        NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedOut);
     }
 
     private void registerPayloads(RegisterPayloadHandlersEvent event) {
@@ -76,16 +78,19 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
         }
     }
 
+    private void onPlayerLoggedOut(PlayerLoggedOutEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player) {
+            unloadPlayer(player.getUUID());
+        }
+    }
+
     private void onAddReloadListeners(AddReloadListenerEvent event) {
         event.addListener(new QuestReloadListener());
     }
 
     private void onServerStopping(ServerStoppingEvent event) {
+        stop();
         QuestEditorServer.stop();
         QuestReloadDelegate.INSTANCE.clear();
-    }
-
-    private void onServerStopped(ServerStoppedEvent event) {
-        stop();
     }
 }

@@ -9,41 +9,80 @@ import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 public class VeryUEMod {
 
     private final Logger LOGGER = LoggerFactory.getLogger(VeryUEConstants.MOD_ID);
-    private final Map<UUID, User> USERS = new HashMap<>();
+    private final Map<UUID, User> USERS = new ConcurrentHashMap<>();
     private UserLoader loader;
+    private ScheduledExecutorService saveExecutor;
+    private ScheduledFuture<?> autosave;
 
     public void start(MinecraftServer server) {
         start(new FlatFileUserLoader(server));
     }
 
     public void start(UserLoader userLoader) {
-        USERS.clear();
+        Objects.requireNonNull(userLoader);
         loader = userLoader;
+        saveExecutor = Executors.newSingleThreadScheduledExecutor(task -> new Thread(task, "VUEQuests user saves"));
+        autosave = saveExecutor.scheduleAtFixedRate(() -> saveUsers(userLoader, List.copyOf(USERS.values())),
+                5, 5, TimeUnit.MINUTES);
     }
 
     public void loadPlayer(UUID uuid) {
-        User user;
-        try {
-            if (loader == null) {
-                throw new IllegalStateException("User loader has not been initialized");
-            }
-            user = loader.loadUser(uuid);
-        } catch (PlayerDoesNotExistException exception) {
-            user = new PlayerUser(uuid);
-        } catch (IllegalStateException exception) {
-            USERS.remove(uuid);
-            LOGGER.error("Could not load quest progress for player {}", uuid, exception);
+        if (saveExecutor == null) {
+            LOGGER.error("Could not load quest progress for player {} because the user loader is not running", uuid);
             return;
         }
-        USERS.put(uuid, user);
+
+        // Queue the read behind pending writes so a quick reconnect sees the logout save.
+        User user = CompletableFuture.supplyAsync(() -> readPlayer(loader, uuid), saveExecutor).join();
+        if (user == null) {
+            USERS.remove(uuid);
+        } else {
+            USERS.put(uuid, user);
+        }
+    }
+
+    private User readPlayer(UserLoader activeLoader, UUID uuid) {
+        try {
+            return activeLoader.loadUser(uuid);
+        } catch (PlayerDoesNotExistException exception) {
+            return new PlayerUser(uuid);
+        } catch (IllegalStateException exception) {
+            LOGGER.error("Could not load quest progress for player {}", uuid, exception);
+            return null;
+        }
+    }
+
+    public void unloadPlayer(UUID uuid) {
+        User user = USERS.remove(uuid);
+        if (user != null && saveExecutor != null) {
+            UserLoader activeLoader = loader;
+            saveExecutor.execute(() -> saveUser(activeLoader, user));
+        }
+    }
+
+    private void saveUsers(UserLoader activeLoader, Collection<User> users) {
+        for (User user : users) {
+            saveUser(activeLoader, user);
+        }
+    }
+
+    private void saveUser(UserLoader activeLoader, User user) {
+        try {
+            activeLoader.saveUser(user);
+        } catch (RuntimeException exception) {
+            LOGGER.error("Could not save quest progress for player {}", user.getUuid(), exception);
+        }
     }
 
     public Optional<User> getUser(UUID uuid) {
@@ -51,7 +90,22 @@ public class VeryUEMod {
     }
 
     public void stop() {
-        USERS.clear();
-        loader = null;
+        if (saveExecutor == null) {
+            return;
+        }
+
+        autosave.cancel(false);
+        UserLoader activeLoader = loader;
+        CompletableFuture<Void> finalSave = CompletableFuture.runAsync(() -> saveUsers(activeLoader, USERS.values()), saveExecutor);
+        saveExecutor.shutdown();
+        try {
+            finalSave.join();
+        } finally {
+            saveExecutor.close();
+            USERS.clear();
+            autosave = null;
+            saveExecutor = null;
+            loader = null;
+        }
     }
 }

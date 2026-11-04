@@ -5,6 +5,7 @@ import dev.veryue.vuequests.editor.QuestEditorServer;
 import dev.veryue.vuequests.network.QuestScreenOpenedPayload;
 import dev.veryue.vuequests.network.QuestSyncPayload;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -28,6 +29,7 @@ public class VeryUEQuestsFabric extends VeryUEMod implements ModInitializer {
             loadPlayer(handler.player.getUUID());
             syncQuests(handler.player);
         });
+        ServerPlayerEvents.LEAVE.register(player -> unloadPlayer(player.getUUID()));
         ServerLifecycleEvents.END_DATA_PACK_RELOAD.register((server, resourceManager, success) -> {
             if (success) {
                 server.getPlayerList().getPlayers().forEach(this::syncQuests);
@@ -36,12 +38,12 @@ public class VeryUEQuestsFabric extends VeryUEMod implements ModInitializer {
         ResourceManagerHelper.get(PackType.SERVER_DATA)
                 .registerReloadListener(QuestReloadDelegate.ID, QuestReloadListener::new);
         ServerLifecycleEvents.SERVER_STARTING.register(this::start);
-        ServerLifecycleEvents.SERVER_STARTED.register(server -> QuestEditorServer.start(server));
+        ServerLifecycleEvents.SERVER_STARTED.register(QuestEditorServer::start);
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+            stop();
             QuestEditorServer.stop();
             QuestReloadDelegate.INSTANCE.clear();
         });
-        ServerLifecycleEvents.SERVER_STOPPED.register(server -> this.stop());
     }
 
     private void syncQuests(ServerPlayer player) {
