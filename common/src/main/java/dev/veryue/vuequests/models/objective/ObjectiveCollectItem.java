@@ -72,7 +72,12 @@ public class ObjectiveCollectItem extends QuestObjective<ItemStack, Integer> {
     }
 
     @Override
-    public QuestObjectiveSerializer getType() {
+    public boolean isComplete(QuestObjectiveProgress<ItemStack, Integer> progress) {
+        return progress.getCurrentProgress() != null && progress.getCurrentProgress() >= getValue().getCount();
+    }
+
+    @Override
+    public QuestObjectiveSerializer<Integer> getType() {
         return QuestObjectiveTypes.COLLECT_ITEM;
     }
 }

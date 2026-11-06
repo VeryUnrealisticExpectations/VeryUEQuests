@@ -47,7 +47,12 @@ public class ObjectiveSlayEntity extends QuestObjective<EntityType<?>, Integer> 
     }
 
     @Override
-    public QuestObjectiveSerializer getType() {
+    public boolean isComplete(QuestObjectiveProgress<EntityType<?>, Integer> progress) {
+        return progress.getCurrentProgress() != null && progress.getCurrentProgress() > 0;
+    }
+
+    @Override
+    public QuestObjectiveSerializer<Integer> getType() {
         return QuestObjectiveTypes.ENTITY;
     }
 }

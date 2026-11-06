@@ -14,11 +14,11 @@ public class VeryUERegistries {
     public static final ResourceKey<Registry<RewardTypeSerializer>> REWARD_TYPE_KEY = ResourceKey.createRegistryKey(
             ResourceLocation.fromNamespaceAndPath(VeryUEConstants.MOD_ID, "reward_type"));
 
-    public static final ResourceKey<Registry<QuestObjectiveSerializer>> QUEST_OBJECTIVE_TYPE_KEY = ResourceKey.createRegistryKey(
+    public static final ResourceKey<Registry<QuestObjectiveSerializer<?>>> QUEST_OBJECTIVE_TYPE_KEY = ResourceKey.createRegistryKey(
             ResourceLocation.fromNamespaceAndPath(VeryUEConstants.MOD_ID, "quest_objective_type"));
 
     public static final Registry<RewardTypeSerializer> REWARD_TYPES = createRegistry(REWARD_TYPE_KEY);
-    public static final Registry<QuestObjectiveSerializer> QUEST_OBJECTIVE_TYPES = createRegistry(QUEST_OBJECTIVE_TYPE_KEY);
+    public static final Registry<QuestObjectiveSerializer<?>> QUEST_OBJECTIVE_TYPES = createRegistry(QUEST_OBJECTIVE_TYPE_KEY);
 
     public static <T> Registry<T> createRegistry(ResourceKey<Registry<T>> key) {
         return PlatformHelper.INSTANCE.createRegistry(key);

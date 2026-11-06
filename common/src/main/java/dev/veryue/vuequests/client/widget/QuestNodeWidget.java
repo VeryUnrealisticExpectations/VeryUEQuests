@@ -13,9 +13,11 @@ import java.util.function.Consumer;
 public class QuestNodeWidget extends Button {
 
     public static final int SIZE = 24;
+    private static final float LOCKED_BRIGHTNESS = 0.35F;
 
     private final Quest quest;
     private final ItemStack icon;
+    private boolean locked;
 
     public QuestNodeWidget(Quest quest, Consumer<Quest> onSelect) {
         super(0, 0, SIZE, SIZE, quest.display().title(), button -> onSelect.accept(quest), DEFAULT_NARRATION);
@@ -30,6 +32,10 @@ public class QuestNodeWidget extends Button {
         return quest;
     }
 
+    public void setLocked(boolean locked) {
+        this.locked = locked;
+    }
+
     @Override
     protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         PoseStack pose = graphics.pose();
@@ -37,9 +43,14 @@ public class QuestNodeWidget extends Button {
         try {
             pose.translate(getX(), getY(), 0);
             pose.scale(getWidth() / (float) SIZE, getHeight() / (float) SIZE, 1);
-            QuestWidgetSprites.blit(graphics, quest.display().backgroundSprite(), 0, 0, SIZE, SIZE);
+            float brightness = locked ? LOCKED_BRIGHTNESS : 1;
+            QuestWidgetSprites.blit(graphics, quest.display().backgroundSprite(), 0, 0, SIZE, SIZE, brightness);
+            graphics.flush();
+            graphics.setColor(brightness, brightness, brightness, 1);
             graphics.renderItem(icon, 4, 4);
         } finally {
+            graphics.flush();
+            graphics.setColor(1, 1, 1, 1);
             pose.popPose();
         }
     }

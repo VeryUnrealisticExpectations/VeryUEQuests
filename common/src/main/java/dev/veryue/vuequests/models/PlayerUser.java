@@ -7,6 +7,7 @@ import dev.veryue.vuequests.models.quest.Quest;
 import net.minecraft.core.UUIDUtil;
 
 import java.util.Set;
+import java.util.Map;
 import java.util.UUID;
 
 public class PlayerUser extends User {
@@ -18,7 +19,8 @@ public class PlayerUser extends User {
             UUIDUtil.STRING_CODEC.fieldOf("uuid").forGetter(PlayerUser::getUuid),
             UUID_SET_CODEC.fieldOf("completed_quests").forGetter(PlayerUser::getCompletedQuests),
             UUID_SET_CODEC.fieldOf("completed_objectives").forGetter(PlayerUser::getCompletedObjectives),
-            UUID_SET_CODEC.fieldOf("claimed_rewards").forGetter(PlayerUser::getClaimedRewards)
+            UUID_SET_CODEC.fieldOf("claimed_rewards").forGetter(PlayerUser::getClaimedRewards),
+            QUEST_OBJECTIVE_PROGRESS_CODEC.optionalFieldOf("quest_objective_progress", Map.of()).forGetter(PlayerUser::getQuestObjectiveProgress)
     ).apply(instance, PlayerUser::new));
 
     public PlayerUser(UUID uuid) {
@@ -27,6 +29,11 @@ public class PlayerUser extends User {
 
     public PlayerUser(UUID uuid, Set<UUID> completedQuests, Set<UUID> completedObjectives, Set<UUID> claimedRewards) {
         super(uuid, completedQuests, completedObjectives, claimedRewards);
+    }
+
+    public PlayerUser(UUID uuid, Set<UUID> completedQuests, Set<UUID> completedObjectives, Set<UUID> claimedRewards,
+                      Map<UUID, QuestObjectiveProgress<?, ?>> questObjectiveProgress) {
+        super(uuid, completedQuests, completedObjectives, claimedRewards, questObjectiveProgress);
     }
 
     @Override

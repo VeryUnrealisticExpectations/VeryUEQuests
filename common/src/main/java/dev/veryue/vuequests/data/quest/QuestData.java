@@ -1,7 +1,8 @@
 package dev.veryue.vuequests.data.quest;
 
-import dev.veryue.vuequests.models.User;
 import dev.veryue.vuequests.models.ObjectiveContext;
+import dev.veryue.vuequests.models.QuestObjectiveProgress;
+import dev.veryue.vuequests.models.User;
 import dev.veryue.vuequests.models.objective.QuestObjective;
 import dev.veryue.vuequests.models.objective.QuestObjectiveSerializer;
 import dev.veryue.vuequests.models.quest.Quest;
@@ -23,7 +24,7 @@ public class QuestData {
     private final Map<UUID, Quest> quests;
     private final List<Quest> rootQuests;
     private final Map<UUID, List<UUID>> dependents;
-    private final Map<QuestObjectiveSerializer, List<Quest>> questsByObjectiveType;
+    private final Map<QuestObjectiveSerializer<?>, List<Quest>> questsByObjectiveType;
 
     public QuestData(Map<UUID, Section> sections, Map<UUID, Quest> quests) {
         this.sections = sections;
@@ -43,7 +44,7 @@ public class QuestData {
         return quests;
     }
 
-    public List<Quest> questsByObjectiveType(QuestObjectiveSerializer objectiveType) {
+    public List<Quest> questsByObjectiveType(QuestObjectiveSerializer<?> objectiveType) {
         return questsByObjectiveType.getOrDefault(objectiveType, List.of());
     }
 
@@ -52,7 +53,7 @@ public class QuestData {
     }
 
 
-    public List<QuestObjective<?, ?>> handleQuestTrigger(User user, QuestObjectiveSerializer objectiveType, ObjectiveContext context) {
+    public List<QuestObjective<?, ?>> handleQuestTrigger(User user, QuestObjectiveSerializer<?> objectiveType, ObjectiveContext context) {
         List<QuestObjective<?, ?>> matchingObjectives = new ArrayList<>();
         for (Quest quest : questsByObjectiveType(objectiveType)) {
             if (!prerequisitesMet(quest.questId(), user)) {
@@ -60,18 +61,26 @@ public class QuestData {
             }
 
             for (QuestObjective<?, ?> objective : quest.objectives()) {
-                if (!objectiveType.equals(objective.getType())) {
+                if (!objectiveType.equals(objective.getType()) || user.hasCompletedObjective(objective)) {
                     continue;
                 }
 
                 matchingObjectives.add(objective);
-                user.incrementObjectiveProgress(objective, context);
-                // todo; if the questObjective is complete, we need to mark it as complete.
-                // todo; then we also need to update the client player when they're on a server
+                handleObjectiveTrigger(user, objective, context);
             }
         }
 
         return matchingObjectives;
+    }
+
+    private <T, TYPE> void handleObjectiveTrigger(User user, QuestObjective<T, TYPE> objective, ObjectiveContext context) {
+        QuestObjectiveProgress<T, TYPE> progress = user.incrementObjectiveProgress(objective, context);
+        if (progress.isComplete(objective)) {
+            user.completeObjective(objective);
+        }
+        // todo; then we also need to update the client player when they're on a server
+        // todo probably a sync payload again.
+        // todo need to refactor ClientQuestData so we aren't duplicating stuff in memory.
     }
 
     public boolean prerequisitesMet(UUID questId, User user) {
@@ -110,7 +119,7 @@ public class QuestData {
         return accessible;
     }
 
-    public List<Quest> accessibleQuests(User user, QuestObjectiveSerializer objectiveType) {
+    public List<Quest> accessibleQuests(User user, QuestObjectiveSerializer<?> objectiveType) {
         return questsByObjectiveType(objectiveType).stream()
                 .filter(quest -> prerequisitesMet(quest.questId(), user))
                 .toList();
@@ -130,8 +139,8 @@ public class QuestData {
      * Groups quests by objective type, listing each quest once per type.
      * Triggers can use these groups to limit prerequisite checks to quests matching the event.
      */
-    private Map<QuestObjectiveSerializer, List<Quest>> indexObjectiveTypes(Map<UUID, Quest> quests) {
-        Map<QuestObjectiveSerializer, List<Quest>> index = new HashMap<>();
+    private Map<QuestObjectiveSerializer<?>, List<Quest>> indexObjectiveTypes(Map<UUID, Quest> quests) {
+        Map<QuestObjectiveSerializer<?>, List<Quest>> index = new HashMap<>();
         for (Quest quest : quests.values()) {
             quest.objectives().stream()
                     .map(QuestObjective::getType)

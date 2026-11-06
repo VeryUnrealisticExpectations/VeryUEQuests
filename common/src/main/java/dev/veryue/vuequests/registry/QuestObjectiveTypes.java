@@ -1,5 +1,6 @@
 package dev.veryue.vuequests.registry;
 
+import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import dev.veryue.vuequests.editor.api.models.JsonSchema;
 import dev.veryue.vuequests.editor.api.QuestApiSchemas;
@@ -13,21 +14,29 @@ import net.minecraft.resources.ResourceLocation;
 
 public class QuestObjectiveTypes {
 
-    public static final QuestObjectiveSerializer COLLECT_ITEM = register(ResourceLocation.fromNamespaceAndPath(VeryUEConstants.MOD_ID, "collect_item"),
-            ObjectiveCollectItem.CODEC, QuestApiSchemas.objective("vuequests:collect_item", "item", QuestApiSchemas.itemStack()));
-    public static final QuestObjectiveSerializer ENTITY = register(ResourceLocation.fromNamespaceAndPath(VeryUEConstants.MOD_ID, "entity"),
-            ObjectiveSlayEntity.CODEC, QuestApiSchemas.objective("vuequests:entity", "entity", JsonSchema.type("string").description("Loaded minecraft:entity_type registry ID.")));
+    public static final QuestObjectiveSerializer<Integer> COLLECT_ITEM = register(ResourceLocation.fromNamespaceAndPath(VeryUEConstants.MOD_ID, "collect_item"),
+            ObjectiveCollectItem.CODEC, Codec.INT, QuestApiSchemas.objective("vuequests:collect_item", "item", QuestApiSchemas.itemStack()));
+    public static final QuestObjectiveSerializer<Integer> ENTITY = register(ResourceLocation.fromNamespaceAndPath(VeryUEConstants.MOD_ID, "entity"),
+            ObjectiveSlayEntity.CODEC, Codec.INT, QuestApiSchemas.objective("vuequests:entity", "entity", JsonSchema.type("string").description("Loaded minecraft:entity_type registry ID.")));
 
-    public static QuestObjectiveSerializer register(String name, MapCodec<? extends QuestObjective<?, ?>> codec) {
+    public static <P> QuestObjectiveSerializer<P> register(String name, MapCodec<? extends QuestObjective<?, P>> codec) {
         return register(ResourceLocation.fromNamespaceAndPath(VeryUEConstants.MOD_ID, name), codec);
     }
 
-    public static QuestObjectiveSerializer register(ResourceLocation id, MapCodec<? extends QuestObjective<?, ?>> codec) {
+    public static <P> QuestObjectiveSerializer<P> register(ResourceLocation id, MapCodec<? extends QuestObjective<?, P>> codec) {
         return register(id, codec, null);
     }
 
-    public static QuestObjectiveSerializer register(ResourceLocation id, MapCodec<? extends QuestObjective<?, ?>> codec, JsonSchema schema) {
-        return VeryUERegistries.register(VeryUERegistries.QUEST_OBJECTIVE_TYPES, id, new QuestObjectiveSerializer(codec, schema));
+    public static <P> QuestObjectiveSerializer<P> register(ResourceLocation id, MapCodec<? extends QuestObjective<?, P>> codec, JsonSchema schema) {
+        QuestObjectiveSerializer<P> serializer = new QuestObjectiveSerializer<>(codec, schema);
+        VeryUERegistries.register(VeryUERegistries.QUEST_OBJECTIVE_TYPES, id, serializer);
+        return serializer;
+    }
+
+    public static <P> QuestObjectiveSerializer<P> register(ResourceLocation id, MapCodec<? extends QuestObjective<?, P>> codec, Codec<P> progressCodec, JsonSchema schema) {
+        QuestObjectiveSerializer<P> serializer = new QuestObjectiveSerializer<>(codec, progressCodec, schema);
+        VeryUERegistries.register(VeryUERegistries.QUEST_OBJECTIVE_TYPES, id, serializer);
+        return serializer;
     }
 
     public static void init() {}

@@ -48,5 +48,7 @@ public abstract class QuestObjective<T, TYPE> {
 
     public abstract void incrementObjectiveProgress(User user, QuestObjectiveProgress<T, TYPE> objectiveProgress, ObjectiveContext context);
 
-    public abstract QuestObjectiveSerializer getType();
+    public abstract boolean isComplete(QuestObjectiveProgress<T, TYPE> progress);
+
+    public abstract QuestObjectiveSerializer<TYPE> getType();
 }

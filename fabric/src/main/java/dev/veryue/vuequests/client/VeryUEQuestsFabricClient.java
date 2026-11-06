@@ -15,7 +15,7 @@ public class VeryUEQuestsFabricClient implements ClientModInitializer {
     public void onInitializeClient() {
         ClientEditorResources.initialize();
         ClientPlayNetworking.registerGlobalReceiver(QuestSyncPayload.TYPE,
-                (payload, context) -> ClientQuestData.update(payload.sections()));
+                (payload, context) -> ClientQuestData.update(payload.sections(), payload.user()));
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> ClientQuestData.clear());
         KeyBindingHelper.registerKeyBinding(VeryUEKeyMappings.OPEN_QUEST_MENU);
         ClientTickEvents.END_CLIENT_TICK.register(client -> VeryUEKeyMappings.onClientTick(client, this::notifyQuestScreenOpened));

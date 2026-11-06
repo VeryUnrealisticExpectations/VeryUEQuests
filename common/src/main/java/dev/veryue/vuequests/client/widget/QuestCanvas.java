@@ -1,6 +1,7 @@
 package dev.veryue.vuequests.client.widget;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import dev.veryue.vuequests.client.ClientQuestData;
 import dev.veryue.vuequests.models.quest.Quest;
 import dev.veryue.vuequests.models.quest.Section;
 import net.minecraft.client.gui.Font;
@@ -191,6 +192,7 @@ public class QuestCanvas extends QuestPanel {
             for (QuestNodeWidget node : nodes) {
                 if (node.getRight() + renderOffsetX > viewport.left() && node.getX() + renderOffsetX < viewport.right()
                         && node.getBottom() + renderOffsetY > viewport.top() && node.getY() + renderOffsetY < viewport.bottom()) {
+                    node.setLocked(!ClientQuestData.prerequisitesMet(node.getQuest()));
                     node.render(graphics, hoverAllowed ? mouseX : -1, hoverAllowed ? mouseY : -1, partialTick);
                 }
             }

@@ -19,9 +19,9 @@ public class QuestApiTestObjective extends QuestObjective<Integer, Integer> {
             UUIDUtil.STRING_CODEC.fieldOf("objective_id").forGetter(QuestApiTestObjective::getObjectiveId),
             Codec.INT.fieldOf("custom_value").forGetter(QuestApiTestObjective::getValue)
     ).apply(instance, QuestApiTestObjective::new));
-    public static final QuestObjectiveSerializer TYPE = QuestObjectiveTypes.register(ResourceLocation.parse("test:custom"), CODEC,
+    public static final QuestObjectiveSerializer<Integer> TYPE = QuestObjectiveTypes.register(ResourceLocation.parse("test:custom"), CODEC, Codec.INT,
             QuestApiSchemas.objective("test:custom", "custom_value", JsonSchema.type("integer")));
-    public static final QuestObjectiveSerializer LEGACY = QuestObjectiveTypes.register(ResourceLocation.parse("test:legacy"), CODEC);
+    public static final QuestObjectiveSerializer<Integer> LEGACY = QuestObjectiveTypes.register(ResourceLocation.parse("test:legacy"), CODEC);
 
     public QuestApiTestObjective(UUID id, int value) { super(id, value); }
 
@@ -29,5 +29,10 @@ public class QuestApiTestObjective extends QuestObjective<Integer, Integer> {
     public void incrementObjectiveProgress(User user, QuestObjectiveProgress<Integer, Integer> objectiveProgress, ObjectiveContext context) {
     }
 
-    @Override public QuestObjectiveSerializer getType() { return TYPE; }
+    @Override
+    public boolean isComplete(QuestObjectiveProgress<Integer, Integer> progress) {
+        return progress.getCurrentProgress() != null && progress.getCurrentProgress() >= getValue();
+    }
+
+    @Override public QuestObjectiveSerializer<Integer> getType() { return TYPE; }
 }

@@ -17,23 +17,36 @@ import com.google.gson.JsonPrimitive;
 import com.mojang.serialization.JsonOps;
 import com.sun.net.httpserver.HttpServer;
 import dev.veryue.vuequests.VeryUERegistries;
+import dev.veryue.vuequests.client.ClientQuestData;
+import dev.veryue.vuequests.data.FlatFileUserLoader;
 import dev.veryue.vuequests.data.quest.QuestData;
 import dev.veryue.vuequests.editor.QuestEditorAssets;
 import dev.veryue.vuequests.editor.QuestEditorResources;
 import dev.veryue.vuequests.editor.QuestEditorService;
 import dev.veryue.vuequests.editor.QuestEditorStorage;
 import dev.veryue.vuequests.editor.QuestEditorStorage.Document;
+import dev.veryue.vuequests.models.ObjectiveContext;
 import dev.veryue.vuequests.models.PlayerUser;
+import dev.veryue.vuequests.models.QuestObjectiveProgress;
+import dev.veryue.vuequests.models.User;
+import dev.veryue.vuequests.models.objective.ObjectiveCollectItem;
+import dev.veryue.vuequests.models.objective.ObjectiveSlayEntity;
 import dev.veryue.vuequests.models.quest.Quest;
 import dev.veryue.vuequests.models.quest.QuestDisplay;
 import dev.veryue.vuequests.models.quest.Section;
+import dev.veryue.vuequests.network.QuestSyncPayload;
+import io.netty.buffer.Unpooled;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.RegistryOps;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.Bootstrap;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -60,11 +73,14 @@ public class QuestApiVerification {
         VeryUERegistries.init();
         check(QuestApiTestObjective.TYPE.schema() != null, "Custom schema metadata");
         check(QuestApiTestObjective.LEGACY.schema() == null, "Legacy registration compatibility");
+        QuestApiTextProgressObjective.init();
         VeryUERegistries.QUEST_OBJECTIVE_TYPES.freeze();
         VeryUERegistries.REWARD_TYPES.freeze();
         var ops = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY).createSerializationContext(JsonOps.INSTANCE);
         Gson json = QuestApiJson.create(ops);
         verifyModels(json, ops);
+        verifyObjectiveProgress();
+        verifyUserSerialization();
         verifyQuestBackgrounds();
         verifyHttp();
         System.out.println("Quest API verification passed: " + checks + " checks.");
@@ -159,22 +175,111 @@ public class QuestApiVerification {
         check(savedSection.questList().getFirst().display().backgroundSprite().equals(custom.display().backgroundSprite()), "Custom background survives datapack persistence");
     }
 
+    private static void verifyObjectiveProgress() {
+        PlayerUser player = new PlayerUser(UUID.randomUUID());
+        ObjectiveContext context = new ObjectiveContext(null, Map.of());
+        ObjectiveCollectItem collect = new ObjectiveCollectItem(UUID.randomUUID(), new ItemStack(Items.OAK_LOG, 3));
+        QuestObjectiveProgress<ItemStack, Integer> collected = player.incrementObjectiveProgress(collect, context);
+        check(!collected.isComplete(collect), "An objective without progress is incomplete");
+        collected.setCurrentProgress(2);
+        check(!collected.isComplete(collect), "Progress below the item target is incomplete");
+        collected.setCurrentProgress(3);
+        check(collected.isComplete(collect), "Progress at the item target completes the objective");
+        collected.setCurrentProgress(4);
+        check(collected.isComplete(collect), "Progress above the item target completes the objective");
+        check(player.incrementObjectiveProgress(collect, context) == collected, "Triggers reuse typed progress for the same objective");
+        ObjectiveCollectItem changed = new ObjectiveCollectItem(collect.getObjectiveId(), new ItemStack(Items.OAK_LOG, 5));
+        check(!collected.isComplete(changed), "Completion uses the current objective definition");
+        ObjectiveCollectItem other = new ObjectiveCollectItem(UUID.randomUUID(), new ItemStack(Items.OAK_LOG, 3));
+        expect(IllegalArgumentException.class, () -> collected.isComplete(other), "Completion rejects a different objective UUID");
+        expect(IllegalArgumentException.class, () -> collected.increment(player, other, context), "Increments reject a different objective UUID");
+
+        ObjectiveSlayEntity slay = new ObjectiveSlayEntity(UUID.randomUUID(), EntityType.ZOMBIE);
+        QuestObjectiveProgress<EntityType<?>, Integer> slain = player.incrementObjectiveProgress(slay, context);
+        check(!slain.isComplete(slay), "An entity objective without progress is incomplete");
+        slain.setCurrentProgress(0);
+        check(!slain.isComplete(slay), "Zero entity progress is incomplete");
+        slain.setCurrentProgress(1);
+        check(slain.isComplete(slay), "One entity completes the entity objective");
+    }
+
+    private static void verifyUserSerialization() throws Exception {
+        PlayerUser player = new PlayerUser(UUID.randomUUID(), Set.of(UUID.randomUUID()), Set.of(UUID.randomUUID()), Set.of(UUID.randomUUID()));
+        ObjectiveContext context = new ObjectiveContext(null, Map.of());
+        ObjectiveCollectItem collect = new ObjectiveCollectItem(UUID.randomUUID(), new ItemStack(Items.OAK_LOG, 5));
+        ObjectiveCollectItem zero = new ObjectiveCollectItem(UUID.randomUUID(), new ItemStack(Items.OAK_LOG, 5));
+        ObjectiveSlayEntity slay = new ObjectiveSlayEntity(UUID.randomUUID(), EntityType.ZOMBIE);
+        QuestApiTextProgressObjective text = new QuestApiTextProgressObjective(UUID.randomUUID(), "done");
+        player.incrementObjectiveProgress(collect, context).setCurrentProgress(2);
+        player.incrementObjectiveProgress(zero, context).setCurrentProgress(0);
+        player.incrementObjectiveProgress(slay, context);
+        player.incrementObjectiveProgress(text, context).setCurrentProgress("pending");
+
+        JsonObject encoded = PlayerUser.CODEC.encodeStart(JsonOps.INSTANCE, player).getOrThrow().getAsJsonObject();
+        JsonObject savedProgress = encoded.getAsJsonObject("quest_objective_progress");
+        check(savedProgress.getAsJsonObject(collect.getObjectiveId().toString()).get("type").getAsString().equals("vuequests:collect_item"),
+                "Saved objective progress identifies its registered type");
+        PlayerUser restored = PlayerUser.CODEC.parse(JsonOps.INSTANCE, encoded).getOrThrow();
+        check(restored.getUuid().equals(player.getUuid()) && restored.getCompletedQuests().equals(player.getCompletedQuests())
+                        && restored.getCompletedObjectives().equals(player.getCompletedObjectives()) && restored.getClaimedRewards().equals(player.getClaimedRewards()),
+                "Adding objective serialization preserves user identity, completions, and claims");
+        check(restored.incrementObjectiveProgress(collect, context).getCurrentProgress().equals(2), "Integer objective progress survives serialization");
+        check(restored.incrementObjectiveProgress(zero, context).getCurrentProgress().equals(0), "Zero progress is preserved independently of absent progress");
+        check(restored.incrementObjectiveProgress(slay, context).getCurrentProgress() == null, "Absent objective progress survives serialization");
+        check(restored.incrementObjectiveProgress(text, context).getCurrentProgress().equals("pending"), "A custom string progress codec survives serialization");
+        ObjectiveCollectItem fresh = new ObjectiveCollectItem(UUID.randomUUID(), new ItemStack(Items.OAK_LOG, 5));
+        restored.incrementObjectiveProgress(fresh, context);
+        check(restored.getQuestObjectiveProgress().size() == 5, "Loaded progress maps accept newly encountered objectives");
+
+        JsonObject legacy = encoded.deepCopy();
+        legacy.remove("quest_objective_progress");
+        check(PlayerUser.CODEC.parse(JsonOps.INSTANCE, legacy).getOrThrow().getQuestObjectiveProgress().isEmpty(),
+                "User saves without objective progress remain supported");
+        JsonObject invalidValue = encoded.deepCopy();
+        invalidValue.getAsJsonObject("quest_objective_progress").getAsJsonObject(collect.getObjectiveId().toString()).addProperty("current_progress", "invalid");
+        check(PlayerUser.CODEC.parse(JsonOps.INSTANCE, invalidValue).error().isPresent(), "Invalid typed progress is rejected instead of discarded");
+        JsonObject invalidType = encoded.deepCopy();
+        invalidType.getAsJsonObject("quest_objective_progress").getAsJsonObject(collect.getObjectiveId().toString()).addProperty("type", "test:missing");
+        check(PlayerUser.CODEC.parse(JsonOps.INSTANCE, invalidType).error().isPresent(), "Unknown objective progress types are rejected");
+        JsonObject invalidId = encoded.deepCopy();
+        JsonObject entries = invalidId.getAsJsonObject("quest_objective_progress");
+        entries.add(UUID.randomUUID().toString(), entries.remove(collect.getObjectiveId().toString()));
+        check(PlayerUser.CODEC.parse(JsonOps.INSTANCE, invalidId).error().isPresent(), "Progress map UUIDs must match the stored objective UUIDs");
+        ObjectiveSlayEntity changedType = new ObjectiveSlayEntity(collect.getObjectiveId(), EntityType.ZOMBIE);
+        expect(IllegalArgumentException.class, () -> restored.incrementObjectiveProgress(changedType, context),
+                "Loaded progress rejects an objective whose registered type has changed");
+        QuestObjectiveProgress<Integer, Integer> unsupported = new QuestObjectiveProgress<>(UUID.randomUUID(), QuestApiTestObjective.LEGACY, 1);
+        check(QuestObjectiveProgress.CODEC.encodeStart(JsonOps.INSTANCE, unsupported).error().isPresent(),
+                "Legacy registrations require a progress codec before saving a populated progress value");
+
+        FlatFileUserLoader loader = new FlatFileUserLoader(Files.createTempDirectory(Path.of("build"), "user-progress-"));
+        check(loader.saveUser(player), "Player file storage writes typed objective progress");
+        User loaded = loader.loadUser(player.getUuid());
+        check(loaded.incrementObjectiveProgress(collect, context).getCurrentProgress().equals(2)
+                        && loaded.incrementObjectiveProgress(text, context).getCurrentProgress().equals("pending"),
+                "Player file storage restores different progress types");
+    }
+
     private static void verifyProgression(Quest first, Quest second) {
         UUID firstId = first.questId();
         UUID secondId = second.questId();
         UUID thirdId = UUID.randomUUID();
         Quest third = new Quest(first.position(), first.display(), first.sectionUUID(), thirdId,
                 List.of(), List.of(), List.of(firstId, secondId));
+        verifyClientProgress(first, second, third);
         QuestData quests = new QuestData(Map.of(), Map.of(firstId, first, secondId, second, thirdId, third));
         PlayerUser player = new PlayerUser(UUID.randomUUID());
         PlayerUser otherPlayer = new PlayerUser(UUID.randomUUID());
+        ObjectiveContext context = new ObjectiveContext(null, Map.of());
         var collectObjective = first.objectives().getFirst();
         var entityObjective = second.objectives().getFirst();
         check(quests.accessibleQuests(player).equals(List.of(first)), "Root quests are accessible without progress");
         check(quests.accessibleQuests(player, entityObjective.getType()).isEmpty(), "Typed lookup excludes locked quests");
-        check(quests.handleQuestTrigger(player, collectObjective.getType(), null).equals(List.of(collectObjective)),
+        check(quests.handleQuestTrigger(player, collectObjective.getType(), context).equals(List.of(collectObjective)),
                 "Trigger selects only the matching objective from a mixed quest");
-        check(quests.handleQuestTrigger(player, QuestApiTestObjective.LEGACY, null).isEmpty(), "An unused trigger type has no matches");
+        check(quests.handleQuestTrigger(player, QuestApiTestObjective.TYPE, context).equals(List.of(first.objectives().get(1))),
+                "Trigger dispatch preserves the types of a custom objective in a mixed quest");
+        check(quests.handleQuestTrigger(player, QuestApiTestObjective.LEGACY, context).isEmpty(), "An unused trigger type has no matches");
         check(quests.prerequisitesMet(firstId, player), "Root quest has no prerequisites");
         check(!quests.prerequisitesMet(secondId, player), "Unmet prerequisite blocks quest");
         check(quests.availableDependents(firstId, player).isEmpty(), "Incomplete quest does not unlock dependents");
@@ -191,6 +296,56 @@ public class QuestApiVerification {
         check(quests.availableDependents(secondId, player).equals(List.of(thirdId)), "Final prerequisite unlocks a dependent");
         check(quests.availableDependents(firstId, player).equals(List.of(thirdId)), "Completed dependents are excluded");
         expect(IllegalArgumentException.class, () -> new QuestData(Map.of(), Map.of(secondId, second)), "Snapshot rejects missing prerequisites");
+    }
+
+    private static void verifyClientProgress(Quest first, Quest second, Quest third) {
+        Section section = new Section(first.sectionUUID(), Component.literal("Progress"), Items.BOOK, List.of(first, second, third));
+        PlayerUser player = new PlayerUser(UUID.randomUUID());
+        ObjectiveContext context = new ObjectiveContext(null, Map.of());
+        ObjectiveCollectItem objective = (ObjectiveCollectItem) first.objectives().getFirst();
+        UUID rewardId = UUID.randomUUID();
+        ClientQuestData.update(List.of(section), player);
+        try {
+            check(ClientQuestData.prerequisitesMet(first), "Client root quests are unlocked without progress");
+            check(!ClientQuestData.prerequisitesMet(second), "Client quests are locked while a prerequisite is incomplete");
+            player.grantQuestCompletion(first.questId());
+            player.completeObjective(objective);
+            player.getClaimedRewards().add(rewardId);
+            player.incrementObjectiveProgress(objective, context).setCurrentProgress(2);
+            QuestSyncPayload payload = new QuestSyncPayload(List.of(section), player);
+            RegistryFriendlyByteBuf buffer = new RegistryFriendlyByteBuf(Unpooled.buffer(),
+                    RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY));
+            QuestSyncPayload decoded;
+            try {
+                QuestSyncPayload.STREAM_CODEC.encode(buffer, payload);
+                decoded = QuestSyncPayload.STREAM_CODEC.decode(buffer);
+            } finally {
+                buffer.release();
+            }
+            check(decoded.user().getUuid().equals(player.getUuid()) && decoded.user().getCompletedQuests().equals(player.getCompletedQuests()),
+                    "Quest sync preserves player identity and completed quests");
+            ClientQuestData.update(decoded.sections(), decoded.user());
+            PlayerUser clientUser = ClientQuestData.getUser();
+            check(clientUser != null && clientUser.hasCompletedObjective(objective) && clientUser.getClaimedRewards().contains(rewardId),
+                    "Client user includes completed objectives and claimed rewards");
+            check(clientUser != null && clientUser.getQuestObjectiveProgress().get(objective.getObjectiveId()).getCurrentProgress().equals(2),
+                    "Client user includes typed objective progress");
+            player.incrementObjectiveProgress(objective, context).setCurrentProgress(3);
+            check(clientUser != null && clientUser.getQuestObjectiveProgress().get(objective.getObjectiveId()).getCurrentProgress().equals(2),
+                    "Server progress changes do not alter the decoded client user");
+            check(ClientQuestData.getData().quests().size() == 3, "Quest sync preserves quest definitions alongside progress");
+            check(ClientQuestData.prerequisitesMet(second), "Synced completion unlocks a dependent quest");
+            check(!ClientQuestData.prerequisitesMet(third), "Client quests stay locked until every prerequisite is complete");
+            player.grantQuestCompletion(second.questId());
+            ClientQuestData.update(decoded.sections(), player);
+            check(ClientQuestData.prerequisitesMet(third), "Completing every prerequisite unlocks the client quest");
+            ClientQuestData.update(decoded.sections(), new PlayerUser(player.getUuid()));
+            check(!ClientQuestData.prerequisitesMet(second), "A new progress snapshot replaces earlier completions");
+        } finally {
+            ClientQuestData.clear();
+        }
+        check(ClientQuestData.getData().quests().isEmpty() && ClientQuestData.getUser() == null && !ClientQuestData.prerequisitesMet(second),
+                "Disconnect clears both client quest definitions and user state");
     }
 
     private static void verifyQuestBackgrounds() throws Exception {

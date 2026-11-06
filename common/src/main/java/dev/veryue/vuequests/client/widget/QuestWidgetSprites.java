@@ -25,10 +25,14 @@ public class QuestWidgetSprites {
     }
 
     public static void blit(GuiGraphics graphics, ResourceLocation sprite, int x, int y, int width, int height) {
+        blit(graphics, sprite, x, y, width, height, 1);
+    }
+
+    public static void blit(GuiGraphics graphics, ResourceLocation sprite, int x, int y, int width, int height, float brightness) {
         graphics.flush();
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        graphics.setColor(1, 1, 1, TEXTURE_ALPHA);
+        graphics.setColor(brightness, brightness, brightness, TEXTURE_ALPHA);
         try {
             graphics.blitSprite(sprite, x, y, width, height);
         } finally {

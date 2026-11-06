@@ -14,8 +14,6 @@ import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.packs.PackType;
 
-import java.util.List;
-
 public class VeryUEQuestsFabric extends VeryUEMod implements ModInitializer {
 
     @Override
@@ -24,7 +22,10 @@ public class VeryUEQuestsFabric extends VeryUEMod implements ModInitializer {
         PayloadTypeRegistry.playS2C().register(QuestSyncPayload.TYPE, QuestSyncPayload.STREAM_CODEC);
         PayloadTypeRegistry.playC2S().register(QuestScreenOpenedPayload.TYPE, QuestScreenOpenedPayload.STREAM_CODEC);
         ServerPlayNetworking.registerGlobalReceiver(QuestScreenOpenedPayload.TYPE,
-                (payload, context) -> payload.handle(context.player()));
+                (payload, context) -> {
+                    payload.handle(context.player());
+                    syncQuests(context.player());
+                });
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             loadPlayer(handler.player.getUUID());
             syncQuests(handler.player);
@@ -48,7 +49,7 @@ public class VeryUEQuestsFabric extends VeryUEMod implements ModInitializer {
 
     private void syncQuests(ServerPlayer player) {
         if (ServerPlayNetworking.canSend(player, QuestSyncPayload.TYPE)) {
-            ServerPlayNetworking.send(player, new QuestSyncPayload(List.copyOf(QuestReloadDelegate.INSTANCE.getData().sections().values())));
+            ServerPlayNetworking.send(player, QuestSyncPayload.create(player));
         }
     }
 }
