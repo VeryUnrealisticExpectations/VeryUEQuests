@@ -31,6 +31,13 @@ public abstract class User {
         return questObjectiveProgress;
     }
 
+    public <T, TYPE> void incrementObjectiveProgress(QuestObjective<T, TYPE> objective, ObjectiveContext context) {
+        @SuppressWarnings("unchecked")
+        QuestObjectiveProgress<T, TYPE> progress = (QuestObjectiveProgress<T, TYPE>)
+                questObjectiveProgress.computeIfAbsent(objective.getObjectiveId(), QuestObjectiveProgress::new);
+        progress.increment(this, objective, context);
+    }
+
     public UUID getUuid() {
         return uuid;
     }

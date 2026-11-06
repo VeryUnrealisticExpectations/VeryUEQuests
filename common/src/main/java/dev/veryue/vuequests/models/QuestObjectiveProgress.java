@@ -3,28 +3,42 @@ package dev.veryue.vuequests.models;
 import dev.veryue.vuequests.models.objective.QuestObjective;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Objects;
+import java.util.UUID;
+
 public class QuestObjectiveProgress<T, TYPE> {
 
-    private QuestObjective<T, TYPE> objective; // todo; might be a UUID instead.
+    private final UUID objectiveId;
     @Nullable
     private TYPE currentProgress;
 
 
-    public QuestObjectiveProgress(QuestObjective<T, TYPE> objective) {
-        this.objective = objective;
+    public QuestObjectiveProgress(UUID objectiveId) {
+        this.objectiveId = Objects.requireNonNull(objectiveId);
         currentProgress = null;
     }
 
-    public void increment(User user) {
-        objective.incrementObjectiveProgress(user, this);
+    public UUID getObjectiveId() {
+        return objectiveId;
+    }
+
+    public void increment(User user, QuestObjective<T, TYPE> objective, ObjectiveContext context) {
+        if (!objectiveId.equals(objective.getObjectiveId())) {
+            throw new IllegalArgumentException("Progress belongs to a different objective.");
+        }
+        objective.incrementObjectiveProgress(user, this, context);
     }
 
 
-    public void setCurrentProgress(TYPE progress) {
+
+    public void setCurrentProgress(@Nullable TYPE progress) {
         this.currentProgress = progress;
     }
 
-
+    /**
+     * @return The current progress, if null then there has been no progress made.
+     */
+    @Nullable
     public TYPE getCurrentProgress() {
         return currentProgress;
     }

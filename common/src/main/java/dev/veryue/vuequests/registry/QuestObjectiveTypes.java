@@ -6,7 +6,7 @@ import dev.veryue.vuequests.editor.api.QuestApiSchemas;
 import dev.veryue.vuequests.VeryUEConstants;
 import dev.veryue.vuequests.VeryUERegistries;
 import dev.veryue.vuequests.models.objective.ObjectiveCollectItem;
-import dev.veryue.vuequests.models.objective.ObjectiveEntity;
+import dev.veryue.vuequests.models.objective.ObjectiveSlayEntity;
 import dev.veryue.vuequests.models.objective.QuestObjective;
 import dev.veryue.vuequests.models.objective.QuestObjectiveSerializer;
 import net.minecraft.resources.ResourceLocation;
@@ -16,7 +16,7 @@ public class QuestObjectiveTypes {
     public static final QuestObjectiveSerializer COLLECT_ITEM = register(ResourceLocation.fromNamespaceAndPath(VeryUEConstants.MOD_ID, "collect_item"),
             ObjectiveCollectItem.CODEC, QuestApiSchemas.objective("vuequests:collect_item", "item", QuestApiSchemas.itemStack()));
     public static final QuestObjectiveSerializer ENTITY = register(ResourceLocation.fromNamespaceAndPath(VeryUEConstants.MOD_ID, "entity"),
-            ObjectiveEntity.CODEC, QuestApiSchemas.objective("vuequests:entity", "entity", JsonSchema.type("string").description("Loaded minecraft:entity_type registry ID.")));
+            ObjectiveSlayEntity.CODEC, QuestApiSchemas.objective("vuequests:entity", "entity", JsonSchema.type("string").description("Loaded minecraft:entity_type registry ID.")));
 
     public static QuestObjectiveSerializer register(String name, MapCodec<? extends QuestObjective<?, ?>> codec) {
         return register(ResourceLocation.fromNamespaceAndPath(VeryUEConstants.MOD_ID, name), codec);

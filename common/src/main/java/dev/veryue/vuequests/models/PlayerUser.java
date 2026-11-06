@@ -51,7 +51,7 @@ public class PlayerUser extends User {
     }
 
     @Override
-    public boolean hasCompletedObjective(QuestObjective<?> objective) {
+    public boolean hasCompletedObjective(QuestObjective<?, ?> objective) {
         return isObjectiveCompleted(objective.getObjectiveId());
     }
 }

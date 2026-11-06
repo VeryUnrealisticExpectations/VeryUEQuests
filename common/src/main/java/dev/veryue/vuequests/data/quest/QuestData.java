@@ -1,7 +1,7 @@
 package dev.veryue.vuequests.data.quest;
 
-import dev.veryue.vuequests.models.QuestObjectiveProgress;
 import dev.veryue.vuequests.models.User;
+import dev.veryue.vuequests.models.ObjectiveContext;
 import dev.veryue.vuequests.models.objective.QuestObjective;
 import dev.veryue.vuequests.models.objective.QuestObjectiveSerializer;
 import dev.veryue.vuequests.models.quest.Quest;
@@ -52,21 +52,26 @@ public class QuestData {
     }
 
 
-    public List<QuestObjective<?, ?>> handleQuestTrigger(User user, QuestObjectiveSerializer objectiveType) {
-        List<QuestObjective<?, ?>> list = accessibleQuests(user, objectiveType).stream()
-                .flatMap(quest -> quest.objectives().stream())
-                .filter(objective -> objectiveType.equals(objective.getType()))
-                .toList();
-        for (QuestObjective<?, ?> questObjective : list) {
-            QuestObjectiveProgress<?, ?> questObjectiveProgress =
-                    user.getQuestObjectiveProgress().computeIfAbsent(
-                            questObjective.getObjectiveId(),
-                            ignored -> new QuestObjectiveProgress<>(questObjective)
-                    );
-            questObjectiveProgress.increment(user);
+    public List<QuestObjective<?, ?>> handleQuestTrigger(User user, QuestObjectiveSerializer objectiveType, ObjectiveContext context) {
+        List<QuestObjective<?, ?>> matchingObjectives = new ArrayList<>();
+        for (Quest quest : questsByObjectiveType(objectiveType)) {
+            if (!prerequisitesMet(quest.questId(), user)) {
+                continue;
+            }
+
+            for (QuestObjective<?, ?> objective : quest.objectives()) {
+                if (!objectiveType.equals(objective.getType())) {
+                    continue;
+                }
+
+                matchingObjectives.add(objective);
+                user.incrementObjectiveProgress(objective, context);
+                // todo; if the questObjective is complete, we need to mark it as complete.
+                // todo; then we also need to update the client player when they're on a server
+            }
         }
 
-        return list;
+        return matchingObjectives;
     }
 
     public boolean prerequisitesMet(UUID questId, User user) {

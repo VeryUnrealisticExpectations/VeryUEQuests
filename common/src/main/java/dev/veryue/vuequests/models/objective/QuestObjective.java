@@ -2,6 +2,7 @@ package dev.veryue.vuequests.models.objective;
 
 import com.mojang.serialization.Codec;
 import dev.veryue.vuequests.VeryUERegistries;
+import dev.veryue.vuequests.models.ObjectiveContext;
 import dev.veryue.vuequests.models.QuestObjectiveProgress;
 import dev.veryue.vuequests.models.User;
 import net.minecraft.world.item.Item;
@@ -45,7 +46,7 @@ public abstract class QuestObjective<T, TYPE> {
         return value;
     }
 
-    public abstract void incrementObjectiveProgress(User user, QuestObjectiveProgress<T, TYPE> objectiveProgress);
+    public abstract void incrementObjectiveProgress(User user, QuestObjectiveProgress<T, TYPE> objectiveProgress, ObjectiveContext context);
 
     public abstract QuestObjectiveSerializer getType();
 }

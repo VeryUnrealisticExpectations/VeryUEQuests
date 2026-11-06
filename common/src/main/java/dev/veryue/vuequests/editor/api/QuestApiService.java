@@ -278,7 +278,7 @@ public class QuestApiService {
     }
 
     private static Quest copy(Quest quest, QuestPosition position, QuestDisplay display,
-                              List<? extends QuestObjective<?>> objectives,
+                              List<? extends QuestObjective<?, ?>> objectives,
                               List<? extends RewardType<?>> rewards, List<UUID> dependencies) {
         return new Quest(position, display, quest.sectionUUID(), quest.questId(), List.copyOf(objectives), List.copyOf(rewards), List.copyOf(dependencies));
     }

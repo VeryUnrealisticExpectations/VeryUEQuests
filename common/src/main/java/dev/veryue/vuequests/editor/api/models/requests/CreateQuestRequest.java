@@ -9,5 +9,5 @@ import java.util.UUID;
 
 public record CreateQuestRequest(UUID sectionId, UUID questId, ApiPosition position, Component title,
                                  Component subtitle, Component description, String tooltip, String icon,
-                                 List<QuestObjective<?>> objectives, List<RewardType<?>> rewards,
+                                 List<QuestObjective<?, ?>> objectives, List<RewardType<?>> rewards,
                                  List<UUID> dependencies, String revision) { }

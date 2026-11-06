@@ -172,9 +172,9 @@ public class QuestApiVerification {
         var entityObjective = second.objectives().getFirst();
         check(quests.accessibleQuests(player).equals(List.of(first)), "Root quests are accessible without progress");
         check(quests.accessibleQuests(player, entityObjective.getType()).isEmpty(), "Typed lookup excludes locked quests");
-        check(quests.handleQuestTrigger(player, collectObjective.getType()).equals(List.of(collectObjective)),
+        check(quests.handleQuestTrigger(player, collectObjective.getType(), null).equals(List.of(collectObjective)),
                 "Trigger selects only the matching objective from a mixed quest");
-        check(quests.handleQuestTrigger(player, QuestApiTestObjective.LEGACY).isEmpty(), "An unused trigger type has no matches");
+        check(quests.handleQuestTrigger(player, QuestApiTestObjective.LEGACY, null).isEmpty(), "An unused trigger type has no matches");
         check(quests.prerequisitesMet(firstId, player), "Root quest has no prerequisites");
         check(!quests.prerequisitesMet(secondId, player), "Unmet prerequisite blocks quest");
         check(quests.availableDependents(firstId, player).isEmpty(), "Incomplete quest does not unlock dependents");

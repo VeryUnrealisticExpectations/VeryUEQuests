@@ -5,5 +5,5 @@ import dev.veryue.vuequests.models.objective.QuestObjective;
 import java.util.List;
 import java.util.UUID;
 
-public record ModifyQuestObjectivesRequest(UUID questId, List<QuestObjective<?>> objectives,
+public record ModifyQuestObjectivesRequest(UUID questId, List<QuestObjective<?, ?>> objectives,
                                           ListMode mode, String revision) { }

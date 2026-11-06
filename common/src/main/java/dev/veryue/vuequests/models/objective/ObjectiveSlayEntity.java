@@ -3,6 +3,7 @@ package dev.veryue.vuequests.models.objective;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.veryue.vuequests.models.QuestObjectiveProgress;
+import dev.veryue.vuequests.models.ObjectiveContext;
 import dev.veryue.vuequests.models.User;
 import dev.veryue.vuequests.registry.QuestObjectiveTypes;
 import net.minecraft.core.UUIDUtil;
@@ -14,19 +15,19 @@ import net.minecraft.world.item.Items;
 
 import java.util.UUID;
 
-public class ObjectiveEntity extends QuestObjective<EntityType<?>, Integer> {
+public class ObjectiveSlayEntity extends QuestObjective<EntityType<?>, Integer> {
 
-    public static final MapCodec<ObjectiveEntity> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-            UUIDUtil.STRING_CODEC.fieldOf("objective_id").forGetter(ObjectiveEntity::getObjectiveId),
-            BuiltInRegistries.ENTITY_TYPE.byNameCodec().fieldOf("entity").forGetter(ObjectiveEntity::getEntityType)
-    ).apply(instance, ObjectiveEntity::new));
+    public static final MapCodec<ObjectiveSlayEntity> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+            UUIDUtil.STRING_CODEC.fieldOf("objective_id").forGetter(ObjectiveSlayEntity::getObjectiveId),
+            BuiltInRegistries.ENTITY_TYPE.byNameCodec().fieldOf("entity").forGetter(ObjectiveSlayEntity::getEntityType)
+    ).apply(instance, ObjectiveSlayEntity::new));
 
-    public ObjectiveEntity(UUID objectiveId, EntityType<?> entityType) {
+    public ObjectiveSlayEntity(UUID objectiveId, EntityType<?> entityType) {
         super(objectiveId, entityType);
     }
 
     @Deprecated
-    public ObjectiveEntity(UUID objectiveId, Item ignoredIcon, EntityType<?> entityType) {
+    public ObjectiveSlayEntity(UUID objectiveId, Item ignoredIcon, EntityType<?> entityType) {
         this(objectiveId, entityType);
     }
 
@@ -40,7 +41,7 @@ public class ObjectiveEntity extends QuestObjective<EntityType<?>, Integer> {
     }
 
     @Override
-    public void incrementObjectiveProgress(User user, QuestObjectiveProgress<EntityType<?>, Integer> objectiveProgress) {
+    public void incrementObjectiveProgress(User user, QuestObjectiveProgress<EntityType<?>, Integer> objectiveProgress, ObjectiveContext context) {
         // todo; called when the player kills an entity.
         // todo; perhaps we need some sort of context object
     }

@@ -19,11 +19,17 @@ import java.util.concurrent.TimeUnit;
 
 public class VeryUEMod {
 
+    public static VeryUEMod INSTANCE;
+
     private final Logger LOGGER = LoggerFactory.getLogger(VeryUEConstants.MOD_ID);
     private final Map<UUID, User> USERS = new ConcurrentHashMap<>();
     private UserLoader loader;
     private ScheduledExecutorService saveExecutor;
     private ScheduledFuture<?> autosave;
+
+    public VeryUEMod() {
+        INSTANCE = this;
+    }
 
     public void start(MinecraftServer server) {
         start(new FlatFileUserLoader(server));
