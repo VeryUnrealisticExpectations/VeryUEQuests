@@ -3,10 +3,7 @@ package dev.veryue.vuequests.models;
 import dev.veryue.vuequests.models.objective.QuestObjective;
 import dev.veryue.vuequests.models.quest.Quest;
 
-import java.util.LinkedHashSet;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 public abstract class User {
 
@@ -14,6 +11,9 @@ public abstract class User {
     private final Set<UUID> completedQuests;
     private final Set<UUID> completedObjectives;
     private final Set<UUID> claimedRewards;
+
+
+    private final Map<UUID, QuestObjectiveProgress<?, ?>> questObjectiveProgress = new HashMap<>();
 
     protected User(UUID uuid) {
         this(uuid, Set.of(), Set.of(), Set.of());
@@ -26,20 +26,25 @@ public abstract class User {
         this.claimedRewards = new LinkedHashSet<>(claimedRewards);
     }
 
+
+    public Map<UUID, QuestObjectiveProgress<?, ?>> getQuestObjectiveProgress() {
+        return questObjectiveProgress;
+    }
+
     public UUID getUuid() {
         return uuid;
     }
 
     public Set<UUID> getCompletedQuests() {
-        return Set.copyOf(completedQuests);
+        return completedQuests;
     }
 
     public Set<UUID> getCompletedObjectives() {
-        return Set.copyOf(completedObjectives);
+        return completedObjectives;
     }
 
     public Set<UUID> getClaimedRewards() {
-        return Set.copyOf(claimedRewards);
+        return claimedRewards;
     }
 
     public abstract void grantQuestCompletion(Quest quest);
@@ -50,7 +55,7 @@ public abstract class User {
 
     public abstract boolean hasCompletedQuest(Quest quest);
 
-    public abstract boolean hasCompletedObjective(QuestObjective<?> objective);
+    public abstract boolean hasCompletedObjective(QuestObjective<?, ?> objective);
 
     protected final void recordQuestCompletion(UUID questId) {
         completedQuests.add(Objects.requireNonNull(questId));

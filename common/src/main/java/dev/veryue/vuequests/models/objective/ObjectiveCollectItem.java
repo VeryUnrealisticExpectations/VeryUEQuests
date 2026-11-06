@@ -2,6 +2,8 @@ package dev.veryue.vuequests.models.objective;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import dev.veryue.vuequests.models.QuestObjectiveProgress;
+import dev.veryue.vuequests.models.User;
 import dev.veryue.vuequests.registry.QuestObjectiveTypes;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.world.item.Item;
@@ -9,7 +11,7 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.UUID;
 
-public class ObjectiveCollectItem extends QuestObjective<ItemStack> {
+public class ObjectiveCollectItem extends QuestObjective<ItemStack, Integer> {
 
     public static final MapCodec<ObjectiveCollectItem> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             UUIDUtil.STRING_CODEC.fieldOf("objective_id").forGetter(ObjectiveCollectItem::getObjectiveId),
@@ -32,6 +34,11 @@ public class ObjectiveCollectItem extends QuestObjective<ItemStack> {
     @Override
     public ItemStack getIconStack() {
         return getStack().copy();
+    }
+
+    @Override
+    public void incrementObjectiveProgress(User user, QuestObjectiveProgress<ItemStack, Integer> objectiveProgress) {
+        // todo; look in the player inventory somehow, and check for an item match, if the count is bigger than the current progress, set to the new progress.
     }
 
     @Override

@@ -16,7 +16,7 @@ import java.util.UUID;
  * @param sectionUUID todo; not sure
  */ // todo;m maybe a record
 public record Quest(QuestPosition position, QuestDisplay display, UUID sectionUUID, UUID questId,
-                    List<QuestObjective<?>> objectives, List<RewardType<?>> rewards, List<UUID> dependencies) {
+                    List<QuestObjective<?, ?>> objectives, List<RewardType<?>> rewards, List<UUID> dependencies) {
 
     public static final Codec<Quest> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             QuestPosition.CODEC.fieldOf("position").forGetter(Quest::position),
@@ -27,6 +27,10 @@ public record Quest(QuestPosition position, QuestDisplay display, UUID sectionUU
             RewardType.CODEC.listOf().optionalFieldOf("rewards", List.of()).forGetter(Quest::rewards),
             UUIDUtil.STRING_CODEC.listOf().optionalFieldOf("dependencies", List.of()).forGetter(Quest::dependencies)
     ).apply(instance, Quest::new));
+
+    public Quest {
+        dependencies = List.copyOf(dependencies);
+    }
 
     // todo; we should version the quests for the editor, so they can be exported or something
 

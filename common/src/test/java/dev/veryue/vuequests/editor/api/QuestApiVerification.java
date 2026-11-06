@@ -17,11 +17,13 @@ import com.google.gson.JsonPrimitive;
 import com.mojang.serialization.JsonOps;
 import com.sun.net.httpserver.HttpServer;
 import dev.veryue.vuequests.VeryUERegistries;
+import dev.veryue.vuequests.data.quest.QuestData;
 import dev.veryue.vuequests.editor.QuestEditorAssets;
 import dev.veryue.vuequests.editor.QuestEditorResources;
 import dev.veryue.vuequests.editor.QuestEditorService;
 import dev.veryue.vuequests.editor.QuestEditorStorage;
 import dev.veryue.vuequests.editor.QuestEditorStorage.Document;
+import dev.veryue.vuequests.models.PlayerUser;
 import dev.veryue.vuequests.models.quest.Quest;
 import dev.veryue.vuequests.models.quest.QuestDisplay;
 import dev.veryue.vuequests.models.quest.Section;
@@ -120,6 +122,7 @@ public class QuestApiVerification {
         document.update(new Quest(other.position(), other.display(), other.sectionUUID(), other.questId(), old.objectives(), other.rewards(), other.dependencies()));
         expect(IllegalArgumentException.class, () -> QuestEditorService.validate(document.encode(), ops, ignored -> false), "Duplicate objective UUID rejected");
         document.update(other);
+        verifyProgression(old, other);
         expect(JsonParseException.class, () -> json.fromJson(body.replace("minecraft:oak_log", "test:absent"), CreateQuestRequest.class), "Missing registry entry rejected");
         expect(JsonParseException.class, () -> json.fromJson(body.replace("\"count\":5", "\"count\":0"), CreateQuestRequest.class), "Invalid stack count is not defaulted to one");
         expect(JsonParseException.class, () -> json.fromJson(body.replace("\"count\":5", "\"count\":1.5"), CreateQuestRequest.class), "Fractional stack count rejected");
@@ -154,6 +157,40 @@ public class QuestApiVerification {
         Section savedSection = json.fromJson(Files.readString(saved), Section.class);
         check(savedSection.questList().size() == 2 && savedSection.questList().get(0).objectives().get(1).getValue().equals(42), "Typed changes persist as valid datapack definitions");
         check(savedSection.questList().getFirst().display().backgroundSprite().equals(custom.display().backgroundSprite()), "Custom background survives datapack persistence");
+    }
+
+    private static void verifyProgression(Quest first, Quest second) {
+        UUID firstId = first.questId();
+        UUID secondId = second.questId();
+        UUID thirdId = UUID.randomUUID();
+        Quest third = new Quest(first.position(), first.display(), first.sectionUUID(), thirdId,
+                List.of(), List.of(), List.of(firstId, secondId));
+        QuestData quests = new QuestData(Map.of(), Map.of(firstId, first, secondId, second, thirdId, third));
+        PlayerUser player = new PlayerUser(UUID.randomUUID());
+        PlayerUser otherPlayer = new PlayerUser(UUID.randomUUID());
+        var collectObjective = first.objectives().getFirst();
+        var entityObjective = second.objectives().getFirst();
+        check(quests.accessibleQuests(player).equals(List.of(first)), "Root quests are accessible without progress");
+        check(quests.accessibleQuests(player, entityObjective.getType()).isEmpty(), "Typed lookup excludes locked quests");
+        check(quests.handleQuestTrigger(player, collectObjective.getType()).equals(List.of(collectObjective)),
+                "Trigger selects only the matching objective from a mixed quest");
+        check(quests.handleQuestTrigger(player, QuestApiTestObjective.LEGACY).isEmpty(), "An unused trigger type has no matches");
+        check(quests.prerequisitesMet(firstId, player), "Root quest has no prerequisites");
+        check(!quests.prerequisitesMet(secondId, player), "Unmet prerequisite blocks quest");
+        check(quests.availableDependents(firstId, player).isEmpty(), "Incomplete quest does not unlock dependents");
+        player.grantQuestCompletion(firstId);
+        check(quests.accessibleQuests(player).equals(List.of(first, second)), "A dependent stays locked until all prerequisites are met");
+        check(quests.accessibleQuests(player, entityObjective.getType()).equals(List.of(second)), "Typed lookup returns the unlocked matching quest");
+        check(quests.availableDependents(firstId, player).equals(List.of(secondId)), "Only dependents with all prerequisites met unlock");
+        check(!quests.prerequisitesMet(secondId, otherPlayer), "Players sharing the graph have independent progress");
+        player.grantQuestCompletion(secondId);
+        player.grantQuestCompletion(UUID.randomUUID());
+        List<Quest> accessible = quests.accessibleQuests(player);
+        check(accessible.size() == 3 && accessible.containsAll(List.of(first, second, third)),
+                "Multiple completed prerequisites unlock a quest once, even with a stale completion ID");
+        check(quests.availableDependents(secondId, player).equals(List.of(thirdId)), "Final prerequisite unlocks a dependent");
+        check(quests.availableDependents(firstId, player).equals(List.of(thirdId)), "Completed dependents are excluded");
+        expect(IllegalArgumentException.class, () -> new QuestData(Map.of(), Map.of(secondId, second)), "Snapshot rejects missing prerequisites");
     }
 
     private static void verifyQuestBackgrounds() throws Exception {

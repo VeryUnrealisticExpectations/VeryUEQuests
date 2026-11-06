@@ -18,15 +18,15 @@ public class QuestObjectiveTypes {
     public static final QuestObjectiveSerializer ENTITY = register(ResourceLocation.fromNamespaceAndPath(VeryUEConstants.MOD_ID, "entity"),
             ObjectiveEntity.CODEC, QuestApiSchemas.objective("vuequests:entity", "entity", JsonSchema.type("string").description("Loaded minecraft:entity_type registry ID.")));
 
-    public static QuestObjectiveSerializer register(String name, MapCodec<? extends QuestObjective<?>> codec) {
+    public static QuestObjectiveSerializer register(String name, MapCodec<? extends QuestObjective<?, ?>> codec) {
         return register(ResourceLocation.fromNamespaceAndPath(VeryUEConstants.MOD_ID, name), codec);
     }
 
-    public static QuestObjectiveSerializer register(ResourceLocation id, MapCodec<? extends QuestObjective<?>> codec) {
+    public static QuestObjectiveSerializer register(ResourceLocation id, MapCodec<? extends QuestObjective<?, ?>> codec) {
         return register(id, codec, null);
     }
 
-    public static QuestObjectiveSerializer register(ResourceLocation id, MapCodec<? extends QuestObjective<?>> codec, JsonSchema schema) {
+    public static QuestObjectiveSerializer register(ResourceLocation id, MapCodec<? extends QuestObjective<?, ?>> codec, JsonSchema schema) {
         return VeryUERegistries.register(VeryUERegistries.QUEST_OBJECTIVE_TYPES, id, new QuestObjectiveSerializer(codec, schema));
     }
 

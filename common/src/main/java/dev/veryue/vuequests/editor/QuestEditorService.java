@@ -3,6 +3,7 @@ package dev.veryue.vuequests.editor;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.serialization.JsonOps;
+import dev.veryue.vuequests.data.quest.QuestData;
 import dev.veryue.vuequests.editor.api.models.responses.MutationResponse;
 import dev.veryue.vuequests.editor.api.models.QuestApiDocument;
 import dev.veryue.vuequests.editor.api.QuestApiService;
@@ -23,7 +24,6 @@ import net.minecraft.network.chat.ComponentSerialization;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -156,9 +156,6 @@ public class QuestEditorService {
                 if (quests.putIfAbsent(id, quest) != null) {
                     throw new IllegalArgumentException("Duplicate quest UUID " + id);
                 }
-                if (new HashSet<>(quest.dependencies()).size() != quest.dependencies().size()) {
-                    throw new IllegalArgumentException("Duplicate dependency on quest " + id);
-                }
                 for (var objective : quest.objectives()) {
                     if (!objectiveIds.add(objective.getObjectiveId())) throw new IllegalArgumentException("Duplicate objective UUID " + objective.getObjectiveId());
                 }
@@ -167,32 +164,7 @@ public class QuestEditorService {
                 }
             }
         }
-        Map<UUID, Integer> remaining = new HashMap<>();
-        Map<UUID, List<UUID>> dependents = new HashMap<>();
-        quests.forEach((id, quest) -> {
-            remaining.put(id, quest.dependencies().size());
-            for (UUID requirement : quest.dependencies()) {
-                if (!quests.containsKey(requirement)) {
-                    throw new IllegalArgumentException("Quest " + id + " references an unavailable prerequisite.");
-                }
-                dependents.computeIfAbsent(requirement, ignored -> new ArrayList<>()).add(id);
-            }
-        });
-        ArrayDeque<UUID> ready = new ArrayDeque<>();
-        remaining.forEach((id, count) -> { if (count == 0) ready.add(id); });
-        int visited = 0;
-        while (!ready.isEmpty()) {
-            UUID next = ready.removeFirst();
-            visited++;
-            for (UUID dependent : dependents.getOrDefault(next, List.of())) {
-                if (remaining.compute(dependent, (id, count) -> count - 1) == 0) {
-                    ready.add(dependent);
-                }
-            }
-        }
-        if (visited != quests.size()) {
-            throw new IllegalArgumentException("Quest dependencies must not form a cycle.");
-        }
+        QuestData.indexDependents(quests);
     }
 
     private static Catalog createCatalog() {
