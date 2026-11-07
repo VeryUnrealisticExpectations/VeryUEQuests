@@ -28,10 +28,6 @@ public record Quest(QuestPosition position, QuestDisplay display, UUID sectionUU
             UUIDUtil.STRING_CODEC.listOf().optionalFieldOf("dependencies", List.of()).forGetter(Quest::dependencies)
     ).apply(instance, Quest::new));
 
-    public Quest {
-        dependencies = List.copyOf(dependencies);
-    }
-
     // todo; we should version the quests for the editor, so they can be exported or something
 
 

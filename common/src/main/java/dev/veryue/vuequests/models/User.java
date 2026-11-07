@@ -1,7 +1,10 @@
 package dev.veryue.vuequests.models;
 
+import com.mojang.datafixers.Products.P5;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
+import com.mojang.serialization.codecs.RecordCodecBuilder.Instance;
+import com.mojang.serialization.codecs.RecordCodecBuilder.Mu;
 import dev.veryue.vuequests.models.objective.QuestObjective;
 import dev.veryue.vuequests.models.quest.Quest;
 import net.minecraft.core.UUIDUtil;
@@ -10,6 +13,9 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 
 public abstract class User {
+
+    private static final Codec<Set<UUID>> UUID_SET_CODEC = UUIDUtil.STRING_CODEC.listOf()
+            .xmap(Set::copyOf, ids -> ids.stream().sorted().toList());
 
     public static final Codec<Map<UUID, QuestObjectiveProgress<?, ?>>> QUEST_OBJECTIVE_PROGRESS_CODEC = Codec
             .unboundedMap(UUIDUtil.STRING_CODEC, QuestObjectiveProgress.CODEC)
@@ -29,6 +35,17 @@ public abstract class User {
 
 
     private final Map<UUID, QuestObjectiveProgress<?, ?>> questObjectiveProgress;
+
+    protected static <T extends User> P5<Mu<T>, UUID, Set<UUID>, Set<UUID>, Set<UUID>, Map<UUID, QuestObjectiveProgress<?, ?>>> codec(
+            Instance<T> instance) {
+        return instance.group(
+                UUIDUtil.STRING_CODEC.fieldOf("uuid").forGetter(User::getUuid),
+                UUID_SET_CODEC.fieldOf("completed_quests").forGetter(User::getCompletedQuests),
+                UUID_SET_CODEC.fieldOf("completed_objectives").forGetter(User::getCompletedObjectives),
+                UUID_SET_CODEC.fieldOf("claimed_rewards").forGetter(User::getClaimedRewards),
+                QUEST_OBJECTIVE_PROGRESS_CODEC.optionalFieldOf("quest_objective_progress", Map.of()).forGetter(User::getQuestObjectiveProgress)
+        );
+    }
 
     protected User(UUID uuid) {
         this(uuid, Set.of(), Set.of(), Set.of());

@@ -1,5 +1,6 @@
 package dev.veryue.vuequests.data.quest;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
@@ -16,7 +17,6 @@ import net.minecraft.server.packs.resources.ResourceManager;
 
 import java.io.IOException;
 import java.io.Reader;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -27,8 +27,8 @@ public class FlatFileQuestLoader extends QuestLoader {
     @Override
     public QuestData loadQuests(ResourceManager resourceManager, HolderLookup.Provider registryLookup) {
         RegistryOps<JsonElement> ops = registryLookup.createSerializationContext(JsonOps.INSTANCE);
-        Map<UUID, Section> sections = new HashMap<>();
-        Map<UUID, Quest> quests = new HashMap<>();
+        ImmutableMap.Builder<UUID, Section> sections = ImmutableMap.builder();
+        ImmutableMap.Builder<UUID, Quest> quests = ImmutableMap.builder();
         FileToIdConverter files = FileToIdConverter.json(RESOURCE_DIRECTORY);
 
         for (Map.Entry<ResourceLocation, Resource> entry : files.listMatchingResources(resourceManager).entrySet()) {
@@ -43,23 +43,19 @@ public class FlatFileQuestLoader extends QuestLoader {
                     continue;
                 }
                 UUID sectionId = section.sectionUUID();
-                if (sections.putIfAbsent(sectionId, section) != null) {
-                    throw new IllegalArgumentException("Duplicate section UUID " + sectionId);
-                }
+                sections.put(sectionId, section);
 
                 for (Quest quest : section.questList()) {
                     if (!quest.sectionUUID().equals(sectionId)) {
                         throw new IllegalArgumentException("Quest " + quest.questId() + " belongs to a different section");
                     }
-                    if (quests.putIfAbsent(quest.questId(), quest) != null) {
-                        throw new IllegalArgumentException("Duplicate quest UUID " + quest.questId());
-                    }
+                    quests.put(quest.questId(), quest);
                 }
             } catch (IOException | RuntimeException exception) {
                 throw new IllegalStateException("Could not load quest section " + entry.getKey(), exception);
             }
         }
 
-        return new QuestData(sections, quests);
+        return new QuestData(sections.buildOrThrow(), quests.buildOrThrow());
     }
 }

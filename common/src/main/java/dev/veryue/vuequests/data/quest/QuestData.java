@@ -1,5 +1,6 @@
 package dev.veryue.vuequests.data.quest;
 
+import com.google.common.collect.ImmutableMap;
 import dev.veryue.vuequests.models.ObjectiveContext;
 import dev.veryue.vuequests.models.QuestObjectiveProgress;
 import dev.veryue.vuequests.models.User;
@@ -18,7 +19,7 @@ import java.util.Set;
 import java.util.UUID;
 
 public class QuestData {
-    public static final QuestData EMPTY = new QuestData(Map.of(), Map.of());
+    public static final QuestData EMPTY = new QuestData(ImmutableMap.of(), ImmutableMap.of());
 
     private final Map<UUID, Section> sections;
     private final Map<UUID, Quest> quests;
@@ -80,7 +81,6 @@ public class QuestData {
         }
         // todo; then we also need to update the client player when they're on a server
         // todo probably a sync payload again.
-        // todo need to refactor ClientQuestData so we aren't duplicating stuff in memory.
     }
 
     public boolean prerequisitesMet(UUID questId, User user) {
@@ -147,7 +147,6 @@ public class QuestData {
                     .distinct()
                     .forEach(type -> index.computeIfAbsent(type, ignored -> new ArrayList<>()).add(quest));
         }
-        index.replaceAll((type, matches) -> matches);
         return index;
     }
 
@@ -190,7 +189,6 @@ public class QuestData {
             throw new IllegalArgumentException("Quest dependencies must not form a cycle.");
         }
 
-        dependents.replaceAll((id, ids) -> ids);
         return dependents;
     }
 }

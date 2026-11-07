@@ -1,5 +1,6 @@
 package dev.veryue.vuequests.editor.api;
 
+import com.google.common.collect.ImmutableMap;
 import dev.veryue.vuequests.editor.api.models.QuestApiDocument;
 import dev.veryue.vuequests.editor.api.models.requests.CreateQuestRequest;
 import dev.veryue.vuequests.editor.api.models.requests.CreateSectionRequest;
@@ -267,7 +268,10 @@ public class QuestApiVerification {
         Quest third = new Quest(first.position(), first.display(), first.sectionUUID(), thirdId,
                 List.of(), List.of(), List.of(firstId, secondId));
         verifyClientProgress(first, second, third);
-        QuestData quests = new QuestData(Map.of(), Map.of(firstId, first, secondId, second, thirdId, third));
+        ImmutableMap<UUID, Section> sections = ImmutableMap.of();
+        ImmutableMap<UUID, Quest> questIndex = ImmutableMap.of(firstId, first, secondId, second, thirdId, third);
+        QuestData quests = new QuestData(sections, questIndex);
+        check(quests.sections() == sections && quests.quests() == questIndex, "Quest data retains the supplied immutable maps directly");
         PlayerUser player = new PlayerUser(UUID.randomUUID());
         PlayerUser otherPlayer = new PlayerUser(UUID.randomUUID());
         ObjectiveContext context = new ObjectiveContext(null, Map.of());
@@ -295,7 +299,7 @@ public class QuestApiVerification {
                 "Multiple completed prerequisites unlock a quest once, even with a stale completion ID");
         check(quests.availableDependents(secondId, player).equals(List.of(thirdId)), "Final prerequisite unlocks a dependent");
         check(quests.availableDependents(firstId, player).equals(List.of(thirdId)), "Completed dependents are excluded");
-        expect(IllegalArgumentException.class, () -> new QuestData(Map.of(), Map.of(secondId, second)), "Snapshot rejects missing prerequisites");
+        expect(IllegalArgumentException.class, () -> new QuestData(ImmutableMap.of(), ImmutableMap.of(secondId, second)), "Snapshot rejects missing prerequisites");
     }
 
     private static void verifyClientProgress(Quest first, Quest second, Quest third) {
@@ -306,6 +310,13 @@ public class QuestApiVerification {
         UUID rewardId = UUID.randomUUID();
         ClientQuestData.update(List.of(section), player);
         try {
+            QuestData definitions = ClientQuestData.getData();
+            check(definitions.sections().get(section.sectionUUID()) == section && definitions.quests().get(first.questId()) == first,
+                    "Client indexes reuse the received section and quest definitions");
+            expect(UnsupportedOperationException.class, () -> definitions.sections().remove(section.sectionUUID()),
+                    "Published section indexes cannot be changed through their views");
+            expect(UnsupportedOperationException.class, () -> definitions.quests().remove(first.questId()),
+                    "Published quest indexes cannot be changed through their views");
             check(ClientQuestData.prerequisitesMet(first), "Client root quests are unlocked without progress");
             check(!ClientQuestData.prerequisitesMet(second), "Client quests are locked while a prerequisite is incomplete");
             player.grantQuestCompletion(first.questId());
@@ -341,6 +352,22 @@ public class QuestApiVerification {
             check(ClientQuestData.prerequisitesMet(third), "Completing every prerequisite unlocks the client quest");
             ClientQuestData.update(decoded.sections(), new PlayerUser(player.getUuid()));
             check(!ClientQuestData.prerequisitesMet(second), "A new progress snapshot replaces earlier completions");
+
+            RegistryFriendlyByteBuf progressBuffer = new RegistryFriendlyByteBuf(Unpooled.buffer(),
+                    RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY));
+            try {
+                QuestSyncPayload.STREAM_CODEC.encode(progressBuffer, new QuestSyncPayload(List.of(), player));
+                QuestSyncPayload progressOnly = QuestSyncPayload.STREAM_CODEC.decode(progressBuffer);
+                check(progressOnly.sections().isEmpty() && progressOnly.user().getCompletedQuests().equals(player.getCompletedQuests())
+                                && progressOnly.user().getQuestObjectiveProgress().get(objective.getObjectiveId()).getCurrentProgress().equals(3),
+                        "Quest sync without definitions preserves player completions and typed progress");
+                ClientQuestData.update(progressOnly.sections(), progressOnly.user());
+                check(ClientQuestData.getData().quests().isEmpty() && ClientQuestData.getData().sections().isEmpty()
+                                && ClientQuestData.getUser() == progressOnly.user(),
+                        "An empty remote definition snapshot clears earlier quests while retaining player progress");
+            } finally {
+                progressBuffer.release();
+            }
         } finally {
             ClientQuestData.clear();
         }

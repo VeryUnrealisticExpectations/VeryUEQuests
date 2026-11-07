@@ -35,7 +35,10 @@ public record QuestSyncPayload(List<Section> sections, PlayerUser user) implemen
         var ops = player.registryAccess().createSerializationContext(NbtOps.INSTANCE);
         PlayerUser snapshot = PlayerUser.CODEC.encodeStart(ops, user)
                 .flatMap(encoded -> PlayerUser.CODEC.parse(ops, encoded)).getOrThrow();
-        return new QuestSyncPayload(List.copyOf(QuestReloadDelegate.INSTANCE.getData().sections().values()), snapshot);
+        List<Section> sections = player.server.isSingleplayerOwner(player.getGameProfile())
+                ? List.of()
+                : List.copyOf(QuestReloadDelegate.INSTANCE.getData().sections().values());
+        return new QuestSyncPayload(sections, snapshot);
     }
 
     @Override
