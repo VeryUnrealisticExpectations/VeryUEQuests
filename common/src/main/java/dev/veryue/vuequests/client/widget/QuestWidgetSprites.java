@@ -3,7 +3,7 @@ package dev.veryue.vuequests.client.widget;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.locale.Language;
 
@@ -15,7 +15,8 @@ public class QuestWidgetSprites {
     public static final float TEXTURE_ALPHA = 0.6F;
     public static final ResourceLocation SECTION_PANEL = sprite("section_panel");
     public static final ResourceLocation CANVAS = sprite("canvas");
-    public static final ResourceLocation PREVIEW = sprite("preview");
+    public static final ResourceLocation DETAILS_PANEL = sprite("details_panel");
+    public static final ResourceLocation CLOSE = sprite("close");
     public static final ResourceLocation SECTION = sprite("section");
     public static final ResourceLocation SECTION_SELECTED = sprite("section_selected");
     public static final ResourceLocation SCROLLBAR = sprite("scrollbar");
@@ -40,9 +41,8 @@ public class QuestWidgetSprites {
         }
     }
 
-    public static void renderPanel(GuiGraphics graphics, Font font, AbstractWidget widget, ResourceLocation sprite) {
-        blit(graphics, sprite, widget.getX(), widget.getY(), widget.getWidth(), widget.getHeight());
-        graphics.drawString(font, Language.getInstance().getVisualOrder(font.substrByWidth(widget.getMessage(), Math.max(1, widget.getWidth() - 8))),
-                widget.getX() + 4, widget.getY() + 4, 0xFFE0E0E0);
+    public static void renderHeader(GuiGraphics graphics, Font font, Component title, int x, int y, int width) {
+        graphics.drawString(font, Language.getInstance().getVisualOrder(font.substrByWidth(title, Math.max(1, width - 8))),
+                x + 4, y + 4, 0xFFE0E0E0);
     }
 }

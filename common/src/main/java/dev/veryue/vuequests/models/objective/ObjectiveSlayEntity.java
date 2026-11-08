@@ -8,6 +8,7 @@ import dev.veryue.vuequests.models.User;
 import dev.veryue.vuequests.registry.QuestObjectiveTypes;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -38,6 +39,11 @@ public class ObjectiveSlayEntity extends QuestObjective<EntityType<?>, Integer> 
     @Override
     public ItemStack getIconStack() {
         return new ItemStack(Items.IRON_SWORD);
+    }
+
+    @Override
+    public Component getActionText() {
+        return Component.translatable("screen.vuequests.objective.slay", getEntityType().getDescription());
     }
 
     @Override

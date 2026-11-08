@@ -81,6 +81,7 @@ public class QuestData {
         }
         // todo; then we also need to update the client player when they're on a server
         // todo probably a sync payload again.
+
     }
 
     public boolean prerequisitesMet(UUID questId, User user) {

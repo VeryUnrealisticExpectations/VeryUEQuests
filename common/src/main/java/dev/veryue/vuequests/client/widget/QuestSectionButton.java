@@ -37,6 +37,10 @@ public class QuestSectionButton extends Button {
     @Override
     protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         QuestWidgetSprites.blit(graphics, selected ? QuestWidgetSprites.SECTION_SELECTED : QuestWidgetSprites.SECTION, getX(), getY(), getWidth(), getHeight());
+        if (getWidth() <= QuestSectionPanel.COLLAPSED_WIDTH) {
+            graphics.renderItem(icon, getX() + (getWidth() - 16) / 2, getY() + 2);
+            return;
+        }
         graphics.renderItem(icon, getX() + 4, getY() + 2);
         graphics.drawString(font, Language.getInstance().getVisualOrder(font.substrByWidth(getMessage(), Math.max(1, getWidth() - 28))),
                 getX() + 24, getY() + 5, selected ? 0xFFFFFFFF : 0xFFD0D0D0);

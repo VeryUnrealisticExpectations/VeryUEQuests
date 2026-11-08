@@ -1,8 +1,10 @@
 package dev.veryue.vuequests.client.widget;
 
 import dev.veryue.vuequests.models.quest.Section;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
@@ -15,6 +17,7 @@ import java.util.function.Consumer;
 
 public class QuestSectionPanel extends QuestPanel {
 
+    public static final int COLLAPSED_WIDTH = 24;
     private static final int ROW_HEIGHT = 20;
     private static final int SCROLLBAR_WIDTH = 4;
 
@@ -22,6 +25,7 @@ public class QuestSectionPanel extends QuestPanel {
     private final Consumer<Section> onSelect;
     private int scroll;
     private boolean scrolling;
+    private boolean collapsed;
 
     public QuestSectionPanel(Font font, Consumer<Section> onSelect) {
         super(font, Component.translatable("screen.vuequests.section_title"), QuestWidgetSprites.SECTION_PANEL);
@@ -39,6 +43,18 @@ public class QuestSectionPanel extends QuestPanel {
 
     public void setSelected(UUID selected) {
         entries.forEach(entry -> entry.setSelected(entry.getSection().sectionUUID().equals(selected)));
+    }
+
+    public boolean isCollapsed() {
+        return collapsed;
+    }
+
+    public void setCollapsed(boolean collapsed) {
+        this.collapsed = collapsed;
+    }
+
+    public int headerWidth() {
+        return collapsed ? Math.max(getWidth(), font.width(getMessage()) + 8) : getWidth();
     }
 
     @Override
@@ -60,20 +76,39 @@ public class QuestSectionPanel extends QuestPanel {
     }
 
     @Override
+    protected void renderBackground(GuiGraphics graphics) {
+        if (!collapsed) {
+            super.renderBackground(graphics);
+            return;
+        }
+        QuestWidgetSprites.blit(graphics, QuestWidgetSprites.SECTION_PANEL, getX(), contentTop(), getWidth(), getBottom() - contentTop());
+        int headerWidth = headerWidth();
+        QuestWidgetSprites.blit(graphics, QuestWidgetSprites.SECTION_PANEL, getX(), getY(), headerWidth, QuestWidgetSprites.HEADER_HEIGHT);
+        QuestWidgetSprites.renderHeader(graphics, font, getMessage(), getX(), getY(), headerWidth);
+    }
+
+    @Override
     protected void renderContents(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        Component hoveredName = null;
         graphics.enableScissor(getX(), contentTop(), getRight(), getBottom());
-        if (entries.isEmpty()) {
+        if (entries.isEmpty() && !collapsed) {
             graphics.drawWordWrap(font, Component.translatable("screen.vuequests.no_sections"), getX() + 4, contentTop() + 2,
                     Math.max(1, getWidth() - 8), 0xFFAFAFAF);
         }
         for (QuestSectionButton entry : entries) {
             if (entry.getBottom() > contentTop() && entry.getY() < getBottom()) {
                 entry.render(graphics, mouseX, mouseY >= contentTop() ? mouseY : -1, partialTick);
+                if (collapsed && entry.isHovered()) {
+                    hoveredName = entry.getMessage();
+                }
             }
         }
         graphics.disableScissor();
         if (maxScroll() > 0) {
             QuestWidgetSprites.blit(graphics, QuestWidgetSprites.SCROLLBAR, getRight() - SCROLLBAR_WIDTH, thumbY(), SCROLLBAR_WIDTH, thumbHeight());
+        }
+        if (hoveredName != null) {
+            graphics.renderTooltip(font, Tooltip.splitTooltip(Minecraft.getInstance(), hoveredName), mouseX, mouseY);
         }
     }
 

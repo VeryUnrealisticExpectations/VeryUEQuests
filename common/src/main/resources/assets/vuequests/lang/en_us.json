@@ -4,19 +4,30 @@
     "screen.vuequests.quest_menu": "Quest Menu",
 
     "screen.vuequests.section_title": "VUE Quests",
+    "screen.vuequests.expand_sections": "Expand",
+    "screen.vuequests.collapse_sections": "Collapse",
 
 
-    "screen.vuequests.preview": "Preview",
     "screen.vuequests.prerequisites": "Complete first",
     "screen.vuequests.unknown_prerequisite": "Unavailable quest",
     "screen.vuequests.objectives": "Objectives",
+    "screen.vuequests.description": "Description",
     "screen.vuequests.rewards": "Rewards",
+    "screen.vuequests.none": "None",
+    "screen.vuequests.close": "Close",
+    "screen.vuequests.read_more": "Read more inside",
+    "screen.vuequests.objective.collect": "Collect %s × %s",
+    "screen.vuequests.objective.slay": "Slay %s",
+    "screen.vuequests.objective.generic": "Complete objective: %s",
+    "screen.vuequests.reward.item": "%s × %s",
+    "screen.vuequests.reward.quantity": "Quantity: %s",
+    "screen.vuequests.reward.experience": "%s XP",
     "screen.vuequests.no_sections": "No quest sections available.",
     "screen.vuequests.no_quests": "No quests in this section.",
     "screen.vuequests.canvas_position": "X: %s, Y: %s",
     "narration.vuequests.position": "%s of %s",
     "narration.vuequests.selected_section": "Selected section",
     "narration.vuequests.panel_usage": "Use Tab or the arrow keys to move between entries. Press Enter or Space to select.",
-    "narration.vuequests.canvas_usage": "Use Tab or the arrow keys to browse quests. Hold Shift and press the arrow keys to move the map. Use the mouse wheel or plus and minus keys to zoom. Press Home to center the map and reset zoom.",
-    "narration.vuequests.preview_usage": "Use the up and down arrows or Page Up and Page Down to scroll. Use Tab to move to the next panel."
+    "narration.vuequests.canvas_usage": "Use Tab or the arrow keys to browse quests. Press Enter or Space to open quest details. Hold Shift and press the arrow keys to move the map. Use the mouse wheel or plus and minus keys to zoom. Press Home to center the map and reset zoom.",
+    "narration.vuequests.details_usage": "Use the up and down arrows or Page Up and Page Down to scroll. Press Escape to close."
 }

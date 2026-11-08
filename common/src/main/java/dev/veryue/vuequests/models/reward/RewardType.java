@@ -3,6 +3,9 @@ package dev.veryue.vuequests.models.reward;
 import com.mojang.serialization.Codec;
 import dev.veryue.vuequests.models.User;
 import dev.veryue.vuequests.VeryUERegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 import java.util.UUID;
 
@@ -26,6 +29,14 @@ public abstract class RewardType<T> {
 
     public T getValue() {
         return value;
+    }
+
+    public ItemStack getIconStack() {
+        return new ItemStack(Items.PAPER);
+    }
+
+    public Component getDisplayName() {
+        return Component.literal(String.valueOf(VeryUERegistries.REWARD_TYPES.getKey(getType())));
     }
 
     public abstract RewardTypeSerializer getType();

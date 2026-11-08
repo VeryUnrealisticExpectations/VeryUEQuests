@@ -7,10 +7,12 @@ import dev.veryue.vuequests.models.QuestObjectiveProgress;
 import dev.veryue.vuequests.models.User;
 import dev.veryue.vuequests.registry.QuestObjectiveTypes;
 import net.minecraft.core.UUIDUtil;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -38,6 +40,22 @@ public class ObjectiveCollectItem extends QuestObjective<ItemStack, Integer> {
     @Override
     public ItemStack getIconStack() {
         return getStack().copy();
+    }
+
+    @Override
+    public Component getActionText() {
+        ItemStack stack = getStack();
+        return Component.translatable("screen.vuequests.objective.collect", stack.getCount(), stack.getHoverName());
+    }
+
+    @Override
+    protected int getProgressTarget() {
+        return getStack().getCount();
+    }
+
+    @Override
+    protected int getProgressCount(@Nullable Integer progress) {
+        return progress == null ? 0 : progress;
     }
 
     @Override

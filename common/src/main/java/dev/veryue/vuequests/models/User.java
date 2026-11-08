@@ -9,6 +9,7 @@ import dev.veryue.vuequests.models.objective.QuestObjective;
 import dev.veryue.vuequests.models.quest.Quest;
 import net.minecraft.core.UUIDUtil;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
@@ -67,6 +68,17 @@ public abstract class User {
 
     public Map<UUID, QuestObjectiveProgress<?, ?>> getQuestObjectiveProgress() {
         return questObjectiveProgress;
+    }
+
+    @Nullable
+    @SuppressWarnings("unchecked")
+    public <T, TYPE> QuestObjectiveProgress<T, TYPE> getObjectiveProgress(QuestObjective<T, TYPE> objective) {
+        UUID objectiveId = objective.getObjectiveId();
+        QuestObjectiveProgress<?, ?> progress = questObjectiveProgress.get(objectiveId);
+        if (progress == null || !objectiveId.equals(progress.getObjectiveId()) || progress.getType() != objective.getType()) {
+            return null;
+        }
+        return (QuestObjectiveProgress<T, TYPE>) progress;
     }
 
     public <T, TYPE> QuestObjectiveProgress<T, TYPE> incrementObjectiveProgress(QuestObjective<T, TYPE> objective, ObjectiveContext context) {

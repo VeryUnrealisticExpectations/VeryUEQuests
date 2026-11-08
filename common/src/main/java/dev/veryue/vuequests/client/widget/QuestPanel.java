@@ -30,8 +30,21 @@ public abstract class QuestPanel extends AbstractContainerWidget {
 
     @Override
     protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        QuestWidgetSprites.renderPanel(graphics, font, this, sprite);
+        renderBackground(graphics);
         renderContents(graphics, mouseX, mouseY, partialTick);
+    }
+
+    protected void renderBackground(GuiGraphics graphics) {
+        blitBackground(graphics);
+        renderHeader(graphics);
+    }
+
+    protected void blitBackground(GuiGraphics graphics) {
+        QuestWidgetSprites.blit(graphics, sprite, getX(), getY(), getWidth(), getHeight());
+    }
+
+    protected void renderHeader(GuiGraphics graphics) {
+        QuestWidgetSprites.renderHeader(graphics, font, getMessage(), getX(), getY(), getWidth());
     }
 
     protected abstract void renderContents(GuiGraphics graphics, int mouseX, int mouseY, float partialTick);

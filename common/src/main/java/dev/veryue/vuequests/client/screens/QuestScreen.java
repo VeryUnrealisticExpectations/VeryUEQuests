@@ -2,13 +2,16 @@ package dev.veryue.vuequests.client.screens;
 
 import dev.veryue.vuequests.client.ClientQuestData;
 import dev.veryue.vuequests.client.widget.QuestCanvas;
-import dev.veryue.vuequests.client.widget.QuestPreviewPanel;
 import dev.veryue.vuequests.client.widget.QuestSectionPanel;
+import dev.veryue.vuequests.client.widget.QuestSectionToggle;
+import dev.veryue.vuequests.client.widget.QuestWidgetSprites;
 import dev.veryue.vuequests.data.quest.QuestData;
+import dev.veryue.vuequests.models.quest.Quest;
 import dev.veryue.vuequests.models.quest.Section;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 
@@ -21,7 +24,7 @@ import static dev.veryue.vuequests.VeryUEConstants.MOD_ID;
 public class QuestScreen extends Screen {
 
     private QuestSectionPanel sectionPanel;
-    private QuestPreviewPanel previewPanel;
+    private QuestSectionToggle sectionToggle;
     private QuestCanvas canvas;
     private QuestData data;
     private UUID selectedSection;
@@ -32,26 +35,40 @@ public class QuestScreen extends Screen {
 
     @Override
     protected void init() {
-        clearFocus();
-        clearWidgets();
-        int sidebarWidth = Mth.clamp(width / 4, 100, 220);
-        int sectionHeight = height * 7 / 10;
-
         sectionPanel = addWidget(new QuestSectionPanel(font, this::selectSection));
-        sectionPanel.setRectangle(sidebarWidth, sectionHeight, 0, 0);
         sectionPanel.setTabOrderGroup(0);
-        previewPanel = addWidget(new QuestPreviewPanel(font));
-        previewPanel.setRectangle(sidebarWidth, height - sectionHeight, 0, sectionHeight);
-        previewPanel.setTabOrderGroup(1);
-        canvas = addWidget(new QuestCanvas(font, previewPanel::setQuest));
-        canvas.setRectangle(width - sidebarWidth, height, sidebarWidth, 0);
+        sectionToggle = addWidget(new QuestSectionToggle(font, button -> toggleSections()));
+        sectionToggle.setTabOrderGroup(1);
+        canvas = addWidget(new QuestCanvas(font, this::openQuest));
         canvas.setTabOrderGroup(2);
 
-        addRenderableOnly(sectionPanel);
         addRenderableOnly(canvas);
-        addRenderableOnly(previewPanel);
-        data = null;
+        addRenderableOnly(sectionPanel);
+        addRenderableOnly(sectionToggle);
+        repositionElements();
         refreshData();
+    }
+
+    @Override
+    protected void repositionElements() {
+        int desiredWidth = sectionPanel.isCollapsed() ? QuestSectionPanel.COLLAPSED_WIDTH : Mth.clamp(width / 4, 100, 220);
+        int sidebarWidth = Math.min(width / 2, desiredWidth);
+        sectionPanel.setRectangle(sidebarWidth, height, 0, 0);
+        canvas.setRectangle(width - sidebarWidth, height, sidebarWidth, 0);
+        int toggleHeight = Math.max(0, Math.min(height * 2 / 3, height - 2 * QuestWidgetSprites.HEADER_HEIGHT));
+        sectionToggle.setRectangle(sectionToggle.getWidth(), toggleHeight, sidebarWidth, (height - toggleHeight) / 2);
+        sectionToggle.visible = toggleHeight > 0;
+        canvas.setSidebarLayout(sectionPanel.headerWidth() - sidebarWidth, sectionToggle.getRectangle());
+    }
+
+    private void toggleSections() {
+        sectionPanel.setCollapsed(!sectionPanel.isCollapsed());
+        sectionToggle.setCollapsed(sectionPanel.isCollapsed());
+        repositionElements();
+    }
+
+    private void openQuest(Quest quest) {
+        minecraft.setScreen(new QuestDetailsScreen(this, quest));
     }
 
     private void refreshData() {
@@ -76,7 +93,6 @@ public class QuestScreen extends Screen {
         }
         selectedSection = sectionId;
         canvas.setSection(section);
-        previewPanel.setQuest(null);
     }
 
     @Override
@@ -95,6 +111,9 @@ public class QuestScreen extends Screen {
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         refreshData();
         super.render(graphics, mouseX, mouseY, partialTick);
+        if (sectionToggle.isMouseOver(mouseX, mouseY)) {
+            setTooltipForNextRenderPass(sectionToggle.getTooltip(), DefaultTooltipPositioner.INSTANCE, true);
+        }
     }
 
     @Override

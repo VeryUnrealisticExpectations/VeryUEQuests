@@ -5,9 +5,13 @@ import dev.veryue.vuequests.VeryUERegistries;
 import dev.veryue.vuequests.models.ObjectiveContext;
 import dev.veryue.vuequests.models.QuestObjectiveProgress;
 import dev.veryue.vuequests.models.User;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -40,6 +44,27 @@ public abstract class QuestObjective<T, TYPE> {
 
     public ItemStack getIconStack() {
         return new ItemStack(Items.PAPER);
+    }
+
+    public Component getActionText() {
+        return Component.translatable("screen.vuequests.objective.generic", getIconStack().getHoverName());
+    }
+
+    public Component getProgressText(@Nullable User user) {
+        int target = Math.max(1, getProgressTarget());
+        QuestObjectiveProgress<T, TYPE> progress = user == null ? null : user.getObjectiveProgress(this);
+        boolean complete = user != null && (user.hasCompletedObjective(this) || (progress != null && progress.isComplete(this)));
+        int count = progress == null ? 0 : getProgressCount(progress.getCurrentProgress());
+        int displayedCount = complete ? target : Mth.clamp(count, 0, target);
+        return Component.literal(displayedCount + "/" + target).withStyle(complete ? ChatFormatting.GREEN : ChatFormatting.YELLOW);
+    }
+
+    protected int getProgressTarget() {
+        return 1;
+    }
+
+    protected int getProgressCount(@Nullable TYPE progress) {
+        return 0;
     }
 
     public T getValue() {
