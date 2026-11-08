@@ -18,6 +18,13 @@ public class QuestApiSchemas {
         return entry(type, "objective_id", field, value);
     }
 
+    public static JsonSchema countedObjective(String type, String field, JsonSchema value, String countDescription) {
+        JsonSchema schema = objective(type, field, value);
+        schema.properties.put("count", JsonSchema.type("integer").format("int32")
+                .minimum(1).maximum(Integer.MAX_VALUE).description(countDescription));
+        return schema;
+    }
+
     public static JsonSchema reward(String type, String field, JsonSchema value) {
         return entry(type, "reward_id", field, value);
     }

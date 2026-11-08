@@ -12,7 +12,7 @@
     },
     "license": "${license}",
     "environment": "*",
-    "mixins": ["vuequests.client.mixins.json"],
+    "mixins": ["vuequests.fabric.mixins.json", "vuequests.client.mixins.json"],
     "entrypoints": {
         "main": [
             "dev.veryue.vuequests.VeryUEQuestsFabric"

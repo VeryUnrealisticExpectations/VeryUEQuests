@@ -2,10 +2,17 @@ package dev.veryue.vuequests;
 
 import dev.veryue.vuequests.data.FlatFileUserLoader;
 import dev.veryue.vuequests.data.UserLoader;
+import dev.veryue.vuequests.data.quest.QuestReloadDelegate;
 import dev.veryue.vuequests.exceptions.PlayerDoesNotExistException;
+import dev.veryue.vuequests.models.ObjectiveContext;
 import dev.veryue.vuequests.models.PlayerUser;
 import dev.veryue.vuequests.models.User;
+import dev.veryue.vuequests.registry.QuestObjectiveTypes;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.LivingEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,6 +100,28 @@ public class VeryUEMod {
 
     public Optional<User> getUser(UUID uuid) {
         return Optional.ofNullable(USERS.get(uuid));
+    }
+
+    protected void onEntityDeath(LivingEntity entity, DamageSource source) {
+        if (source.getEntity() instanceof ServerPlayer player) {
+            getUser(player.getUUID()).ifPresent(user -> {
+                ObjectiveContext context = ObjectiveContext.createContext(player.serverLevel())
+                        .withParameter(ObjectiveContext.PLAYER, player)
+                        .withParameter(ObjectiveContext.ENTITY, entity)
+                        .build();
+                QuestReloadDelegate.INSTANCE.getData().handleQuestTrigger(user, QuestObjectiveTypes.ENTITY, context);
+            });
+        }
+    }
+
+    public void onAdvancementEarned(ServerPlayer player, ResourceLocation advancement) {
+        getUser(player.getUUID()).ifPresent(user -> {
+            ObjectiveContext context = ObjectiveContext.createContext(player.serverLevel())
+                    .withParameter(ObjectiveContext.PLAYER, player)
+                    .withParameter(ObjectiveContext.ADVANCEMENT, advancement)
+                    .build();
+            QuestReloadDelegate.INSTANCE.getData().handleQuestTrigger(user, QuestObjectiveTypes.ADVANCEMENT, context);
+        });
     }
 
     public void stop() {

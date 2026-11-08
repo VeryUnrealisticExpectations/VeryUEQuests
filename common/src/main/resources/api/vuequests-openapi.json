@@ -109,9 +109,9 @@
                 "objectives": [
                   {
                     "type": "vuequests:collect_item",
+                    "count": 5,
                     "item": {
-                      "id": "minecraft:oak_log",
-                      "count": 5
+                      "id": "minecraft:oak_log"
                     }
                   }
                 ],
@@ -200,9 +200,9 @@
                     "objectives": [
                       {
                         "type": "vuequests:collect_item",
+                        "count": 5,
                         "item": {
-                          "id": "minecraft:oak_log",
-                          "count": 5
+                          "id": "minecraft:oak_log"
                         }
                       }
                     ]
@@ -221,9 +221,9 @@
                     "objectives": [
                       {
                         "type": "vuequests:collect_item",
+                        "count": 128,
                         "item": {
-                          "id": "minecraft:cobblestone",
-                          "count": 8
+                          "id": "minecraft:cobblestone"
                         }
                       }
                     ],
@@ -437,7 +437,8 @@
                 "objectives": [
                   {
                     "type": "vuequests:entity",
-                    "entity": "minecraft:zombie"
+                    "entity": "minecraft:zombie",
+                    "count": 150
                   }
                 ]
               }
@@ -1292,13 +1293,25 @@
           "entity": {
             "type": "string",
             "description": "For vuequests:entity: a loaded minecraft:entity_type ID."
+          },
+          "advancement": {
+            "type": "string",
+            "description": "For vuequests:advancement: a datapack advancement ID.",
+            "example": "minecraft:story/mine_stone"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 2147483647,
+            "description": "Required item quantity for vuequests:collect_item or kill count for vuequests:entity. Defaults to the legacy item.count for Collect Item when present, otherwise 1."
           }
         },
         "required": [
           "type"
         ],
         "additionalProperties": true,
-        "description": "Dispatched to the registered objective codec. vuequests:collect_item requires item; vuequests:entity requires entity. Other mods can supply arbitrary codec fields."
+        "description": "Dispatched to the registered objective codec. vuequests:collect_item requires item, vuequests:entity requires entity, and vuequests:advancement requires advancement. Other mods can supply arbitrary codec fields."
       },
       "Reward": {
         "type": "object",

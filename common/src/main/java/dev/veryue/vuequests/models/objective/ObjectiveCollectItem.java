@@ -1,5 +1,6 @@
 package dev.veryue.vuequests.models.objective;
 
+import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.veryue.vuequests.models.ObjectiveContext;
@@ -9,23 +10,28 @@ import dev.veryue.vuequests.registry.QuestObjectiveTypes;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import org.jetbrains.annotations.Nullable;
 
+import java.util.Optional;
 import java.util.UUID;
 
-public class ObjectiveCollectItem extends QuestObjective<ItemStack, Integer> {
+public class ObjectiveCollectItem extends CountedQuestObjective<ItemStack> {
 
     public static final MapCodec<ObjectiveCollectItem> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             UUIDUtil.STRING_CODEC.fieldOf("objective_id").forGetter(ObjectiveCollectItem::getObjectiveId),
-            ItemStack.CODEC.fieldOf("item").forGetter(ObjectiveCollectItem::getStack)
-            // todo; likely need to add a separate count since we're limited to 99 i think
-    ).apply(instance, ObjectiveCollectItem::new));
+            Codec.of(ItemStack.SINGLE_ITEM_CODEC, ItemStack.CODEC).fieldOf("item").forGetter(ObjectiveCollectItem::getStack),
+            ExtraCodecs.POSITIVE_INT.optionalFieldOf("count").forGetter(objective -> Optional.of(objective.getCount()))
+    ).apply(instance, (id, stack, count) -> new ObjectiveCollectItem(id, stack, count.orElse(stack.getCount()))));
 
     public ObjectiveCollectItem(UUID objectiveId, ItemStack stack) {
-        super(objectiveId, stack);
+        this(objectiveId, stack, stack.getCount());
+    }
+
+    public ObjectiveCollectItem(UUID objectiveId, ItemStack stack, int count) {
+        super(objectiveId, stack.getCount() == 1 ? stack : stack.copyWithCount(1), count);
     }
 
     @Deprecated
@@ -44,18 +50,7 @@ public class ObjectiveCollectItem extends QuestObjective<ItemStack, Integer> {
 
     @Override
     public Component getActionText() {
-        ItemStack stack = getStack();
-        return Component.translatable("screen.vuequests.objective.collect", stack.getCount(), stack.getHoverName());
-    }
-
-    @Override
-    protected int getProgressTarget() {
-        return getStack().getCount();
-    }
-
-    @Override
-    protected int getProgressCount(@Nullable Integer progress) {
-        return progress == null ? 0 : progress;
+        return Component.translatable("screen.vuequests.objective.collect", getCount(), getStack().getHoverName());
     }
 
     @Override
@@ -67,8 +62,9 @@ public class ObjectiveCollectItem extends QuestObjective<ItemStack, Integer> {
 
         Inventory inventory = player.getInventory();
         ItemStack requiredStack = getStack();
-        int currentProgress = objectiveProgress.getCurrentProgress() == null ? 0 : objectiveProgress.getCurrentProgress();
-        if (currentProgress >= requiredStack.getCount()) {
+        int count = getCount();
+        int currentProgress = getProgressCount(objectiveProgress.getCurrentProgress());
+        if (currentProgress >= count) {
             return;
         }
 
@@ -77,21 +73,16 @@ public class ObjectiveCollectItem extends QuestObjective<ItemStack, Integer> {
         }
 
         int itemCount = 0;
-        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+        for (int slot = 0; slot < inventory.getContainerSize() && itemCount < count; slot++) {
             ItemStack stack = inventory.getItem(slot);
             if (ItemStack.isSameItemSameComponents(requiredStack, stack)) {
-                itemCount += stack.getCount();
+                itemCount += Math.min(count - itemCount, stack.getCount());
             }
         }
 
         if (itemCount > currentProgress) {
-            objectiveProgress.setCurrentProgress(Math.min(itemCount, requiredStack.getCount()));
+            objectiveProgress.setCurrentProgress(itemCount);
         }
-    }
-
-    @Override
-    public boolean isComplete(QuestObjectiveProgress<ItemStack, Integer> progress) {
-        return progress.getCurrentProgress() != null && progress.getCurrentProgress() >= getValue().getCount();
     }
 
     @Override

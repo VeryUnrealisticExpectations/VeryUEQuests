@@ -31,21 +31,29 @@ import dev.veryue.vuequests.models.PlayerUser;
 import dev.veryue.vuequests.models.QuestObjectiveProgress;
 import dev.veryue.vuequests.models.User;
 import dev.veryue.vuequests.models.objective.ObjectiveCollectItem;
+import dev.veryue.vuequests.models.objective.ObjectiveGetAdvancement;
 import dev.veryue.vuequests.models.objective.ObjectiveSlayEntity;
+import dev.veryue.vuequests.models.objective.QuestObjective;
 import dev.veryue.vuequests.models.quest.Quest;
 import dev.veryue.vuequests.models.quest.QuestDisplay;
+import dev.veryue.vuequests.models.quest.QuestPosition;
 import dev.veryue.vuequests.models.quest.Section;
 import dev.veryue.vuequests.network.QuestSyncPayload;
+import dev.veryue.vuequests.registry.QuestObjectiveTypes;
 import io.netty.buffer.Unpooled;
+import net.minecraft.ChatFormatting;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TextColor;
+import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.RegistryOps;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import java.net.InetSocketAddress;
@@ -80,6 +88,8 @@ public class QuestApiVerification {
         var ops = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY).createSerializationContext(JsonOps.INSTANCE);
         Gson json = QuestApiJson.create(ops);
         verifyModels(json, ops);
+        verifyObjectiveCounts(json, ops);
+        verifyAdvancementObjective(json, ops);
         verifyObjectiveProgress();
         verifyUserSerialization();
         verifyQuestBackgrounds();
@@ -104,7 +114,9 @@ public class QuestApiVerification {
         check(request.objectives().size() == 2, "Registered objective dispatch");
         check(request.title().getStyle().isBold(), "Native styled title");
         check(request.description().getString().equals("Collect logs"), "Native component array");
-        check(request.objectives().get(0).getIconStack().getCount() == 5, "Required item count preserved");
+        ObjectiveCollectItem legacyCollect = (ObjectiveCollectItem) request.objectives().getFirst();
+        check(legacyCollect.getCount() == 5 && legacyCollect.getIconStack().getCount() == 1,
+                "Legacy item count becomes the objective target while its icon remains a single item");
         check(request.objectives().get(0).getIconStack().getHoverName().getString().equals("Quest log"), "Native item component preserved");
         check(request.objectives().get(1).getValue().equals(42), "Custom codec fields preserved");
         check(request.objectives().get(0).getObjectiveId() != null && request.rewards().get(0).getRewardId() != null, "Generated child UUIDs");
@@ -114,7 +126,7 @@ public class QuestApiVerification {
         check(first.questId().equals(firstId) && first.position().x() == -80, "Quest creation result and position");
         expect(QuestApiException.class, () -> QuestApiService.createQuest(document, request), "Duplicate creation rejected");
         CreateQuestRequest second = json.fromJson("""
-                {"sectionId":"%s","questId":"%s","dependencies":["%s"],"objectives":[{"type":"vuequests:entity","entity":"minecraft:zombie"}],
+                {"sectionId":"%s","questId":"%s","dependencies":["%s"],"objectives":[{"type":"vuequests:entity","entity":"minecraft:zombie","count":150}],
                  "rewards":[{"type":"vuequests:item","item":{"id":"minecraft:diamond"}}]}
                 """.formatted(sectionId, secondId, firstId), CreateQuestRequest.class);
         QuestApiService.createQuest(document, second);
@@ -176,20 +188,128 @@ public class QuestApiVerification {
         check(savedSection.questList().getFirst().display().backgroundSprite().equals(custom.display().backgroundSprite()), "Custom background survives datapack persistence");
     }
 
+    private static void verifyObjectiveCounts(Gson json, RegistryOps<JsonElement> ops) {
+        ObjectiveCollectItem collect = (ObjectiveCollectItem) json.fromJson("""
+                {"type":"vuequests:collect_item","count":128,"item":{"id":"minecraft:oak_log","count":4}}
+                """, QuestObjective.class);
+        check(collect.getCount() == 128 && collect.getStack().getCount() == 1,
+                "An explicit Collect Item count overrides the legacy stack count");
+        var saved = QuestObjective.CODEC.encodeStart(ops, collect).getOrThrow().getAsJsonObject();
+        check(saved.get("count").getAsInt() == 128 && !saved.getAsJsonObject("item").has("count"),
+                "Collect Item serializes its target separately from the stack");
+        ObjectiveSlayEntity legacySlay = (ObjectiveSlayEntity) json.fromJson("""
+                {"type":"vuequests:entity","entity":"minecraft:zombie"}
+                """, QuestObjective.class);
+        check(legacySlay.getCount() == 1, "A legacy Slay Entity objective defaults to one kill");
+        ObjectiveSlayEntity slay = (ObjectiveSlayEntity) json.fromJson("""
+                {"type":"vuequests:entity","entity":"minecraft:armor_stand","count":130}
+                """, QuestObjective.class);
+        var savedSlay = QuestObjective.CODEC.encodeStart(ops, slay).getOrThrow().getAsJsonObject();
+        check(savedSlay.get("count").getAsInt() == 130 && ((ObjectiveSlayEntity)
+                QuestObjective.CODEC.parse(ops, savedSlay).getOrThrow()).getCount() == 130,
+                "Slay Entity round-trips a target above 99");
+        for (String invalid : List.of("0", "-1", "\"100\"")) {
+            JsonObject invalidCollect = saved.deepCopy();
+            invalidCollect.add("count", JsonParser.parseString(invalid));
+            check(QuestObjective.CODEC.parse(ops, invalidCollect).error().isPresent(),
+                    "Objective count rejects " + invalid);
+        }
+        savedSlay.addProperty("count", Integer.MAX_VALUE);
+        check(((ObjectiveSlayEntity) QuestObjective.CODEC.parse(ops, savedSlay).getOrThrow()).getCount() == Integer.MAX_VALUE,
+                "Objective counts support the full positive int range");
+        check(QuestObjectiveTypes.COLLECT_ITEM.schema().properties.get("count").maximum == Integer.MAX_VALUE
+                        && QuestObjectiveTypes.ENTITY.schema().properties.get("count").maximum == Integer.MAX_VALUE,
+                "Authoring discovery publishes the objective count range for both types");
+
+        PlayerUser player = new PlayerUser(UUID.randomUUID());
+        Quest quest = new Quest(new QuestPosition(0, 0), new QuestDisplay("Slay", "", "", Items.IRON_SWORD, ""),
+                UUID.randomUUID(), UUID.randomUUID(), List.of(slay, collect), List.of(), List.of());
+        QuestData data = new QuestData(Map.of(), Map.of(quest.questId(), quest));
+        player.completeObjective(collect);
+        var death = ObjectiveContext.createContext(null)
+                .withParameter(ObjectiveContext.ENTITY, new ArmorStand(EntityType.ARMOR_STAND, null)).build();
+        check(player.incrementObjectiveProgress(legacySlay, death).getCurrentProgress() == null,
+                "A death of another entity type gives no slay progress");
+        for (int i = 0; i < 129; i++) {
+            data.handleQuestTrigger(player, QuestObjectiveTypes.ENTITY, death);
+        }
+        check(!player.hasCompletedObjective(slay) && slay.getProgressText(player).getString().equals("129/130"),
+                "Kill triggers count above 99 and report partial progress");
+        data.handleQuestTrigger(player, QuestObjectiveTypes.ENTITY, death);
+        check(player.hasCompletedObjective(slay) && player.hasCompletedQuest(quest),
+                "The target kill completes the objective and the mixed quest regardless of objective order");
+        data.handleQuestTrigger(player, QuestObjectiveTypes.ENTITY, death);
+        check(player.getObjectiveProgress(slay).getCurrentProgress() == 130, "Kills stop counting at the objective target");
+    }
+
+    private static void verifyAdvancementObjective(Gson json, RegistryOps<JsonElement> ops) {
+        ObjectiveGetAdvancement objective = (ObjectiveGetAdvancement) json.fromJson("""
+                {"type":"vuequests:advancement","advancement":"minecraft:story/mine_stone"}
+                """, QuestObjective.class);
+        ResourceLocation target = ResourceLocation.parse("minecraft:story/mine_stone");
+        var definition = QuestObjective.CODEC.encodeStart(ops, objective).getOrThrow();
+        check(QuestObjective.CODEC.parse(ops, definition).getOrThrow() instanceof ObjectiveGetAdvancement restored
+                        && restored.getValue().equals(target) && restored.getObjectiveId().equals(objective.getObjectiveId()),
+                "Advancement objectives round-trip their target ID and generated objective UUID");
+        check(QuestObjectiveTypes.ADVANCEMENT.schema().required.contains("advancement"),
+                "Authoring discovery exposes the advancement field");
+        check(objective.getActionText().getContents() instanceof TranslatableContents action
+                        && action.getKey().equals("screen.vuequests.objective.advancement")
+                        && action.getArgs()[0].equals(target.toString()),
+                "The advancement tooltip names the configured target");
+
+        Quest quest = new Quest(new QuestPosition(0, 0), new QuestDisplay("Advancement", "", "", Items.BOOK, ""),
+                UUID.randomUUID(), UUID.randomUUID(), List.of(objective), List.of(), List.of());
+        QuestData data = new QuestData(Map.of(), Map.of(quest.questId(), quest));
+        PlayerUser player = new PlayerUser(UUID.randomUUID());
+        Component pending = objective.getProgressText(null);
+        check(pending.getContents() instanceof TranslatableContents pendingText
+                        && pendingText.getKey().equals("screen.vuequests.progress.pending")
+                        && TextColor.fromLegacyFormat(ChatFormatting.YELLOW).equals(pending.getStyle().getColor()),
+                "An advancement without progress shows the pending status");
+
+        ObjectiveContext other = ObjectiveContext.createContext(null)
+                .withParameter(ObjectiveContext.ADVANCEMENT, ResourceLocation.parse("minecraft:story/root")).build();
+        data.handleQuestTrigger(player, QuestObjectiveTypes.ADVANCEMENT, other);
+        var progress = player.getObjectiveProgress(objective);
+        check(progress != null && !progress.isComplete(objective) && !player.hasCompletedQuest(quest),
+                "Earning an unrelated advancement leaves the quest incomplete");
+        progress.setCurrentProgress(false);
+        check(!progress.isComplete(objective) && objective.getProgressText(player).equals(pending),
+                "False progress uses the same pending status as absent progress");
+
+        ObjectiveContext earned = ObjectiveContext.createContext(null)
+                .withParameter(ObjectiveContext.ADVANCEMENT, target).build();
+        data.handleQuestTrigger(player, QuestObjectiveTypes.ADVANCEMENT, earned);
+        check(Boolean.TRUE.equals(progress.getCurrentProgress()) && player.hasCompletedObjective(objective)
+                        && player.hasCompletedQuest(quest), "Earning the configured advancement completes its objective and quest");
+        Component done = objective.getProgressText(player);
+        check(done.getContents() instanceof TranslatableContents doneText
+                        && doneText.getKey().equals("screen.vuequests.progress.done")
+                        && TextColor.fromLegacyFormat(ChatFormatting.GREEN).equals(done.getStyle().getColor()),
+                "Boolean progress shows a green done status");
+        PlayerUser restored = PlayerUser.CODEC.parse(ops, PlayerUser.CODEC.encodeStart(ops, player).getOrThrow()).getOrThrow();
+        check(Boolean.TRUE.equals(restored.getObjectiveProgress(objective).getCurrentProgress())
+                        && objective.getProgressText(restored).equals(done),
+                "Boolean progress and its display survive the player snapshot codec");
+    }
+
     private static void verifyObjectiveProgress() {
         PlayerUser player = new PlayerUser(UUID.randomUUID());
         ObjectiveContext context = new ObjectiveContext(null, Map.of());
-        ObjectiveCollectItem collect = new ObjectiveCollectItem(UUID.randomUUID(), new ItemStack(Items.OAK_LOG, 3));
+        ObjectiveCollectItem collect = new ObjectiveCollectItem(UUID.randomUUID(), new ItemStack(Items.OAK_LOG), 128);
         QuestObjectiveProgress<ItemStack, Integer> collected = player.incrementObjectiveProgress(collect, context);
-        check(!collected.isComplete(collect), "An objective without progress is incomplete");
-        collected.setCurrentProgress(2);
+        check(!collected.isComplete(collect) && collect.getProgressText(player).getString().equals("0/128"),
+                "An objective without progress shows zero of its target");
+        collected.setCurrentProgress(127);
         check(!collected.isComplete(collect), "Progress below the item target is incomplete");
-        collected.setCurrentProgress(3);
+        collected.setCurrentProgress(128);
         check(collected.isComplete(collect), "Progress at the item target completes the objective");
-        collected.setCurrentProgress(4);
-        check(collected.isComplete(collect), "Progress above the item target completes the objective");
+        collected.setCurrentProgress(129);
+        check(collected.isComplete(collect) && collect.getProgressText(player).getString().equals("128/128"),
+                "Progress above the item target displays the completed fraction");
         check(player.incrementObjectiveProgress(collect, context) == collected, "Triggers reuse typed progress for the same objective");
-        ObjectiveCollectItem changed = new ObjectiveCollectItem(collect.getObjectiveId(), new ItemStack(Items.OAK_LOG, 5));
+        ObjectiveCollectItem changed = new ObjectiveCollectItem(collect.getObjectiveId(), new ItemStack(Items.OAK_LOG), 150);
         check(!collected.isComplete(changed), "Completion uses the current objective definition");
         ObjectiveCollectItem other = new ObjectiveCollectItem(UUID.randomUUID(), new ItemStack(Items.OAK_LOG, 3));
         expect(IllegalArgumentException.class, () -> collected.isComplete(other), "Completion rejects a different objective UUID");
@@ -202,6 +322,23 @@ public class QuestApiVerification {
         check(!slain.isComplete(slay), "Zero entity progress is incomplete");
         slain.setCurrentProgress(1);
         check(slain.isComplete(slay), "One entity completes the entity objective");
+
+        QuestApiTextProgressObjective text = new QuestApiTextProgressObjective(UUID.randomUUID(), "done");
+        var textProgress = player.incrementObjectiveProgress(text, context);
+        check(text.getProgressText(player).getContents() instanceof TranslatableContents pending
+                        && pending.getKey().equals("screen.vuequests.progress.pending"),
+                "A non-counted objective can fall back to the default status");
+        textProgress.setCurrentProgress("Searching");
+        Component partial = text.getProgressText(player);
+        check(partial.getString().equals("Searching")
+                        && TextColor.fromLegacyFormat(ChatFormatting.YELLOW).equals(partial.getStyle().getColor()),
+                "A custom formatter receives its typed value and shares incomplete coloring");
+        textProgress.setCurrentProgress("done");
+        Component done = text.getProgressText(player);
+        check(done.getContents() instanceof TranslatableContents completed
+                        && completed.getKey().equals("screen.vuequests.progress.done")
+                        && TextColor.fromLegacyFormat(ChatFormatting.GREEN).equals(done.getStyle().getColor()),
+                "A custom formatter can fall back to the default completed status");
     }
 
     private static void verifyUserSerialization() throws Exception {
@@ -345,6 +482,9 @@ public class QuestApiVerification {
             check(clientUser != null && clientUser.getQuestObjectiveProgress().get(objective.getObjectiveId()).getCurrentProgress().equals(2),
                     "Server progress changes do not alter the decoded client user");
             check(ClientQuestData.getData().quests().size() == 3, "Quest sync preserves quest definitions alongside progress");
+            Quest syncedSecond = ClientQuestData.getData().quests().get(second.questId());
+            check(((ObjectiveSlayEntity) syncedSecond.objectives().getFirst()).getCount() == 150,
+                    "Quest sync preserves objective counts above 99");
             check(ClientQuestData.prerequisitesMet(second), "Synced completion unlocks a dependent quest");
             check(!ClientQuestData.prerequisitesMet(third), "Client quests stay locked until every prerequisite is complete");
             player.grantQuestCompletion(second.questId());

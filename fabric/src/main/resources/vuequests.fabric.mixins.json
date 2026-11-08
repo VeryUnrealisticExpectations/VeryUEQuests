@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.veryue.vuequests.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "refmap": "vuequests.refmap.json",
+  "mixins": [
+    "PlayerAdvancementsMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

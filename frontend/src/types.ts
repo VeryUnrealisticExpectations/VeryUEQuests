@@ -52,7 +52,7 @@ export interface ComponentPreviewResponse {
   fragments: { id: string; plainText: string; ranges: ComponentPreviewRange[]; carets: ComponentPreviewCaret[] }[]
   warnings: string[]
 }
-export interface ItemStack { id: string; count: number; components?: Record<string, unknown> }
+export interface ItemStack { id: string; count?: number; components?: Record<string, unknown> }
 export interface Task {
   type: string
   objective_id?: string
@@ -60,6 +60,8 @@ export interface Task {
   icon?: string
   item?: ItemStack
   entity?: string
+  advancement?: string
+  count?: number
   experience?: number
   [key: string]: unknown
 }
@@ -89,6 +91,7 @@ export interface Catalog {
   items: RegistryEntry[]
   blocks: RegistryEntry[]
   entities: RegistryEntry[]
+  advancements: string[]
   objectiveTypes: TypeEntry[]
   rewardTypes: TypeEntry[]
 }

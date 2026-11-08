@@ -10,11 +10,15 @@ import dev.veryue.vuequests.network.QuestSyncPayload;
 import dev.veryue.vuequests.platform.NeoForgePlatformHelper;
 import dev.veryue.vuequests.platform.PlatformHelper;
 import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
 import net.neoforged.neoforge.event.OnDatapackSyncEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.entity.player.AdvancementEvent.AdvancementProgressEvent;
+import net.neoforged.neoforge.event.entity.player.AdvancementEvent.AdvancementProgressEvent.ProgressType;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
@@ -39,6 +43,8 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
         NeoForge.EVENT_BUS.addListener(this::onServerStopping);
         NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedIn);
         NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedOut);
+        NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, this::onLivingDeath);
+        NeoForge.EVENT_BUS.addListener(this::onAdvancementProgress);
     }
 
     private void registerPayloads(RegisterPayloadHandlersEvent event) {
@@ -87,6 +93,17 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
     private void onPlayerLoggedOut(PlayerLoggedOutEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             unloadPlayer(player.getUUID());
+        }
+    }
+
+    private void onLivingDeath(LivingDeathEvent event) {
+        onEntityDeath(event.getEntity(), event.getSource());
+    }
+
+    private void onAdvancementProgress(AdvancementProgressEvent event) {
+        if (event.getProgressType() == ProgressType.GRANT && event.getAdvancementProgress().isDone()
+                && event.getEntity() instanceof ServerPlayer player) {
+            onAdvancementEarned(player, event.getAdvancement().id());
         }
     }
 

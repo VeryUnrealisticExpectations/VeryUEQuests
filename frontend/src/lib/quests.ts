@@ -19,8 +19,9 @@ export function newQuest(sectionId: string, position: Position): Quest {
 
 export function newTask(kind: 'objective' | 'reward', type: string, id: string = crypto.randomUUID()): Task {
   const identity = kind === 'objective' ? { objective_id: id } : { reward_id: id }
-  if (type === 'vuequests:collect_item') return { ...identity, type, item: { id: 'minecraft:cobblestone', count: 1 } }
-  if (type === 'vuequests:entity') return { ...identity, type, entity: 'minecraft:zombie' }
+  if (type === 'vuequests:collect_item') return { ...identity, type, item: { id: 'minecraft:cobblestone' }, count: 1 }
+  if (type === 'vuequests:entity') return { ...identity, type, entity: 'minecraft:zombie', count: 1 }
+  if (type === 'vuequests:advancement') return { ...identity, type, advancement: '' }
   if (type === 'vuequests:item') return { ...identity, type, item: { id: 'minecraft:diamond', count: 1 } }
   if (type === 'vuequests:experience') return { ...identity, type, experience: 1 }
   return { ...identity, type }

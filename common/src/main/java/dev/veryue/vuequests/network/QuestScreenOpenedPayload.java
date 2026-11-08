@@ -48,6 +48,7 @@ public record QuestScreenOpenedPayload() implements CustomPacketPayload {
                     .build();
 
             questData.handleQuestTrigger(user.get(), QuestObjectiveTypes.COLLECT_ITEM, build);
+            questData.handleQuestTrigger(user.get(), QuestObjectiveTypes.ADVANCEMENT, build);
         } else {
             // todo; logging?
         }

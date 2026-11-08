@@ -63,31 +63,19 @@ public class QuestData {
                 continue;
             }
 
-            int quests = quest.objectives().size();
             int objectivesCompleted = 0;
-            for (int i = 0; i < quests; i++) {
-                QuestObjective<?, ?> objective = quest.objectives().get(i);
-                boolean completed = user.hasCompletedObjective(objective);
-                if (completed) {
+            for (QuestObjective<?, ?> objective : quest.objectives()) {
+                if (user.hasCompletedObjective(objective)) {
                     objectivesCompleted++;
+                } else if (objectiveType.equals(objective.getType())) {
+                    matchingObjectives.add(objective);
+                    if (handleObjectiveTrigger(user, objective, context)) {
+                        objectivesCompleted++;
+                    }
                 }
-                if (!objectiveType.equals(objective.getType()) || completed) {
-                    // todo the completed could be a bug source maybe..
-                    continue;
-                }
-
-                matchingObjectives.add(objective);
-                completed = handleObjectiveTrigger(user, objective, context);
-                if (completed) {
-                    objectivesCompleted++;
-                }
-                // todo; then we also need to update the client player when they're on a server
-                // todo probably a sync payload again.
-                // todo; handle when we test in multiplayer
-                if (objectivesCompleted == quests) {
-                    // then the quest is complete.
-                    user.grantQuestCompletion(quest);
-                }
+            }
+            if (objectivesCompleted == quest.objectives().size()) {
+                user.grantQuestCompletion(quest);
             }
         }
 

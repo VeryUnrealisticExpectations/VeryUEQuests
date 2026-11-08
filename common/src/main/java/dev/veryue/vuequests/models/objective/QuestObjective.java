@@ -7,7 +7,7 @@ import dev.veryue.vuequests.models.QuestObjectiveProgress;
 import dev.veryue.vuequests.models.User;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.Mth;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -51,20 +51,14 @@ public abstract class QuestObjective<T, TYPE> {
     }
 
     public Component getProgressText(@Nullable User user) {
-        int target = Math.max(1, getProgressTarget());
         QuestObjectiveProgress<T, TYPE> progress = user == null ? null : user.getObjectiveProgress(this);
         boolean complete = user != null && (user.hasCompletedObjective(this) || (progress != null && progress.isComplete(this)));
-        int count = progress == null ? 0 : getProgressCount(progress.getCurrentProgress());
-        int displayedCount = complete ? target : Mth.clamp(count, 0, target);
-        return Component.literal(displayedCount + "/" + target).withStyle(complete ? ChatFormatting.GREEN : ChatFormatting.YELLOW);
+        TYPE currentProgress = progress == null ? null : progress.getCurrentProgress();
+        return formatProgress(currentProgress, complete).withStyle(complete ? ChatFormatting.GREEN : ChatFormatting.YELLOW);
     }
 
-    protected int getProgressTarget() {
-        return 1;
-    }
-
-    protected int getProgressCount(@Nullable TYPE progress) {
-        return 0;
+    protected MutableComponent formatProgress(@Nullable TYPE progress, boolean complete) {
+        return Component.translatable(complete ? "screen.vuequests.progress.done" : "screen.vuequests.progress.pending");
     }
 
     public T getValue() {

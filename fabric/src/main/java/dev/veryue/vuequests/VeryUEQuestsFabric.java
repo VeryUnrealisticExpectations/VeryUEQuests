@@ -7,6 +7,7 @@ import dev.veryue.vuequests.network.QuestProgressSyncPayload;
 import dev.veryue.vuequests.network.QuestScreenOpenedPayload;
 import dev.veryue.vuequests.network.QuestSyncPayload;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
@@ -41,6 +42,7 @@ public class VeryUEQuestsFabric extends VeryUEMod implements ModInitializer {
             syncQuests(handler.player);
         });
         ServerPlayerEvents.LEAVE.register(player -> unloadPlayer(player.getUUID()));
+        ServerLivingEntityEvents.AFTER_DEATH.register(this::onEntityDeath);
         ServerLifecycleEvents.END_DATA_PACK_RELOAD.register((server, resourceManager, success) -> {
             if (success) {
                 server.getPlayerList().getPlayers().forEach(this::syncQuests);

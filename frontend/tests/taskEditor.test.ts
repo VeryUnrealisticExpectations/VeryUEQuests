@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import type { Task } from '../src/types.ts'
-import { changeTaskType, customTaskFields, defaultTaskType, taskDisplayIcon, taskEditorId, taskProblem, updateCustomTaskFields } from '../src/lib/taskEditor.ts'
+import { changeTaskType, customTaskFields, defaultTaskType, objectiveCount, taskDisplayIcon, taskEditorId, taskProblem, updateCustomTaskFields } from '../src/lib/taskEditor.ts'
 
 test('validation catches invalid tasks even when their controls are collapsed', () => {
   const hidden: Task = { type: 'vuequests:collect_item', item: { id: 'minecraft:stone', count: 0 } }
@@ -19,6 +19,19 @@ test('new task defaults prefer item types and fall back to registered custom typ
   assert.equal(defaultTaskType('objective', []), undefined)
 })
 
+test('collect and slay targets support large counts independently of item stacks', () => {
+  const collect: Task = { type: 'vuequests:collect_item', item: { id: 'minecraft:stone', count: 4 } }
+  const slay: Task = { type: 'vuequests:entity', entity: 'minecraft:zombie' }
+  assert.equal(objectiveCount(collect), 4)
+  assert.equal(objectiveCount(slay), 1)
+  assert.equal(objectiveCount({ ...collect, count: 128 }), 128)
+  assert.equal(taskProblem({ ...collect, count: 128 }), undefined)
+  assert.equal(taskProblem({ ...slay, count: 2_147_483_647 }), undefined)
+  assert.ok(taskProblem({ ...slay, count: 2_147_483_648 }))
+  assert.ok(taskProblem({ ...collect, count: 1.5 }))
+  assert.ok(taskProblem({ type: 'vuequests:item', item: { id: 'minecraft:diamond', count: 100 } }))
+})
+
 test('compact task icons derive from items or fixed types and ignore legacy objective icon overrides', () => {
   const objective: Task = { type: 'vuequests:collect_item', icon: 'example:icon', item: { id: 'minecraft:stone', count: 3 } }
   assert.equal(taskDisplayIcon('objective', objective), 'minecraft:stone')
@@ -32,6 +45,22 @@ test('compact task icons derive from items or fixed types and ignore legacy obje
   assert.equal(taskDisplayIcon('reward', { type: 'custom:reward' }), 'minecraft:chest')
   assert.equal('icon' in reward, false)
   assert.equal(objective.icon, 'example:icon')
+})
+
+test('advancement objectives store a resource location and have no quantity', () => {
+  const objective = changeTaskType('objective', {
+    type: 'vuequests:entity', objective_id: 'stable-id', entity: 'minecraft:zombie', count: 10,
+  }, 'vuequests:advancement')
+  assert.deepEqual(objective, { type: 'vuequests:advancement', objective_id: 'stable-id', advancement: '' })
+  assert.ok(taskProblem(objective))
+  for (const advancement of ['minecraft:story/mine_stone', 'mod-name:chapter/first', 'story/mine_stone', ':story/mine_stone']) {
+    assert.equal(taskProblem({ ...objective, advancement }), undefined)
+  }
+  for (const advancement of ['example:', 'Bad Namespace:foo', 'example:has spaces', 'example:extra:colon']) {
+    assert.ok(taskProblem({ ...objective, advancement }))
+  }
+  assert.equal(taskDisplayIcon('objective', objective), 'minecraft:book')
+  assert.equal(objectiveCount(objective), undefined)
 })
 
 test('active task keys stay stable across reorder and keep identical UUIDs in separate columns distinct', () => {

@@ -13,9 +13,11 @@ import dev.veryue.vuequests.platform.PlatformHelper;
 import dev.veryue.vuequests.VeryUERegistries;
 import dev.veryue.vuequests.editor.QuestEditorStorage.Document;
 import net.minecraft.SharedConstants;
+import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.RegistryOps;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.item.Items;
@@ -45,7 +47,7 @@ public class QuestEditorService {
     public record RegistryEntry(String id, String name, String item) { }
     public record TypeEntry(String id, List<String> fields) { }
     public record Catalog(List<RegistryEntry> items, List<RegistryEntry> blocks, List<RegistryEntry> entities,
-                          List<TypeEntry> objectiveTypes, List<TypeEntry> rewardTypes) { }
+                          List<String> advancements, List<TypeEntry> objectiveTypes, List<TypeEntry> rewardTypes) { }
 
     public static class ConflictException extends IllegalStateException {
         public ConflictException(String message) { super(message); }
@@ -167,7 +169,7 @@ public class QuestEditorService {
         QuestData.indexDependents(quests);
     }
 
-    private static Catalog createCatalog() {
+    private Catalog createCatalog() {
         var items = BuiltInRegistries.ITEM.keySet().stream().sorted().map(id ->
                 new RegistryEntry(id.toString(), BuiltInRegistries.ITEM.get(id).getDescription().getString(), null)).toList();
         var blocks = BuiltInRegistries.BLOCK.keySet().stream().sorted().map(id -> {
@@ -180,10 +182,12 @@ public class QuestEditorService {
             SpawnEggItem egg = SpawnEggItem.byId(entity);
             return new RegistryEntry(id.toString(), entity.getDescription().getString(), egg == null ? null : BuiltInRegistries.ITEM.getKey(egg).toString());
         }).toList();
+        var advancements = server.getAdvancements().getAllAdvancements().stream()
+                .map(AdvancementHolder::id).map(ResourceLocation::toString).sorted().toList();
         var objectives = VeryUERegistries.QUEST_OBJECTIVE_TYPES.keySet().stream().sorted().map(id ->
                 new TypeEntry(id.toString(), VeryUERegistries.QUEST_OBJECTIVE_TYPES.get(id).codec().keys(JsonOps.INSTANCE).map(JsonElement::getAsString).toList())).toList();
         var rewards = VeryUERegistries.REWARD_TYPES.keySet().stream().sorted().map(id ->
                 new TypeEntry(id.toString(), VeryUERegistries.REWARD_TYPES.get(id).codec().keys(JsonOps.INSTANCE).map(JsonElement::getAsString).toList())).toList();
-        return new Catalog(items, blocks, entities, objectives, rewards);
+        return new Catalog(items, blocks, entities, advancements, objectives, rewards);
     }
 }

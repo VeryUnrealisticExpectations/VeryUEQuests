@@ -3,6 +3,7 @@ import { newTask } from './quests.ts'
 import { isRegistryId } from './registryPicker.ts'
 
 export type TaskKind = 'objective' | 'reward'
+export const MAX_OBJECTIVE_COUNT = 2_147_483_647
 
 export function defaultTaskType(kind: TaskKind, types: TypeEntry[]): string | undefined {
   const preferred = kind === 'objective' ? 'vuequests:collect_item' : 'vuequests:item'
@@ -21,14 +22,29 @@ export function taskEditorId(kind: TaskKind, task: Task, index: number): string 
   return `${kind}:${(kind === 'objective' ? task.objective_id : task.reward_id) ?? index}`
 }
 
+export function objectiveCount(task: Task): number | undefined {
+  if (task.type === 'vuequests:collect_item') return task.count ?? task.item?.count ?? 1
+  if (task.type === 'vuequests:entity') return task.count ?? 1
+}
+
 export function taskProblem(task: Task): string | undefined {
   if (task.type === 'vuequests:collect_item' || task.type === 'vuequests:item') {
     if (!task.item || !isRegistryId(task.item.id)) return 'Choose an item.'
-    if (!Number.isInteger(task.item.count) || task.item.count < 1 || task.item.count > 99) return 'Item count must be between 1 and 99.'
+    const count = task.item.count ?? 1
+    if (!Number.isInteger(count) || count < 1 || count > 99) return 'Item stack count must be between 1 and 99.'
   } else if (task.type === 'vuequests:experience' && (!Number.isInteger(task.experience) || task.experience! < 0)) {
     return 'Experience must be a nonnegative integer.'
   } else if (task.type === 'vuequests:entity' && (!task.entity || !isRegistryId(task.entity))) {
     return 'Choose an entity.'
+  } else if (task.type === 'vuequests:advancement') {
+    const id = task.advancement
+    if (typeof id !== 'string' || (!isRegistryId(id) && !isRegistryId(`minecraft:${id.replace(/^:/, '')}`))) {
+      return 'Enter a valid advancement ID, such as minecraft:story/mine_stone.'
+    }
+  }
+  const target = objectiveCount(task)
+  if (target !== undefined && (!Number.isInteger(target) || target < 1 || target > MAX_OBJECTIVE_COUNT)) {
+    return `Objective count must be an integer between 1 and ${MAX_OBJECTIVE_COUNT}.`
   }
 }
 

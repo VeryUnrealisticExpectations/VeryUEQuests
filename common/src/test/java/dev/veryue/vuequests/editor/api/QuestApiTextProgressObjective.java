@@ -10,7 +10,10 @@ import dev.veryue.vuequests.models.objective.QuestObjective;
 import dev.veryue.vuequests.models.objective.QuestObjectiveSerializer;
 import dev.veryue.vuequests.registry.QuestObjectiveTypes;
 import net.minecraft.core.UUIDUtil;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -33,6 +36,11 @@ public class QuestApiTextProgressObjective extends QuestObjective<String, String
     @Override
     public boolean isComplete(QuestObjectiveProgress<String, String> progress) {
         return getValue().equals(progress.getCurrentProgress());
+    }
+
+    @Override
+    protected MutableComponent formatProgress(@Nullable String progress, boolean complete) {
+        return progress == null || complete ? super.formatProgress(progress, complete) : Component.literal(progress);
     }
 
     @Override
