@@ -6,6 +6,7 @@ import dev.veryue.vuequests.data.quest.QuestReloadDelegate;
 import dev.veryue.vuequests.models.PlayerUser;
 import dev.veryue.vuequests.models.quest.Quest;
 import dev.veryue.vuequests.models.quest.Section;
+import dev.veryue.vuequests.models.reward.RewardType;
 import net.minecraft.client.Minecraft;
 import org.jetbrains.annotations.Nullable;
 
@@ -53,6 +54,16 @@ public class ClientQuestData {
 
     public static boolean prerequisitesMet(Quest quest) {
         return user == null ? quest.dependencies().isEmpty() : getData().prerequisitesMet(quest.questId(), user);
+    }
+
+    public static boolean isQuestComplete(Quest quest) {
+        return user != null && (user.hasCompletedQuest(quest)
+                || (!quest.objectives().isEmpty() && quest.objectives().stream().allMatch(user::hasCompletedObjective)
+                && prerequisitesMet(quest)));
+    }
+
+    public static boolean isRewardClaimed(RewardType<?> reward) {
+        return user != null && user.getClaimedRewards().contains(reward.getRewardId());
     }
 
     public static void clear() {

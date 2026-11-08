@@ -86,24 +86,32 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
         drawLines(graphics, titleLines, headingCenterX(), contentTop(), true);
         drawHeading(graphics, OBJECTIVES, objectivesTop());
         drawIconGrid(graphics, objectiveIcons, objectivesTop(),
-                index -> quest.objectives().get(index).getProgressText(ClientQuestData.getUser()));
+                index -> quest.objectives().get(index).getProgressText(ClientQuestData.getUser()), false);
         drawHeading(graphics, DESCRIPTION, descriptionTop());
         drawLines(graphics, descriptionLines, textX(), descriptionTop(), false);
         drawHeading(graphics, REWARDS, rewardsTop());
-        drawIconGrid(graphics, rewardIcons, rewardsTop(), index -> rewardAmount(quest.rewards().get(index)));
+        drawIconGrid(graphics, rewardIcons, rewardsTop(), index -> rewardAmount(quest.rewards().get(index)), true);
     }
 
-    private void drawIconGrid(GuiGraphics graphics, List<ItemStack> icons, int top, IntFunction<Component> labelAt) {
+    private void drawIconGrid(GuiGraphics graphics, List<ItemStack> icons, int top, IntFunction<Component> labelAt,
+                              boolean showClaimBadges) {
         if (icons.isEmpty()) {
             graphics.drawString(font, NONE, headingCenterX() - font.width(NONE) / 2, top, TEXT_COLOR, false);
             return;
         }
+        boolean canClaimRewards = showClaimBadges && ClientQuestData.isQuestComplete(quest) && ClientQuestData.prerequisitesMet(quest);
         for (int i = 0; i < icons.size(); i++) {
             int y = top + i / iconColumns * ICON_STEP;
             if (withinContentAreaTopBottom(y, y + ICON_SIZE)) {
                 int column = i % iconColumns;
                 int x = iconRowLeft(i - column, icons.size()) + column * ICON_STEP;
                 graphics.renderItem(icons.get(i), x, y);
+                if (showClaimBadges) {
+                    boolean claimed = ClientQuestData.isRewardClaimed(quest.rewards().get(i));
+                    if (claimed || canClaimRewards) {
+                        QuestWidgetSprites.blitClaimBadge(graphics, x, y, claimed);
+                    }
+                }
                 Component label = labelAt.apply(i);
                 if (label != null) {
                     drawIconLabel(graphics, label, x, y);

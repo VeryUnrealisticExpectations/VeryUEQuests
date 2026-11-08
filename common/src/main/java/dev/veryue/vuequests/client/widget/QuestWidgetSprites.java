@@ -18,6 +18,8 @@ public class QuestWidgetSprites {
     public static final ResourceLocation CANVAS = sprite("canvas");
     public static final ResourceLocation DETAILS_PANEL = sprite("details_panel");
     public static final ResourceLocation CLOSE = sprite("close");
+    public static final ResourceLocation REWARD_UNCLAIMED = sprite("reward_unclaimed");
+    public static final ResourceLocation REWARD_CLAIMED = sprite("reward_claimed");
     public static final ResourceLocation SECTION = sprite("section");
     public static final ResourceLocation SECTION_SELECTED = sprite("section_selected");
     public static final ResourceLocation SCROLLBAR = sprite("scrollbar");
@@ -37,6 +39,12 @@ public class QuestWidgetSprites {
     public static void blitTinted(GuiGraphics graphics, ResourceLocation sprite, int x, int y, int width, int height, int tint) {
         blit(graphics, sprite, x, y, width, height,
                 FastColor.ARGB32.red(tint) / 255F, FastColor.ARGB32.green(tint) / 255F, FastColor.ARGB32.blue(tint) / 255F);
+    }
+
+    public static void blitClaimBadge(GuiGraphics graphics, int x, int y, boolean claimed) {
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        graphics.blitSprite(claimed ? REWARD_CLAIMED : REWARD_UNCLAIMED, x, y, 200, 16, 16);
     }
 
     private static void blit(GuiGraphics graphics, ResourceLocation sprite, int x, int y, int width, int height,

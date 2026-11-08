@@ -61,27 +61,44 @@ public class QuestData {
                 continue;
             }
 
-            for (QuestObjective<?, ?> objective : quest.objectives()) {
-                if (!objectiveType.equals(objective.getType()) || user.hasCompletedObjective(objective)) {
+            int quests = quest.objectives().size();
+            int objectivesCompleted = 0;
+            for (int i = 0; i < quests; i++) {
+                QuestObjective<?, ?> objective = quest.objectives().get(i);
+                boolean completed = user.hasCompletedObjective(objective);
+                if (completed) {
+                    objectivesCompleted++;
+                }
+                if (!objectiveType.equals(objective.getType()) || completed) {
+                    // todo the completed could be a bug source maybe..
                     continue;
                 }
 
                 matchingObjectives.add(objective);
-                handleObjectiveTrigger(user, objective, context);
+                completed = handleObjectiveTrigger(user, objective, context);
+                if (completed) {
+                    objectivesCompleted++;
+                }
+                if (objectivesCompleted == quests) {
+                    // then the quest is complete.
+                    user.grantQuestCompletion(quest);
+                }
             }
         }
 
         return matchingObjectives;
     }
 
-    private <T, TYPE> void handleObjectiveTrigger(User user, QuestObjective<T, TYPE> objective, ObjectiveContext context) {
+    private <T, TYPE> boolean handleObjectiveTrigger(User user, QuestObjective<T, TYPE> objective, ObjectiveContext context) {
+        boolean completedObjective = false;
         QuestObjectiveProgress<T, TYPE> progress = user.incrementObjectiveProgress(objective, context);
         if (progress.isComplete(objective)) {
             user.completeObjective(objective);
+            completedObjective = true;
         }
         // todo; then we also need to update the client player when they're on a server
         // todo probably a sync payload again.
-
+        return completedObjective;
     }
 
     public boolean prerequisitesMet(UUID questId, User user) {

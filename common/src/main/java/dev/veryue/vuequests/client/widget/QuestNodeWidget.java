@@ -2,9 +2,7 @@ package dev.veryue.vuequests.client.widget;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.veryue.vuequests.client.ClientQuestData;
-import dev.veryue.vuequests.models.PlayerUser;
 import dev.veryue.vuequests.models.quest.Quest;
-import dev.veryue.vuequests.models.reward.RewardType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -72,16 +70,12 @@ public class QuestNodeWidget extends Button {
         this.locked = locked;
     }
 
-    private int backgroundTint() {
-        PlayerUser user = ClientQuestData.getUser();
-        if (user != null && (user.hasCompletedQuest(quest)
-                || (!locked && !quest.objectives().isEmpty() && quest.objectives().stream().allMatch(user::hasCompletedObjective)))) {
-            for (RewardType<?> reward : quest.rewards()) {
-                if (!user.getClaimedRewards().contains(reward.getRewardId())) {
-                    return UNCLAIMED_TINT;
-                }
-            }
+    private int backgroundTint(boolean complete, boolean allRewardsClaimed) {
+        if (allRewardsClaimed && !quest.rewards().isEmpty()) {
             return CLAIMED_TINT;
+        }
+        if (complete) {
+            return allRewardsClaimed ? CLAIMED_TINT : UNCLAIMED_TINT;
         }
         return locked ? LOCKED_TINT : IN_PROGRESS_TINT;
     }
@@ -94,10 +88,17 @@ public class QuestNodeWidget extends Button {
             pose.translate(getX(), getY(), 0);
             pose.scale(getWidth() / (float) SIZE, getHeight() / (float) SIZE, 1);
             float brightness = locked ? LOCKED_BRIGHTNESS : 1;
-            QuestWidgetSprites.blitTinted(graphics, quest.display().backgroundSprite(), 0, 0, SIZE, SIZE, backgroundTint());
+            boolean complete = ClientQuestData.isQuestComplete(quest);
+            boolean allRewardsClaimed = quest.rewards().stream().allMatch(ClientQuestData::isRewardClaimed);
+            QuestWidgetSprites.blitTinted(graphics, quest.display().backgroundSprite(), 0, 0, SIZE, SIZE, backgroundTint(complete, allRewardsClaimed));
             graphics.flush();
             graphics.setColor(brightness, brightness, brightness, 1);
             graphics.renderItem(icon, 4, 4);
+            if (!quest.rewards().isEmpty() && (allRewardsClaimed || (complete && !locked))) {
+                graphics.flush();
+                graphics.setColor(1, 1, 1, 1);
+                QuestWidgetSprites.blitClaimBadge(graphics, 0, 0, allRewardsClaimed);
+            }
         } finally {
             graphics.flush();
             graphics.setColor(1, 1, 1, 1);
