@@ -3,10 +3,10 @@ package dev.veryue.vuequests.models.reward;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import dev.veryue.vuequests.models.User;
 import dev.veryue.vuequests.registry.RewardTypes;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
@@ -39,7 +39,8 @@ public class RewardExperience extends RewardType<Integer> {
     }
 
     @Override
-    public void giveReward(User user) {
-
+    public boolean tryGiveReward(ServerPlayer player) {
+        player.giveExperiencePoints(getValue());
+        return true;
     }
 }

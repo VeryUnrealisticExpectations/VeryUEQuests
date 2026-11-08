@@ -3,6 +3,8 @@ package dev.veryue.vuequests;
 import dev.veryue.vuequests.client.ClientQuestData;
 import dev.veryue.vuequests.data.quest.QuestReloadDelegate;
 import dev.veryue.vuequests.editor.QuestEditorServer;
+import dev.veryue.vuequests.network.ClaimQuestRewardPayload;
+import dev.veryue.vuequests.network.QuestProgressSyncPayload;
 import dev.veryue.vuequests.network.QuestScreenOpenedPayload;
 import dev.veryue.vuequests.network.QuestSyncPayload;
 import dev.veryue.vuequests.platform.NeoForgePlatformHelper;
@@ -44,10 +46,18 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
                 .playToClient(QuestSyncPayload.TYPE, QuestSyncPayload.STREAM_CODEC,
                         (payload, context) -> ClientQuestData.update(payload.sections(), payload.user()))
                 .optional()
+                .playToClient(QuestProgressSyncPayload.TYPE, QuestProgressSyncPayload.STREAM_CODEC,
+                        (payload, context) -> ClientQuestData.updateProgress(payload.user()))
                 .playToServer(QuestScreenOpenedPayload.TYPE, QuestScreenOpenedPayload.STREAM_CODEC, (payload, context) -> {
                     if (context.player() instanceof ServerPlayer player) {
                         payload.handle(player);
                         PacketDistributor.sendToPlayer(player, QuestSyncPayload.create(player));
+                    }
+                })
+                .playToServer(ClaimQuestRewardPayload.TYPE, ClaimQuestRewardPayload.STREAM_CODEC, (payload, context) -> {
+                    if (context.player() instanceof ServerPlayer player && payload.handle(player)
+                            && player.connection.hasChannel(QuestProgressSyncPayload.TYPE)) {
+                        context.reply(QuestProgressSyncPayload.create(player));
                     }
                 });
     }

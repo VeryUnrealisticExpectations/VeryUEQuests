@@ -8,6 +8,8 @@ import dev.veryue.vuequests.models.objective.QuestObjective;
 import dev.veryue.vuequests.models.objective.QuestObjectiveSerializer;
 import dev.veryue.vuequests.models.quest.Quest;
 import dev.veryue.vuequests.models.quest.Section;
+import dev.veryue.vuequests.models.reward.RewardType;
+import net.minecraft.server.level.ServerPlayer;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -79,6 +81,9 @@ public class QuestData {
                 if (completed) {
                     objectivesCompleted++;
                 }
+                // todo; then we also need to update the client player when they're on a server
+                // todo probably a sync payload again.
+                // todo; handle when we test in multiplayer
                 if (objectivesCompleted == quests) {
                     // then the quest is complete.
                     user.grantQuestCompletion(quest);
@@ -96,8 +101,6 @@ public class QuestData {
             user.completeObjective(objective);
             completedObjective = true;
         }
-        // todo; then we also need to update the client player when they're on a server
-        // todo probably a sync payload again.
         return completedObjective;
     }
 
@@ -112,6 +115,24 @@ public class QuestData {
             }
         }
         return true;
+    }
+
+    public boolean canClaimRewards(Quest quest, User user) {
+        return prerequisitesMet(quest.questId(), user)
+                && quest.objectives().stream().allMatch(user::hasCompletedObjective);
+    }
+
+    public boolean tryClaimReward(User user, ServerPlayer player, UUID questId, UUID rewardId) {
+        Quest quest = quests.get(questId);
+        if (quest == null || user.getClaimedRewards().contains(rewardId) || !canClaimRewards(quest, user)) {
+            return false;
+        }
+        for (RewardType<?> reward : quest.rewards()) {
+            if (reward.getRewardId().equals(rewardId)) {
+                return reward.tryGiveReward(player) && user.getClaimedRewards().add(rewardId);
+            }
+        }
+        return false;
     }
 
     public List<Quest> accessibleQuests(User user) {

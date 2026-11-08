@@ -22,7 +22,7 @@ public class ClientQuestData {
     public static void update(List<Section> sections, PlayerUser playerUser) {
         if (hasIntegratedServer()) {
             data = QuestData.EMPTY;
-            user = playerUser;
+            updateProgress(playerUser);
             return;
         }
 
@@ -35,6 +35,10 @@ public class ClientQuestData {
             }
         }
         data = new QuestData(sectionIndex.buildOrThrow(), questIndex.buildOrThrow());
+        updateProgress(playerUser);
+    }
+
+    public static void updateProgress(PlayerUser playerUser) {
         user = playerUser;
     }
 
@@ -44,7 +48,7 @@ public class ClientQuestData {
 
     private static boolean hasIntegratedServer() {
         Minecraft minecraft = Minecraft.getInstance();
-        return minecraft.getSingleplayerServer() != null;
+        return minecraft != null && minecraft.getSingleplayerServer() != null;
     }
 
     @Nullable
@@ -64,6 +68,10 @@ public class ClientQuestData {
 
     public static boolean isRewardClaimed(RewardType<?> reward) {
         return user != null && user.getClaimedRewards().contains(reward.getRewardId());
+    }
+
+    public static boolean canClaimRewards(Quest quest) {
+        return user != null && getData().canClaimRewards(quest, user);
     }
 
     public static void clear() {

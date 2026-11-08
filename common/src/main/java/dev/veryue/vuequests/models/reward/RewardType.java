@@ -1,9 +1,9 @@
 package dev.veryue.vuequests.models.reward;
 
 import com.mojang.serialization.Codec;
-import dev.veryue.vuequests.models.User;
 import dev.veryue.vuequests.VeryUERegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
@@ -41,5 +41,5 @@ public abstract class RewardType<T> {
 
     public abstract RewardTypeSerializer getType();
 
-    public abstract void giveReward(User user); // todo; not sure.
+    public abstract boolean tryGiveReward(ServerPlayer player);
 }

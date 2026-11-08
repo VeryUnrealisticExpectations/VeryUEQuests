@@ -2,10 +2,11 @@ package dev.veryue.vuequests.models.reward;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import dev.veryue.vuequests.models.User;
 import dev.veryue.vuequests.registry.RewardTypes;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.UUID;
@@ -42,6 +43,41 @@ public class RewardItem extends RewardType<ItemStack> {
     }
 
     @Override
-    public void giveReward(User user) {
+    public boolean tryGiveReward(ServerPlayer player) {
+        return tryAddToInventory(player.getInventory());
+    }
+
+    boolean tryAddToInventory(Inventory inventory) {
+        ItemStack stack = getStack();
+        if (stack.isEmpty()) {
+            return false;
+        }
+
+        // Share untouched stacks with the live inventory and replace only the slots that would change.
+        Inventory staged = new Inventory(inventory.player);
+        staged.replaceWith(inventory);
+        int remaining = stack.getCount();
+        while (remaining > 0) {
+            int slot = staged.getSlotWithRemainingSpace(stack);
+            if (slot < 0) {
+                slot = staged.getFreeSlot();
+            }
+            if (slot < 0) {
+                return false;
+            }
+            int count = staged.getItem(slot).getCount();
+            int added = Math.min(remaining, staged.getMaxStackSize(stack) - count);
+            if (added <= 0) {
+                return false;
+            }
+            ItemStack updated = stack.copyWithCount(count + added);
+            updated.setPopTime(Inventory.POP_TIME_DURATION);
+            staged.setItem(slot, updated);
+            remaining -= added;
+        }
+
+        inventory.replaceWith(staged);
+        inventory.setChanged();
+        return true;
     }
 }

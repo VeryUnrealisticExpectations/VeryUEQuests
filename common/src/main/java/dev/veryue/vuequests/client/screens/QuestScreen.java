@@ -8,6 +8,7 @@ import dev.veryue.vuequests.client.widget.QuestWidgetSprites;
 import dev.veryue.vuequests.data.quest.QuestData;
 import dev.veryue.vuequests.models.quest.Quest;
 import dev.veryue.vuequests.models.quest.Section;
+import dev.veryue.vuequests.network.ClaimQuestRewardPayload;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
@@ -18,19 +19,22 @@ import net.minecraft.util.Mth;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import static dev.veryue.vuequests.VeryUEConstants.MOD_ID;
 
 public class QuestScreen extends Screen {
 
+    private final Consumer<ClaimQuestRewardPayload> sendRewardClaim;
     private QuestSectionPanel sectionPanel;
     private QuestSectionToggle sectionToggle;
     private QuestCanvas canvas;
     private QuestData data;
     private UUID selectedSection;
 
-    public QuestScreen() {
+    public QuestScreen(Consumer<ClaimQuestRewardPayload> sendRewardClaim) {
         super(Component.translatable("screen." + MOD_ID + ".quest_menu"));
+        this.sendRewardClaim = sendRewardClaim;
     }
 
     @Override
@@ -68,7 +72,7 @@ public class QuestScreen extends Screen {
     }
 
     private void openQuest(Quest quest) {
-        minecraft.setScreen(new QuestDetailsScreen(this, quest));
+        minecraft.setScreen(new QuestDetailsScreen(this, quest, sendRewardClaim));
     }
 
     private void refreshData() {

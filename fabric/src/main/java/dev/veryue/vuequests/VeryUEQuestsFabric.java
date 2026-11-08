@@ -2,6 +2,8 @@ package dev.veryue.vuequests;
 
 import dev.veryue.vuequests.data.quest.QuestReloadDelegate;
 import dev.veryue.vuequests.editor.QuestEditorServer;
+import dev.veryue.vuequests.network.ClaimQuestRewardPayload;
+import dev.veryue.vuequests.network.QuestProgressSyncPayload;
 import dev.veryue.vuequests.network.QuestScreenOpenedPayload;
 import dev.veryue.vuequests.network.QuestSyncPayload;
 import net.fabricmc.api.ModInitializer;
@@ -20,12 +22,20 @@ public class VeryUEQuestsFabric extends VeryUEMod implements ModInitializer {
     public void onInitialize() {
         VeryUERegistries.init();
         PayloadTypeRegistry.playS2C().register(QuestSyncPayload.TYPE, QuestSyncPayload.STREAM_CODEC);
+        PayloadTypeRegistry.playS2C().register(QuestProgressSyncPayload.TYPE, QuestProgressSyncPayload.STREAM_CODEC);
         PayloadTypeRegistry.playC2S().register(QuestScreenOpenedPayload.TYPE, QuestScreenOpenedPayload.STREAM_CODEC);
+        PayloadTypeRegistry.playC2S().register(ClaimQuestRewardPayload.TYPE, ClaimQuestRewardPayload.STREAM_CODEC);
         ServerPlayNetworking.registerGlobalReceiver(QuestScreenOpenedPayload.TYPE,
                 (payload, context) -> {
                     payload.handle(context.player());
                     syncQuests(context.player());
                 });
+        ServerPlayNetworking.registerGlobalReceiver(ClaimQuestRewardPayload.TYPE, (payload, context) -> {
+            ServerPlayer player = context.player();
+            if (payload.handle(player) && ServerPlayNetworking.canSend(player, QuestProgressSyncPayload.TYPE)) {
+                ServerPlayNetworking.send(player, QuestProgressSyncPayload.create(player));
+            }
+        });
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             loadPlayer(handler.player.getUUID());
             syncQuests(handler.player);

@@ -88,13 +88,14 @@ public class QuestNodeWidget extends Button {
             pose.translate(getX(), getY(), 0);
             pose.scale(getWidth() / (float) SIZE, getHeight() / (float) SIZE, 1);
             float brightness = locked ? LOCKED_BRIGHTNESS : 1;
-            boolean complete = ClientQuestData.isQuestComplete(quest);
+            boolean canClaimRewards = !quest.rewards().isEmpty() && ClientQuestData.canClaimRewards(quest);
+            boolean complete = canClaimRewards || ClientQuestData.isQuestComplete(quest);
             boolean allRewardsClaimed = quest.rewards().stream().allMatch(ClientQuestData::isRewardClaimed);
             QuestWidgetSprites.blitTinted(graphics, quest.display().backgroundSprite(), 0, 0, SIZE, SIZE, backgroundTint(complete, allRewardsClaimed));
             graphics.flush();
             graphics.setColor(brightness, brightness, brightness, 1);
             graphics.renderItem(icon, 4, 4);
-            if (!quest.rewards().isEmpty() && (allRewardsClaimed || (complete && !locked))) {
+            if (!quest.rewards().isEmpty() && (allRewardsClaimed || canClaimRewards)) {
                 graphics.flush();
                 graphics.setColor(1, 1, 1, 1);
                 QuestWidgetSprites.blitClaimBadge(graphics, 0, 0, allRewardsClaimed);

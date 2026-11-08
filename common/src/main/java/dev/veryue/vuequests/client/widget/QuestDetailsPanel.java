@@ -24,6 +24,7 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
 
@@ -43,6 +44,7 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
     private final Font font;
     private final Quest quest;
     private final Predicate<Style> onTextClick;
+    private final Consumer<RewardType<?>> onRewardClick;
     private final List<ItemStack> objectiveIcons;
     private final List<ItemStack> rewardIcons;
     private List<FormattedCharSequence> titleLines = List.of();
@@ -51,11 +53,12 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
     private int contentHeight;
     private int headingCenterOffset;
 
-    public QuestDetailsPanel(Font font, Quest quest, Predicate<Style> onTextClick) {
+    public QuestDetailsPanel(Font font, Quest quest, Predicate<Style> onTextClick, Consumer<RewardType<?>> onRewardClick) {
         super(0, 0, 0, 0, quest.display().title());
         this.font = font;
         this.quest = quest;
         this.onTextClick = onTextClick;
+        this.onRewardClick = onRewardClick;
         objectiveIcons = quest.objectives().stream().map(QuestObjective::getIconStack).toList();
         rewardIcons = quest.rewards().stream().map(RewardType::getIconStack).toList();
     }
@@ -99,7 +102,7 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
             graphics.drawString(font, NONE, headingCenterX() - font.width(NONE) / 2, top, TEXT_COLOR, false);
             return;
         }
-        boolean canClaimRewards = showClaimBadges && ClientQuestData.isQuestComplete(quest) && ClientQuestData.prerequisitesMet(quest);
+        boolean canClaimRewards = showClaimBadges && ClientQuestData.canClaimRewards(quest);
         for (int i = 0; i < icons.size(); i++) {
             int y = top + i / iconColumns * ICON_STEP;
             if (withinContentAreaTopBottom(y, y + ICON_SIZE)) {
@@ -146,7 +149,15 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0 && insideClip(mouseX, mouseY)) {
+        if (active && visible && button == 0 && insideClip(mouseX, mouseY)) {
+            int rewardIndex = iconAt(mouseX, mouseY + scrollAmount() - rewardsTop(), rewardIcons.size());
+            if (rewardIndex >= 0) {
+                RewardType<?> reward = quest.rewards().get(rewardIndex);
+                if (ClientQuestData.canClaimRewards(quest) && !ClientQuestData.isRewardClaimed(reward)) {
+                    onRewardClick.accept(reward);
+                    return true;
+                }
+            }
             Style style = styleAt(mouseX, mouseY);
             if (style != null && onTextClick.test(style)) {
                 return true;
@@ -232,7 +243,7 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
         }
     }
 
-    private int iconAt(int mouseX, double y, int iconCount) {
+    private int iconAt(double mouseX, double y, int iconCount) {
         if (y < 0 || y % ICON_STEP >= ICON_SIZE) {
             return -1;
         }
@@ -240,11 +251,11 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
         if (rowStart >= iconCount) {
             return -1;
         }
-        int x = mouseX - iconRowLeft(rowStart, iconCount);
+        double x = mouseX - iconRowLeft(rowStart, iconCount);
         if (x < 0 || x % ICON_STEP >= ICON_SIZE) {
             return -1;
         }
-        int index = rowStart + x / ICON_STEP;
+        int index = rowStart + (int) (x / ICON_STEP);
         return index < Math.min(rowStart + iconColumns, iconCount) ? index : -1;
     }
 

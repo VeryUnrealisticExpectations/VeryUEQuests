@@ -26,6 +26,13 @@ public record QuestSyncPayload(List<Section> sections, PlayerUser user) implemen
             QuestSyncPayload::new);
 
     public static QuestSyncPayload create(ServerPlayer player) {
+        List<Section> sections = player.server.isSingleplayerOwner(player.getGameProfile())
+                ? List.of()
+                : List.copyOf(QuestReloadDelegate.INSTANCE.getData().sections().values());
+        return new QuestSyncPayload(sections, snapshotUser(player));
+    }
+
+    static PlayerUser snapshotUser(ServerPlayer player) {
         User source = VeryUEMod.INSTANCE.getUser(player.getUUID()).orElseGet(() -> new PlayerUser(player.getUUID()));
         if (!(source instanceof PlayerUser user)) {
             throw new IllegalStateException("Quest sync currently requires a PlayerUser.");
@@ -33,12 +40,8 @@ public record QuestSyncPayload(List<Section> sections, PlayerUser user) implemen
 
         // Detach typed progress values before the network thread encodes the payload.
         var ops = player.registryAccess().createSerializationContext(NbtOps.INSTANCE);
-        PlayerUser snapshot = PlayerUser.CODEC.encodeStart(ops, user)
+        return PlayerUser.CODEC.encodeStart(ops, user)
                 .flatMap(encoded -> PlayerUser.CODEC.parse(ops, encoded)).getOrThrow();
-        List<Section> sections = player.server.isSingleplayerOwner(player.getGameProfile())
-                ? List.of()
-                : List.copyOf(QuestReloadDelegate.INSTANCE.getData().sections().values());
-        return new QuestSyncPayload(sections, snapshot);
     }
 
     @Override

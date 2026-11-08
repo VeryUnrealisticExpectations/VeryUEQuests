@@ -1,9 +1,9 @@
 package dev.veryue.vuequests.client;
 
 import dev.veryue.vuequests.client.editor.ClientEditorResources;
-import dev.veryue.vuequests.network.QuestScreenOpenedPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
@@ -33,13 +33,13 @@ public class VeryUEQuestsNeoForgeClient {
 
     private void onClientTick(ClientTickEvent.Post event) {
         ClientEditorResources.tick(Minecraft.getInstance());
-        VeryUEKeyMappings.onClientTick(Minecraft.getInstance(), this::notifyQuestScreenOpened);
+        VeryUEKeyMappings.onClientTick(Minecraft.getInstance(), this::sendToServer);
     }
 
-    private void notifyQuestScreenOpened() {
+    private void sendToServer(CustomPacketPayload payload) {
         ClientPacketListener connection = Minecraft.getInstance().getConnection();
-        if (connection != null && connection.hasChannel(QuestScreenOpenedPayload.TYPE)) {
-            PacketDistributor.sendToServer(QuestScreenOpenedPayload.INSTANCE);
+        if (connection != null && connection.hasChannel(payload.type())) {
+            PacketDistributor.sendToServer(payload);
         }
     }
 
