@@ -6,6 +6,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.locale.Language;
+import net.minecraft.util.FastColor;
 
 import static dev.veryue.vuequests.VeryUEConstants.MOD_ID;
 
@@ -30,10 +31,20 @@ public class QuestWidgetSprites {
     }
 
     public static void blit(GuiGraphics graphics, ResourceLocation sprite, int x, int y, int width, int height, float brightness) {
+        blit(graphics, sprite, x, y, width, height, brightness, brightness, brightness);
+    }
+
+    public static void blitTinted(GuiGraphics graphics, ResourceLocation sprite, int x, int y, int width, int height, int tint) {
+        blit(graphics, sprite, x, y, width, height,
+                FastColor.ARGB32.red(tint) / 255F, FastColor.ARGB32.green(tint) / 255F, FastColor.ARGB32.blue(tint) / 255F);
+    }
+
+    private static void blit(GuiGraphics graphics, ResourceLocation sprite, int x, int y, int width, int height,
+                             float red, float green, float blue) {
         graphics.flush();
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        graphics.setColor(brightness, brightness, brightness, TEXTURE_ALPHA);
+        graphics.setColor(red, green, blue, TEXTURE_ALPHA);
         try {
             graphics.blitSprite(sprite, x, y, width, height);
         } finally {

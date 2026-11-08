@@ -1,7 +1,10 @@
 package dev.veryue.vuequests.client.widget;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import dev.veryue.vuequests.client.ClientQuestData;
+import dev.veryue.vuequests.models.PlayerUser;
 import dev.veryue.vuequests.models.quest.Quest;
+import dev.veryue.vuequests.models.reward.RewardType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -19,6 +22,10 @@ public class QuestNodeWidget extends Button {
 
     public static final int SIZE = 24;
     private static final float LOCKED_BRIGHTNESS = 0.35F;
+    private static final int LOCKED_TINT = 0x595959;
+    private static final int IN_PROGRESS_TINT = 0xFFF28B;
+    private static final int UNCLAIMED_TINT = 0x9AFFAC;
+    private static final int CLAIMED_TINT = 0x3B9B55;
     private static final int SUMMARY_WORDS = 10;
     private static final Pattern WORD = Pattern.compile("\\S+", Pattern.UNICODE_CHARACTER_CLASS);
 
@@ -65,6 +72,20 @@ public class QuestNodeWidget extends Button {
         this.locked = locked;
     }
 
+    private int backgroundTint() {
+        PlayerUser user = ClientQuestData.getUser();
+        if (user != null && (user.hasCompletedQuest(quest)
+                || (!locked && !quest.objectives().isEmpty() && quest.objectives().stream().allMatch(user::hasCompletedObjective)))) {
+            for (RewardType<?> reward : quest.rewards()) {
+                if (!user.getClaimedRewards().contains(reward.getRewardId())) {
+                    return UNCLAIMED_TINT;
+                }
+            }
+            return CLAIMED_TINT;
+        }
+        return locked ? LOCKED_TINT : IN_PROGRESS_TINT;
+    }
+
     @Override
     protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         PoseStack pose = graphics.pose();
@@ -73,7 +94,7 @@ public class QuestNodeWidget extends Button {
             pose.translate(getX(), getY(), 0);
             pose.scale(getWidth() / (float) SIZE, getHeight() / (float) SIZE, 1);
             float brightness = locked ? LOCKED_BRIGHTNESS : 1;
-            QuestWidgetSprites.blit(graphics, quest.display().backgroundSprite(), 0, 0, SIZE, SIZE, brightness);
+            QuestWidgetSprites.blitTinted(graphics, quest.display().backgroundSprite(), 0, 0, SIZE, SIZE, backgroundTint());
             graphics.flush();
             graphics.setColor(brightness, brightness, brightness, 1);
             graphics.renderItem(icon, 4, 4);
