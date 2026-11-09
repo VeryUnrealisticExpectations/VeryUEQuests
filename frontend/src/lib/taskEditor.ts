@@ -27,6 +27,10 @@ export function objectiveCount(task: Task): number | undefined {
   if (task.type === 'vuequests:entity') return task.count ?? 1
 }
 
+export function isAdvancementId(id: string): boolean {
+  return isRegistryId(id) || isRegistryId(`minecraft:${id.replace(/^:/, '')}`)
+}
+
 export function taskProblem(task: Task): string | undefined {
   if (task.type === 'vuequests:collect_item' || task.type === 'vuequests:item') {
     if (!task.item || !isRegistryId(task.item.id)) return 'Choose an item.'
@@ -38,7 +42,7 @@ export function taskProblem(task: Task): string | undefined {
     return 'Choose an entity.'
   } else if (task.type === 'vuequests:advancement') {
     const id = task.advancement
-    if (typeof id !== 'string' || (!isRegistryId(id) && !isRegistryId(`minecraft:${id.replace(/^:/, '')}`))) {
+    if (typeof id !== 'string' || !isAdvancementId(id)) {
       return 'Enter a valid advancement ID, such as minecraft:story/mine_stone.'
     }
   }

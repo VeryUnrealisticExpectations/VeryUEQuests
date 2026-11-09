@@ -12,18 +12,21 @@ interface RegistryPickerProps {
   epoch: number
   kind?: 'items' | 'entities'
   autoFocus?: boolean
+  panel?: boolean
 }
 
-export function RegistryPicker({ label, value, onChange, catalog, epoch, kind = 'items', autoFocus = false }: RegistryPickerProps) {
+export function RegistryPicker({ label, value, onChange, catalog, epoch, kind = 'items', autoFocus = false, panel = false }: RegistryPickerProps) {
   const id = useId()
   const input = useRef<HTMLInputElement>(null)
   const viewport = useRef<HTMLDivElement>(null)
-  const [open, setOpen] = useState(false)
+  const [expanded, setOpen] = useState(false)
+  const open = panel || expanded
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(0)
   const [keyboardBrowsing, setKeyboardBrowsing] = useState(false)
   const [columns, setColumns] = useState(9)
   const [scrollTop, setScrollTop] = useState(0)
+  const [candidate, setCandidate] = useState(value)
   const choices = useMemo(() => filterRegistry(catalog[kind], query), [catalog, kind, query])
   const rowColumns = kind === 'items' ? columns : 1
   const rowHeight = kind === 'items' ? INVENTORY_ROW_HEIGHT : 48
@@ -32,8 +35,9 @@ export function RegistryPicker({ label, value, onChange, catalog, epoch, kind = 
   const activeMounted = highlighted >= window.startRow * rowColumns && highlighted < window.endRow * rowColumns
   const rawId = query.trim()
   const canUseRawId = isRegistryId(rawId)
-  const selectedEntry = catalog[kind].find(entry => entry.id === value)
-  const selectedIcon = kind === 'entities' ? selectedEntry?.item ?? 'minecraft:egg' : value
+  const selected = panel ? candidate : value
+  const selectedEntry = catalog[kind].find(entry => entry.id === selected)
+  const selectedIcon = kind === 'entities' ? selectedEntry?.item ?? 'minecraft:egg' : selected
 
   useEffect(() => {
     input.current?.setCustomValidity(isRegistryId(value) ? '' : `Choose ${kind === 'items' ? 'an item' : 'an entity'} or enter a namespaced registry ID.`)
@@ -62,8 +66,7 @@ export function RegistryPicker({ label, value, onChange, catalog, epoch, kind = 
   const close = () => { setOpen(false); setQuery('') }
   const commit = (registryId: string) => {
     onChange(registryId)
-    input.current?.focus()
-    close()
+    if (!panel) { input.current?.focus(); close() }
   }
   const select = (index: number) => { if (choices[index]) commit(choices[index].id) }
   const navigate = (key: string) => {
@@ -75,18 +78,18 @@ export function RegistryPicker({ label, value, onChange, catalog, epoch, kind = 
     if (viewport.current) viewport.current.scrollTop = offset
   }
 
-  return <div className={`registry-field registry-field--${kind}`} onBlur={event => {
-    if (!event.currentTarget.contains(event.relatedTarget)) close()
+  return <div className={`registry-field registry-field--${kind}${panel ? ' registry-field--panel' : ''}`} onBlur={event => {
+    if (!panel && !event.currentTarget.contains(event.relatedTarget)) close()
   }}>
-    <label htmlFor={id}>{label}</label>
+    <label htmlFor={id} className={panel ? 'sr-only' : undefined}>{label}</label>
     <div className="registry-search-row">
-      <span className="registry-selected-icon" title={value}><ItemIcon id={selectedIcon || 'minecraft:book'} epoch={epoch} /></span>
-      <input ref={input} id={id} role="combobox" aria-autocomplete="list" aria-expanded={open}
+      {!panel && <span className="registry-selected-icon" title={value}><ItemIcon id={selectedIcon || 'minecraft:book'} epoch={epoch} /></span>}
+      <input ref={input} id={id} role="combobox" data-panel-focus={panel ? '' : undefined} aria-autocomplete="list" aria-expanded={open}
         aria-controls={open ? `${id}-options` : undefined} aria-describedby={open ? `${id}-status` : undefined}
         aria-activedescendant={open && choices.length > 0 && activeMounted ? `${id}-option-${highlighted}` : undefined}
         aria-invalid={!isRegistryId(value)} value={open ? query : value} autoComplete="off" spellCheck={false}
         placeholder={`Search ${kind} or enter namespace:${kind === 'items' ? 'item' : 'entity'}`}
-        onFocus={show} onClick={() => { if (!open) show() }}
+        onFocus={panel ? undefined : show} onClick={() => { if (!open) show() }}
         onChange={event => { setQuery(event.target.value); setOpen(true); setActive(0); setKeyboardBrowsing(false); resetScroll() }}
         onKeyDown={event => {
           const directional = ['ArrowDown', 'ArrowUp', 'PageUp', 'PageDown'].includes(event.key)
@@ -97,7 +100,7 @@ export function RegistryPicker({ label, value, onChange, catalog, epoch, kind = 
             event.preventDefault()
             if (choices.length) select(highlighted)
             else if (canUseRawId) commit(rawId)
-          } else if (event.key === 'Escape' && open) {
+          } else if (event.key === 'Escape' && open && !panel) {
             event.preventDefault(); event.stopPropagation(); close()
           }
         }} />
@@ -114,10 +117,11 @@ export function RegistryPicker({ label, value, onChange, catalog, epoch, kind = 
             {choices.slice(row * rowColumns, (row + 1) * rowColumns).map((entry, column) => {
               const index = row * rowColumns + column
               return <button key={entry.id} id={`${id}-option-${index}`} type="button" role="option" tabIndex={-1}
-                aria-selected={entry.id === value} aria-setsize={choices.length} aria-posinset={index + 1}
+                aria-selected={entry.id === selected} aria-setsize={choices.length} aria-posinset={index + 1}
                 aria-label={`${entry.name}, ${entry.id}`} title={`${entry.name}\n${entry.id}`}
-                className={`mc-button ${kind === 'items' ? 'registry-slot' : 'registry-entity-option'}${highlighted === index ? ' is-active' : ''}${entry.id === value ? ' is-selected' : ''}`}
-                onMouseDown={event => event.preventDefault()} onMouseEnter={() => { setActive(index); setKeyboardBrowsing(false) }} onClick={() => select(index)}>
+                className={`mc-button ${kind === 'items' ? 'registry-slot' : 'registry-entity-option'}${highlighted === index ? ' is-active' : ''}${entry.id === selected ? ' is-selected' : ''}`}
+                onMouseDown={event => event.preventDefault()} onMouseEnter={() => { setActive(index); setKeyboardBrowsing(false) }}
+                onClick={() => panel ? setCandidate(entry.id) : select(index)}>
                 <ItemIcon id={kind === 'entities' ? entry.item ?? 'minecraft:egg' : entry.id} epoch={epoch} />
                 {kind === 'entities' && <span><strong>{entry.name}</strong><small>{entry.id}</small></span>}
               </button>
@@ -129,10 +133,16 @@ export function RegistryPicker({ label, value, onChange, catalog, epoch, kind = 
       <div id={`${id}-status`} className="registry-status" role="status" aria-live="polite" aria-atomic="true">
         <span>{choices.length ? `${choices.length} matching ${kind}` : `No matching ${kind}.`}</span>
         {choices[highlighted] && <span>{choices[highlighted].name}<small>{choices[highlighted].id}</small></span>}
-        <small>Selected: {value || 'none'}</small>
+        {!panel && <small>Selected: {value || 'none'}</small>}
       </div>
       {canUseRawId && <button type="button" className="mc-button mc-button--small registry-raw-id"
         onMouseDown={event => event.preventDefault()} onClick={() => commit(rawId)}>Use {rawId}</button>}
+    </div>}
+    {panel && <div className="wizard-picker-selection">
+      {selected && <><ItemIcon id={selectedIcon} epoch={epoch} /><span>{selectedEntry?.name ?? selected}</span></>}
+      <button type="button" className="mc-button" disabled={!isRegistryId(selected)} onClick={() => commit(selected)}>
+        Use {kind === 'items' ? 'item' : 'entity'}
+      </button>
     </div>}
   </div>
 }

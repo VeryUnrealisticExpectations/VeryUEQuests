@@ -1,78 +1,220 @@
-import { useCallback, useState } from 'react'
-import type { Catalog, ComponentTextContext, Position, Quest, Section } from '../types.ts'
-import { DEFAULT_QUEST_BACKGROUND, dependencyProblem, newQuest, updateQuest } from '../lib/quests.ts'
+import { useLayoutEffect, useMemo, useState } from 'react'
+import type { ReactNode } from 'react'
+import type { Catalog, ComponentTextContext, Position, Quest, Section, Task } from '../types.ts'
+import { DEFAULT_QUEST_BACKGROUND, dependencyProblem, newQuest, newTask } from '../lib/quests.ts'
+import { changeTaskType, taskEditorId } from '../lib/taskEditor.ts'
+import type { TaskKind } from '../lib/taskEditor.ts'
+import { blockedPrerequisites, integerInput, questIssues, questStages, sectionsWithDraft, taskInputId, taskRowsFor } from '../lib/questWizard.ts'
+import type { InputDrafts, QuestIssue, QuestStage, QuestTextField, TaskRows } from '../lib/questWizard.ts'
+import { AdvancementPicker } from './AdvancementPicker.tsx'
 import { ComponentEditor } from './ComponentEditor.tsx'
 import { ComponentText } from './ComponentText.tsx'
-import { Dialog } from './Dialog.tsx'
 import { QuestBackgroundPicker } from './QuestBackgroundPicker.tsx'
+import { QuestDetailsStage } from './QuestDetailsStage.tsx'
 import { QuestNodeIcon } from './QuestNodeIcon.tsx'
+import { PrerequisitePicker, QuestReviewStage } from './QuestReviewStage.tsx'
 import { RegistryPicker } from './RegistryPicker.tsx'
-import { TaskListEditor } from './TaskListEditor.tsx'
-import { taskEditorId, taskProblem } from '../lib/taskEditor.ts'
+import { CustomTaskEditor, TaskListEditor, TaskTypePicker } from './TaskListEditor.tsx'
+import { WizardDialog } from './WizardDialog.tsx'
+
+type DetailPicker = QuestTextField | 'icon' | 'background'
+type Panel = { kind: 'detail'; field: DetailPicker }
+  | { kind: 'type'; taskKind: TaskKind; key?: string }
+  | { kind: 'task'; taskKind: TaskKind; key: string }
+  | { kind: 'prerequisites' }
+
+const textFields = [
+  { field: 'title', label: 'Quest title', panelTitle: 'Edit title' },
+  { field: 'subtitle', label: 'Subtitle', panelTitle: 'Edit subtitle' },
+  { field: 'description', label: 'Description', panelTitle: 'Edit description' },
+] as const
+
+const headings: Record<QuestStage, string> = { details: 'Quest details', objectives: 'Objectives', rewards: 'Rewards', review: 'Review quest' }
 
 export function QuestEditorDialog({ quest, section, sections, position, catalog, epoch, textContext, onApply, onDelete, onClose }:
   { quest?: Quest; section: Section; sections: Section[]; position: Position; catalog: Catalog; epoch: number; textContext: ComponentTextContext;
     onApply: (quest: Quest) => void; onDelete?: () => void; onClose: () => void }) {
-  const [draft, setDraft] = useState(() => quest ? structuredClone(quest) : newQuest(section.section_id, position))
-  const [error, setError] = useState('')
-  const [activeTask, setActiveTask] = useState<string>()
-  const collapseTask = useCallback((id: string) => setActiveTask(current => current === id ? undefined : current), [])
-  const [validity, setValidity] = useState({ title: true, subtitle: true, description: true })
-  const titleValidity = useCallback((valid: boolean) => setValidity(current => current.title === valid ? current : { ...current, title: valid }), [])
-  const subtitleValidity = useCallback((valid: boolean) => setValidity(current => current.subtitle === valid ? current : { ...current, subtitle: valid }), [])
-  const descriptionValidity = useCallback((valid: boolean) => setValidity(current => current.description === valid ? current : { ...current, description: valid }), [])
-  const display = (change: Partial<Quest['display']>) => setDraft(current => ({ ...current, display: { ...current.display, ...change } }))
-  const textValid = Object.values(validity).every(Boolean)
-  return <Dialog title={quest ? 'Edit quest' : 'Add quest'} size="wide" onClose={onClose}>
-    <form onSubmit={event => {
-      event.preventDefault()
-      if (!textValid) { setError('Check the quest text fields before applying changes.'); return }
-      for (const kind of ['objective', 'reward'] as const) {
-        const tasks = kind === 'objective' ? draft.objectives : draft.rewards
-        for (let index = 0; index < tasks.length; index++) {
-          const problem = taskProblem(tasks[index])
-          if (problem) { setError(`${kind === 'objective' ? 'Objective' : 'Reward'} ${index + 1}: ${problem}`); setActiveTask(taskEditorId(kind, tasks[index], index)); return }
-        }
+  const [base, setBase] = useState(() => quest ? structuredClone(quest) : newQuest(section.section_id, position))
+  const [rows, setRows] = useState<TaskRows>(() => ({
+    objective: taskRowsFor('objective', base.objectives), reward: taskRowsFor('reward', base.rewards),
+  }))
+  const [inputs, setInputs] = useState<InputDrafts>({})
+  const [stage, setStage] = useState<QuestStage>('details')
+  const [visited, setVisited] = useState<QuestStage[]>(['details'])
+  const [opened, setOpened] = useState<{ panel: Panel; trigger: string }>()
+  const [focusRequest, setFocusRequest] = useState<{ id: string }>()
+  const [dependencyError, setDependencyError] = useState('')
+  const panel = opened?.panel
+  const draft = useMemo(() => ({
+    ...base, objectives: rows.objective.map(row => row.task), rewards: rows.reward.map(row => row.task),
+  }), [base, rows])
+  const issues = useMemo(() => questIssues(draft, rows, inputs, sections), [draft, rows, inputs, sections])
+  const blocked = useMemo(() => blockedPrerequisites(sections, draft.quest_id), [sections, draft.quest_id])
+  const selected = panel?.kind === 'task' || panel?.kind === 'type'
+    ? rows[panel.taskKind].find(row => row.key === panel.key) : undefined
+
+  useLayoutEffect(() => {
+    if (!focusRequest) return
+    const requested = document.getElementById(focusRequest.id)
+    const element = focusRequest.id === 'quest-wizard-panel'
+      ? requested?.querySelector<HTMLElement>('[data-panel-focus]') ?? document.getElementById('quest-wizard-panel-title')
+      : requested
+    element?.closest('details')?.setAttribute('open', '')
+    element?.focus()
+  }, [focusRequest])
+
+  const focus = (id: string) => setFocusRequest({ id })
+  const open = (next: Panel, trigger: string, target = 'quest-wizard-panel') => {
+    setOpened({ panel: next, trigger })
+    focus(target)
+  }
+  const close = () => {
+    setOpened(undefined)
+    if (opened) focus(opened.trigger)
+  }
+  const navigate = (next: QuestStage, target = 'quest-stage-heading') => {
+    setStage(next)
+    setVisited(current => current.includes(next) ? current : [...current, next])
+    setOpened(undefined)
+    focus(target)
+  }
+  const display = (change: Partial<Quest['display']>) =>
+    setBase(current => ({ ...current, display: { ...current.display, ...change } }))
+  const input = (id: string, text: string) => setInputs(current => ({ ...current, [id]: text }))
+  const changePosition = (axis: 'x' | 'y', text: string) => {
+    input('quest-' + axis, text)
+    const value = integerInput(text, -2_147_483_648, 2_147_483_647)
+    if (value !== undefined) setBase(current => ({ ...current, position: { ...current.position, [axis]: value } }))
+  }
+  const updateTask = (kind: TaskKind, key: string, task: Task) =>
+    setRows(current => ({ ...current, [kind]: current[kind].map(row => row.key === key ? { key, task } : row) }))
+  const clearTaskInputs = (key: string) => setInputs(current => Object.fromEntries(Object.entries(current)
+    .filter(([id]) => !id.startsWith(taskInputId(key, '')))))
+  const openTask = (taskKind: TaskKind, key: string, task: Task) => {
+    if (task.type === 'vuequests:experience') {
+      setOpened(undefined)
+      focus(taskInputId(key, 'experience'))
+    } else open({ kind: 'task', taskKind, key }, taskInputId(key, 'target'))
+  }
+  const selectType = (kind: TaskKind, type: string) => {
+    if (selected) {
+      const { key, task } = selected
+      const changed = changeTaskType(kind, task, type)
+      if (changed !== task) {
+        clearTaskInputs(key)
+        updateTask(kind, key, changed)
       }
-      const updated = quest ? updateQuest(sections, draft.quest_id, () => draft)
-        : sections.map(entry => entry.section_id === section.section_id ? { ...entry, quests: [...entry.quests, draft] } : entry)
-      const problem = dependencyProblem(updated)
-      if (problem) setError(problem)
-      else onApply(draft)
-    }}>
-      <div className="dialog-body quest-form">
-        <div className="form-intro"><QuestNodeIcon display={draft.display} epoch={epoch} revision={textContext.assetRevision} />
-          <p><ComponentText value={section.name} textContext={textContext} /></p></div>
-        <div className="form-grid quest-text-fields">
-          <ComponentEditor label="Quest title" required maxLiteralLength={160} value={draft.display.title} onChange={title => display({ title })}
-            textContext={textContext} onValidityChange={titleValidity} catalog={catalog} epoch={epoch} />
-          <ComponentEditor label="Subtitle" value={draft.display.subtitle} onChange={subtitle => display({ subtitle })}
-            textContext={textContext} onValidityChange={subtitleValidity} catalog={catalog} epoch={epoch} />
-        </div>
-        <ComponentEditor label="Description" multiline value={draft.display.description} onChange={description => display({ description })}
-          textContext={textContext} onValidityChange={descriptionValidity} catalog={catalog} epoch={epoch} />
-        <RegistryPicker label="Quest icon" value={draft.display.icon} onChange={icon => display({ icon })} catalog={catalog} epoch={epoch} />
-        <QuestBackgroundPicker value={draft.display.background_sprite ?? DEFAULT_QUEST_BACKGROUND}
-          backgrounds={textContext.questBackgrounds ?? []} revision={textContext.assetRevision}
-          onChange={id => display({ background_sprite: id === DEFAULT_QUEST_BACKGROUND ? undefined : id })} />
-        <div className="form-grid">
-          <label className="field">Tooltip<input value={draft.display.tooltip} onChange={event => display({ tooltip: event.target.value })} /></label>
-          <div className="field-row"><label className="field">X<input type="number" required step={1} value={draft.position.x}
-            onChange={event => setDraft(current => ({ ...current, position: { ...current.position, x: Number(event.target.value) } }))} /></label>
-          <label className="field">Y<input type="number" required step={1} value={draft.position.y}
-            onChange={event => setDraft(current => ({ ...current, position: { ...current.position, y: Number(event.target.value) } }))} /></label></div>
-        </div>
-        <div className="task-columns">
-          <TaskListEditor kind="objective" tasks={draft.objectives} onChange={objectives => setDraft(current => ({ ...current, objectives }))}
-            catalog={catalog} epoch={epoch} textContext={textContext} activeTask={activeTask} onActivate={setActiveTask} onCollapse={collapseTask} />
-          <TaskListEditor kind="reward" tasks={draft.rewards} onChange={rewards => setDraft(current => ({ ...current, rewards }))}
-            catalog={catalog} epoch={epoch} textContext={textContext} activeTask={activeTask} onActivate={setActiveTask} onCollapse={collapseTask} />
-        </div>
-        {error && <p className="form-error" role="alert">{error}</p>}
-      </div>
-      <footer className="dialog-footer">{onDelete && <button className="mc-button mc-button--red" type="button" onClick={onDelete}>Delete quest</button>}
-        <span className="spacer" /><button type="button" className="mc-button" onClick={onClose}>Cancel</button>
-        <button className="mc-button mc-button--green" type="submit" disabled={!textValid}>{quest ? 'Apply changes' : 'Create quest'}</button></footer>
-    </form>
-  </Dialog>
+      openTask(kind, key, changed)
+    } else {
+      const task = newTask(kind, type)
+      const key = taskEditorId(kind, task, rows[kind].length)
+      setRows(current => ({ ...current, [kind]: [...current[kind], { key, task }] }))
+      openTask(kind, key, task)
+    }
+  }
+  const removeTask = (kind: TaskKind, key: string) => {
+    const index = rows[kind].findIndex(row => row.key === key)
+    const neighbor = rows[kind][index + 1] ?? rows[kind][index - 1]
+    clearTaskInputs(key)
+    setRows(current => ({ ...current, [kind]: current[kind].filter(row => row.key !== key) }))
+    if ((panel?.kind === 'task' || panel?.kind === 'type') && panel.key === key) setOpened(undefined)
+    focus(neighbor ? taskInputId(neighbor.key, 'target') : 'quest-add-' + kind)
+  }
+  const selectPrerequisite = (id: string, checked: boolean) => {
+    setDependencyError('')
+    if (checked) {
+      const next = { ...draft, dependencies: [...new Set([...draft.dependencies, id])] }
+      const problem = dependencyProblem(sectionsWithDraft(sections, next))
+      if (problem) { setDependencyError(problem); return }
+      setBase(current => ({ ...current, dependencies: next.dependencies }))
+    } else setBase(current => ({ ...current, dependencies: current.dependencies.filter(entry => entry !== id) }))
+  }
+  const showIssue = (issue: QuestIssue) => {
+    navigate(issue.stage, issue.target)
+    if (issue.target === 'quest-title' || issue.target === 'quest-icon') {
+      open({ kind: 'detail', field: issue.target === 'quest-title' ? 'title' : 'icon' }, issue.target)
+    } else if (issue.target === 'quest-prerequisites') {
+      open({ kind: 'prerequisites' }, issue.target)
+    } else if (issue.taskKey && (issue.target.endsWith('-target') || issue.target.endsWith('-fields'))) {
+      const kind = issue.stage === 'objectives' ? 'objective' : 'reward'
+      const row = rows[kind].find(entry => entry.key === issue.taskKey)
+      if (row && issue.target.endsWith('-fields')) open({ kind: 'task', taskKind: kind, key: row.key }, taskInputId(row.key, 'target'), issue.target)
+      else if (row) openTask(kind, row.key, row.task)
+    }
+  }
+
+  const background = draft.display.background_sprite ?? DEFAULT_QUEST_BACKGROUND
+  let panelTitle: string | undefined
+  let panelContent: ReactNode
+  if (panel?.kind === 'detail') {
+    if (panel.field === 'icon') {
+      panelTitle = 'Choose quest icon'
+      panelContent = <RegistryPicker key="quest-icon" label="Search quest icons" value={draft.display.icon} catalog={catalog} epoch={epoch} panel
+        onChange={icon => { display({ icon }); close() }} />
+    } else if (panel.field === 'background') {
+      panelTitle = 'Choose quest background'
+      panelContent = <QuestBackgroundPicker value={background} backgrounds={textContext.questBackgrounds ?? []} revision={textContext.assetRevision}
+        panel onChange={id => { display({ background_sprite: id === DEFAULT_QUEST_BACKGROUND ? undefined : id }); close() }} />
+    } else panelTitle = textFields.find(field => field.field === panel.field)?.panelTitle
+  } else if (panel?.kind === 'type') {
+    panelTitle = 'Choose ' + panel.taskKind + ' type'
+    panelContent = <TaskTypePicker kind={panel.taskKind} catalog={catalog} epoch={epoch} value={selected?.task.type}
+      onChoose={type => selectType(panel.taskKind, type)} />
+  } else if (panel?.kind === 'task' && selected) {
+    const { task, key } = selected
+    const commit = (change: Partial<Task>) => { updateTask(panel.taskKind, key, { ...task, ...change }); close() }
+    if (task.type === 'vuequests:collect_item' || task.type === 'vuequests:item') {
+      panelTitle = 'Choose ' + panel.taskKind + ' item'
+      panelContent = <RegistryPicker key={key} label="Search items" value={task.item?.id ?? ''} catalog={catalog} epoch={epoch} panel
+        onChange={id => commit({ item: { ...task.item, id } })} />
+    } else if (task.type === 'vuequests:entity') {
+      panelTitle = 'Choose entity'
+      panelContent = <RegistryPicker key={key} label="Search entities" value={task.entity ?? ''} catalog={catalog} epoch={epoch} kind="entities" panel
+        onChange={entity => commit({ entity })} />
+    } else if (task.type === 'vuequests:advancement') {
+      panelTitle = 'Choose advancement'
+      panelContent = <AdvancementPicker key={key} entries={catalog.advancements ?? []} value={task.advancement ?? ''} onChoose={advancement => commit({ advancement })} />
+    } else {
+      panelTitle = 'Edit ' + panel.taskKind + ' fields'
+      panelContent = <><CustomTaskEditor key={key} kind={panel.taskKind} row={selected} inputs={inputs} catalog={catalog}
+        onInput={input} onChange={(rowKey, changed) => updateTask(panel.taskKind, rowKey, changed)} />
+        <div className="wizard-panel-actions"><button type="button" className="mc-button" onClick={close}>Done</button></div></>
+    }
+  } else if (panel?.kind === 'prerequisites') {
+    panelTitle = 'Choose prerequisites'
+    panelContent = <PrerequisitePicker draft={draft} sections={sections} textContext={textContext} epoch={epoch} blocked={blocked} onToggle={selectPrerequisite} />
+  }
+  const textPanel = panel?.kind === 'detail' && textFields.some(({ field }) => field === panel.field)
+
+  return <WizardDialog title={quest ? 'Edit quest' : 'Create quest'}
+    titleAside={<span className="wizard-chapter"><QuestNodeIcon display={draft.display} epoch={epoch} revision={textContext.assetRevision} />
+      <ComponentText value={section.name} textContext={textContext} useInterfaceFont /></span>}
+    stages={questStages.map(entry => ({
+      ...entry, complete: visited.includes(entry.id) && !issues.some(issue => entry.id === 'review' || issue.stage === entry.id),
+    }))}
+    stage={stage} onNavigate={navigate} panelTitle={panelTitle}
+    panel={<>
+      {textFields.map(({ field, label }) => <ComponentEditor key={field} label={label} value={draft.display[field]}
+        visible={panel?.kind === 'detail' && panel.field === field} docked required={field === 'title'}
+        maxLiteralLength={field === 'title' ? 160 : undefined} multiline={field === 'description'}
+        onChange={value => display({ [field]: value })} textContext={textContext} catalog={catalog} epoch={epoch} />)}
+      {textPanel && <div className="wizard-panel-actions"><button type="button" className="mc-button" onClick={close}>Done</button></div>}
+      {panelContent}
+    </>}
+    onClosePanel={close} onClose={onClose} onDelete={onDelete} submitLabel={quest ? 'Apply changes' : 'Create quest'}
+    onSubmit={() => { if (issues.length) focus('quest-review-issues'); else onApply(draft) }}>
+    <h3 id="quest-stage-heading" tabIndex={-1}>{headings[stage]}</h3>
+    {stage === 'details' && <QuestDetailsStage draft={draft} inputs={inputs} textContext={textContext} epoch={epoch}
+      activeTrigger={opened?.trigger} onOpen={field => open({ kind: 'detail', field }, 'quest-' + field)}
+      onDisplay={display} onPosition={changePosition} />}
+    {(['objective', 'reward'] as const).map(kind => stage === (kind === 'objective' ? 'objectives' : 'rewards') &&
+      <TaskListEditor key={kind} kind={kind} rows={rows[kind]} inputs={inputs} catalog={catalog} epoch={epoch} activeTrigger={opened?.trigger}
+        onInput={input} onChange={(key, task) => updateTask(kind, key, task)} onRemove={key => removeTask(kind, key)}
+        onPick={key => { const row = rows[kind].find(entry => entry.key === key); if (row) openTask(kind, key, row.task) }}
+        onChooseType={key => open({ kind: 'type', taskKind: kind, key }, key ? taskInputId(key, 'type') : 'quest-add-' + kind)} />)}
+    {stage === 'review' && <QuestReviewStage draft={draft} rows={rows} sections={sections} catalog={catalog}
+      textContext={textContext} epoch={epoch} issues={issues} active={panel?.kind === 'prerequisites'} dependencyError={dependencyError}
+      onNavigate={navigate} onIssue={showIssue} onOpen={() => open({ kind: 'prerequisites' }, 'quest-prerequisites')}
+      onRemove={id => { selectPrerequisite(id, false); focus('quest-prerequisites') }} />}
+  </WizardDialog>
 }

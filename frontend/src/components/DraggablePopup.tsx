@@ -3,10 +3,11 @@ import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import type { Position } from '../types.ts'
 
-export function DraggablePopup({ title, anchor, children, onClose, className = '' }:
-  { title: string; anchor: HTMLElement | null; children: ReactNode; onClose: () => void; className?: string }) {
+export function DraggablePopup({ title, anchor, children, onClose, className = '', focusOnOpen = false }:
+  { title: string; anchor: HTMLElement | null; children: ReactNode; onClose: () => void; className?: string; focusOnOpen?: boolean }) {
   const popup = useRef<HTMLDivElement>(null)
   const [position, setPosition] = useState<Position>()
+  const placed = !!position
   const dragging = useRef<{ pointer: number; start: Position; origin: Position } | undefined>(undefined)
   const clamp = (next: Position): Position => {
     const bounds = popup.current?.getBoundingClientRect()
@@ -28,8 +29,12 @@ export function DraggablePopup({ title, anchor, children, onClose, className = '
     window.addEventListener('resize', resize)
     return () => { observer.disconnect(); window.removeEventListener('resize', resize) }
   }, [anchor])
+  useLayoutEffect(() => {
+    if (focusOnOpen && placed) popup.current?.focus()
+  }, [focusOnOpen, placed])
   const host = anchor?.closest('dialog[open]') ?? document.body
   return createPortal(<div ref={popup} className={`draggable-popup ${className}`} data-component-popup role="dialog" aria-label={title}
+    tabIndex={focusOnOpen ? -1 : undefined}
     style={{ left: position?.x ?? 24, top: position?.y ?? 24, visibility: position ? 'visible' : 'hidden' }}
     onKeyDown={event => {
       if (event.key === 'Escape' && !event.defaultPrevented) { event.preventDefault(); event.stopPropagation(); onClose() }

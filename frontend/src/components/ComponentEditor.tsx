@@ -40,9 +40,11 @@ function nearestStop(stops: Stop[], x: number, y: number, lineHeight: number): S
   }, undefined)
 }
 
-export function ComponentEditor({ label, value, onChange, textContext, multiline = false, required = false, maxLiteralLength, onValidityChange, catalog, epoch = 0 }:
+export function ComponentEditor({ label, value, onChange, textContext, multiline = false, required = false, maxLiteralLength, onValidityChange,
+  catalog, epoch = 0, docked = false, visible = true }:
   { label: string; value: ChatComponent; onChange: (value: ChatComponent) => void; textContext?: ComponentTextContext;
-    multiline?: boolean; required?: boolean; maxLiteralLength?: number; onValidityChange?: (valid: boolean) => void; catalog?: Catalog; epoch?: number }) {
+    multiline?: boolean; required?: boolean; maxLiteralLength?: number; onValidityChange?: (valid: boolean) => void; catalog?: Catalog; epoch?: number;
+    docked?: boolean; visible?: boolean }) {
   const id = useId()
   const editingSession = useContext(ComponentEditingContext)
   const [documentValue, setDocumentValue] = useState(value)
@@ -72,12 +74,17 @@ export function ComponentEditor({ label, value, onChange, textContext, multiline
   const beforeInput = useRef<{ text: string; selection: Selection } | undefined>(undefined)
   const [focused, setFocused] = useState(false)
   const [localActive, setLocalActive] = useState(false)
-  const active = editingSession ? editingSession.activeEditor === id : localActive
+  const active = docked ? visible : editingSession ? editingSession.activeEditor === id : localActive
   const [blink, setBlink] = useState(true)
-  const [visible, setVisible] = useState(true)
+  const [inViewport, setInViewport] = useState(true)
   const [animationTick, setAnimationTick] = useState(0)
   const [typingStyle, setTypingStyle] = useState<ComponentObject>({})
   const [inspector, setInspector] = useState<Inspector>()
+  const [wasVisible, setWasVisible] = useState(visible)
+  if (visible !== wasVisible) {
+    setWasVisible(visible)
+    if (!visible) setInspector(undefined)
+  }
   const [error, setError] = useState('')
   const dragging = useRef<{ anchor: number; pointer: number } | undefined>(undefined)
   const resizing = useRef<{ height: number; y: number; pointer: number } | undefined>(undefined)
@@ -152,21 +159,22 @@ export function ComponentEditor({ label, value, onChange, textContext, multiline
     const target = surface.current
     if (!target) return
     const resize = () => {
+      if (!target.clientWidth) return
       setWidth(Math.max(32, Math.min(1024, Math.floor((target.clientWidth - 56) / SCALE))))
       setViewportHeight(Math.max(1, Math.min(1024, Math.floor(target.clientHeight / SCALE))))
     }
     resize()
     const observer = new ResizeObserver(resize); observer.observe(target)
-    const visibility = new IntersectionObserver(entries => setVisible(entries[0]?.isIntersecting ?? false))
+    const visibility = new IntersectionObserver(entries => setInViewport(entries[0]?.isIntersecting ?? false))
     visibility.observe(target)
     return () => { observer.disconnect(); visibility.disconnect() }
   }, [])
 
   useEffect(() => {
-    if (!animated || !visible || textContext?.source !== 'local-client') return
+    if (!animated || !visible || !inViewport || textContext?.source !== 'local-client') return
     const timer = window.setInterval(() => setAnimationTick(previous => previous + 1), 250)
     return () => window.clearInterval(timer)
-  }, [animated, visible, textContext?.source])
+  }, [animated, visible, inViewport, textContext?.source])
 
   useEffect(() => {
     if (!focused) return
@@ -175,7 +183,7 @@ export function ComponentEditor({ label, value, onChange, textContext, multiline
   }, [focused])
 
   useEffect(() => {
-    if (renderMode === 'pending') return
+    if (!visible || renderMode === 'pending') return
     const controller = new AbortController()
     let cancelled = false
     const sequence = ++requestId.current
@@ -203,7 +211,7 @@ export function ComponentEditor({ label, value, onChange, textContext, multiline
       }).finally(() => window.clearTimeout(timeout))
     }, 16)
     return () => { cancelled = true; controller.abort(); window.clearTimeout(timer) }
-  }, [id, projection, valueKey, width, viewportTop, previewHeight, textContext, animationTick, renderMode, retryPreview])
+  }, [id, projection, valueKey, width, viewportTop, previewHeight, textContext, animationTick, renderMode, retryPreview, visible])
 
   useEffect(() => {
     if (!preview || preview.key !== valueKey) return
@@ -267,6 +275,7 @@ export function ComponentEditor({ label, value, onChange, textContext, multiline
       const range = inputSelection(); selectionRef.current = range; setSelection(range)
     }
     if (!active) setInspector(undefined)
+    if (docked) return
     if (editingSession) editingSession.activateEditor(id)
     else setLocalActive(true)
   }
@@ -323,6 +332,10 @@ export function ComponentEditor({ label, value, onChange, textContext, multiline
         { start: editing.selection.start + length, end: editing.selection.start + length })
     }
     setInspector(undefined); textarea.current?.focus({ preventScroll: true })
+  }
+  const closeInspector = () => {
+    setInspector(undefined)
+    if (docked) textarea.current?.focus({ preventScroll: true })
   }
   const undo = (redo = false) => {
     const current = { value: documentRef.current, selection: selectionRef.current }
@@ -419,11 +432,30 @@ export function ComponentEditor({ label, value, onChange, textContext, multiline
       title={name.replaceAll('_', ' ')} style={{ backgroundColor: color }} onMouseDown={event => event.preventDefault()} onClick={() => applyStyle({ color: name })} />)}</div>
   </>
 
+  const formatting = <>
+      <div className="component-controls">{controls}</div>
+      <small className="component-preview-status">{previewMessage}</small>
+      {nativeFailure && renderMode === 'native' && <div className="component-preview-actions">
+        <button type="button" className="mc-button mc-button--small" onClick={() => { setNativeFailure(''); setRetryPreview(value => value + 1) }}>Retry Minecraft preview</button>
+        <button type="button" className="mc-button mc-button--small" onClick={() => setPreviewOverride({ revision: textContext?.assetRevision ?? '', approximate: true })}>Use approximate preview</button>
+      </div>}
+      {renderMode === 'approximate' && textContext?.source === 'local-client' && <button type="button" className="mc-button mc-button--small"
+        onClick={() => setPreviewOverride(undefined)}>Use Minecraft preview</button>}
+      {projection.leaves.some(leaf => leaf.kind === 'atomic') && <div className="component-token-list" aria-label={`${label} embedded components`}>
+        {projection.leaves.filter(leaf => leaf.kind === 'atomic').map(leaf => <button key={leaf.id} type="button" className="mc-button mc-button--small component-token-button"
+          onClick={() => open(typeof leaf.own !== 'string' && !Array.isArray(leaf.own) && leaf.own.translate ? 'translate'
+            : typeof leaf.own !== 'string' && !Array.isArray(leaf.own) && leaf.own.keybind ? 'keybind' : 'json', leaf.id)}>
+          {typeof leaf.own !== 'string' && !Array.isArray(leaf.own) && leaf.own.translate ? `Translate: ${leaf.own.translate}`
+            : typeof leaf.own !== 'string' && !Array.isArray(leaf.own) && leaf.own.keybind ? `Keybind: ${leaf.own.keybind}` : 'Native component'}</button>)}
+      </div>}
+  </>
+
   return <div className={`component-editor ${active ? 'is-active' : ''}`} role="group" aria-labelledby={`${id}-label`}
-    data-preview-mode={renderMode} data-preview-current={previewCurrent ? 'true' : 'false'}
+    data-preview-mode={renderMode} data-preview-current={previewCurrent ? 'true' : 'false'} hidden={!visible}
     onPointerDownCapture={event => { if (!(event.target as Element).closest('[data-component-resize]')) activate() }}
     onFocusCapture={event => { if (!(event.target as Element).closest('[data-component-resize]')) activate() }}>
-    <label id={`${id}-label`} htmlFor={`${id}-input`} className="component-editor-label">{label}</label>
+    <label id={`${id}-label`} htmlFor={`${id}-input`} className={docked ? 'sr-only' : 'component-editor-label'}>{label}</label>
+    {docked && visible && formatting}
     <div className="component-textarea">
     <div ref={surface} className={`component-surface ${focused ? 'focused' : ''}`} style={{ height: editorHeight }}
       onScroll={event => setViewportTop(Math.floor(event.currentTarget.scrollTop / SCALE))}>
@@ -468,7 +500,8 @@ export function ComponentEditor({ label, value, onChange, textContext, multiline
           }} />
         </div>
       </div>
-      <textarea ref={textarea} id={`${id}-input`} className="component-input" aria-labelledby={`${id}-label`} aria-describedby={`${id}-status`}
+      <textarea ref={textarea} id={`${id}-input`} className="component-input" data-panel-focus={docked && visible ? '' : undefined}
+        aria-labelledby={`${id}-label`} aria-describedby={`${id}-status`}
         aria-invalid={!!invalid || !!error} aria-required={required} rows={1} value={projection.text} spellCheck={false} autoComplete="off"
         style={{ position: 'absolute', width: 1, height: 1, left: 0, top: 0, opacity: 0, padding: 0, resize: 'none' }}
         onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} onKeyDown={keyDown}
@@ -559,27 +592,14 @@ export function ComponentEditor({ label, value, onChange, textContext, multiline
         onClick={fitText}>Fit text</button>
     </div>
     <small id={`${id}-status`} className="component-preview-status" role="status" hidden={!invalid && !error}>{invalid || error}</small>
-    {active && <DraggablePopup title={`${label} formatting`} anchor={popupAnchor} onClose={closeFormatting} className="component-format-popup">
-      <div className="component-controls">{controls}</div>
-      <small className="component-preview-status">{previewMessage}</small>
-      {nativeFailure && renderMode === 'native' && <div className="component-preview-actions">
-        <button type="button" className="mc-button mc-button--small" onClick={() => { setNativeFailure(''); setRetryPreview(value => value + 1) }}>Retry Minecraft preview</button>
-        <button type="button" className="mc-button mc-button--small" onClick={() => setPreviewOverride({ revision: textContext?.assetRevision ?? '', approximate: true })}>Use approximate preview</button>
-      </div>}
-      {renderMode === 'approximate' && textContext?.source === 'local-client' && <button type="button" className="mc-button mc-button--small"
-        onClick={() => setPreviewOverride(undefined)}>Use Minecraft preview</button>}
-      {projection.leaves.some(leaf => leaf.kind === 'atomic') && <div className="component-token-list" aria-label={`${label} embedded components`}>
-      {projection.leaves.filter(leaf => leaf.kind === 'atomic').map(leaf => <button key={leaf.id} type="button" className="mc-button mc-button--small component-token-button"
-        onClick={() => open(typeof leaf.own !== 'string' && !Array.isArray(leaf.own) && leaf.own.translate ? 'translate'
-          : typeof leaf.own !== 'string' && !Array.isArray(leaf.own) && leaf.own.keybind ? 'keybind' : 'json', leaf.id)}>
-        {typeof leaf.own !== 'string' && !Array.isArray(leaf.own) && leaf.own.translate ? `Translate: ${leaf.own.translate}`
-          : typeof leaf.own !== 'string' && !Array.isArray(leaf.own) && leaf.own.keybind ? `Keybind: ${leaf.own.keybind}` : 'Native component'}</button>)}
-      </div>}
+    {active && !docked && <DraggablePopup title={`${label} formatting`} anchor={popupAnchor} onClose={closeFormatting} className="component-format-popup">
+      {formatting}
     </DraggablePopup>}
     {active && inspector && <DraggablePopup title={inspector.kind === 'translate' ? 'Translation' : inspector.kind === 'keybind' ? 'Keybind'
-      : inspector.kind === 'hover' ? 'Hover event' : 'Component JSON'} anchor={popupAnchor} onClose={() => setInspector(undefined)} className="component-inspector-popup">
+      : inspector.kind === 'hover' ? 'Hover event' : 'Component JSON'} anchor={popupAnchor} focusOnOpen={docked}
+      onClose={closeInspector} className="component-inspector-popup">
       <ComponentInspector key={`${inspector.kind}-${JSON.stringify(inspector.selection)}`} kind={inspector.kind} initial={inspector.initial}
-        textContext={textContext} catalog={catalog} epoch={epoch} onApply={applyInspector} onClose={() => setInspector(undefined)} />
+        textContext={textContext} catalog={catalog} epoch={epoch} onApply={applyInspector} onClose={closeInspector} />
     </DraggablePopup>}
   </div>
 }

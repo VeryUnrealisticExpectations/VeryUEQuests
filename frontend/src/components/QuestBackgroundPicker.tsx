@@ -7,12 +7,12 @@ function spriteLabel(id: string): string {
   return id.split(':').at(-1)!.split('/').at(-1)!.replace(/^background_icon_/, '').replaceAll('_', ' ')
 }
 
-export function QuestBackgroundPicker({ value, backgrounds, revision, onChange }:
-  { value: string; backgrounds: string[]; revision: string; onChange: (id: string) => void }) {
+export function QuestBackgroundPicker({ value, backgrounds, revision, onChange, panel = false }:
+  { value: string; backgrounds: string[]; revision: string; onChange: (id: string) => void; panel?: boolean }) {
   const id = useId()
   const activeOption = useRef<HTMLButtonElement>(null)
   const [active, setActive] = useState<string>()
-  const open = active !== undefined
+  const open = panel || active !== undefined
   const choices = [...new Set([DEFAULT_QUEST_BACKGROUND, ...backgrounds, value])]
   const highlighted = active !== undefined && choices.includes(active) ? active : value
   const index = choices.indexOf(highlighted)
@@ -27,7 +27,7 @@ export function QuestBackgroundPicker({ value, backgrounds, revision, onChange }
   return <div className="field quest-background-picker" onBlur={event => {
     if (!event.currentTarget.contains(event.relatedTarget)) setActive(undefined)
   }}>
-    <label htmlFor={id}>Quest background</label>
+    {!panel && <><label htmlFor={id}>Quest background</label>
     <button id={id} type="button" className="mc-button quest-background-trigger" role="combobox"
       title={value} aria-describedby={`${id}-value`} aria-expanded={open} aria-controls={open ? `${id}-options` : undefined}
       aria-activedescendant={open ? `${id}-option-${index}` : undefined}
@@ -57,12 +57,14 @@ export function QuestBackgroundPicker({ value, backgrounds, revision, onChange }
       <QuestBackgroundSprite id={value} revision={revision} />
       <span id={`${id}-value`} className="sr-only">{spriteLabel(value)}</span>
       <span className="quest-background-chevron" aria-hidden="true" />
-    </button>
-    {open && <div id={`${id}-options`} className="quest-background-options" role="listbox" aria-label="Quest backgrounds">
+    </button></>}
+    {open && <div id={`${id}-options`} className={`quest-background-options${panel ? ' quest-background-options--panel' : ''}`}
+      role={panel ? 'group' : 'listbox'} aria-label="Quest backgrounds">
       {choices.map((choice, optionIndex) => <button key={choice} id={`${id}-option-${optionIndex}`}
-        ref={choice === highlighted ? activeOption : undefined} type="button" className="mc-button quest-background-option"
-        data-active={choice === highlighted || undefined} role="option" tabIndex={-1} aria-label={spriteLabel(choice)}
-        aria-selected={choice === value} title={choice} onMouseDown={event => event.preventDefault()}
+        ref={!panel && choice === highlighted ? activeOption : undefined} type="button" className="mc-button quest-background-option"
+        data-active={choice === highlighted || undefined} role={panel ? undefined : 'option'} tabIndex={panel ? undefined : -1}
+        aria-label={spriteLabel(choice)} aria-pressed={panel ? choice === value : undefined}
+        aria-selected={panel ? undefined : choice === value} title={choice} onMouseDown={event => { if (!panel) event.preventDefault() }}
         onClick={() => choose(choice)}>
         <QuestBackgroundSprite id={choice} revision={revision} />
       </button>)}

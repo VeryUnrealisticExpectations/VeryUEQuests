@@ -1,210 +1,170 @@
-import {useEffect, useId, useRef} from 'react'
-import type {Catalog, ComponentTextContext, Task} from '../types.ts'
-import {labelFor, newTask} from '../lib/quests.ts'
-import type {TaskKind} from '../lib/taskEditor.ts'
-import {
-    changeTaskType,
-    customTaskFields,
-    defaultTaskType,
-    MAX_OBJECTIVE_COUNT,
-    objectiveCount,
-    taskDisplayIcon,
-    taskEditorId,
-    taskProblem,
-    updateCustomTaskFields
-} from '../lib/taskEditor.ts'
-import {ItemIcon} from './ItemIcon.tsx'
-import {RegistryPicker} from './RegistryPicker.tsx'
-import {JsonField} from './JsonField.tsx'
-import {ButtonSymbol} from './ButtonSymbol.tsx'
-
-function taskTypeLabel(type: string) {
-    return type === 'vuequests:advancement' ? 'Get advancement' : labelFor(type)
-}
+import type { Catalog, Task } from '../types.ts'
+import { labelFor } from '../lib/quests.ts'
+import { customTaskFields, taskDisplayIcon, updateCustomTaskFields } from '../lib/taskEditor.ts'
+import type { TaskKind } from '../lib/taskEditor.ts'
+import { integerInput, jsonObjectInput, taskInputId, taskQuantity } from '../lib/questWizard.ts'
+import type { InputDrafts, TaskRow } from '../lib/questWizard.ts'
+import { ButtonSymbol } from './ButtonSymbol.tsx'
+import { ItemIcon } from './ItemIcon.tsx'
+import { JsonField } from './JsonField.tsx'
 
 interface TaskListEditorProps {
-    kind: TaskKind
-    tasks: Task[]
-    onChange: (tasks: Task[]) => void
-    catalog: Catalog
-    epoch: number
-    textContext: ComponentTextContext
-    activeTask?: string
-    onActivate: (id?: string) => void
-    onCollapse: (id: string) => void
+  kind: TaskKind
+  rows: TaskRow[]
+  inputs: InputDrafts
+  catalog: Catalog
+  epoch: number
+  activeTrigger?: string
+  onInput: (id: string, text: string) => void
+  onChange: (key: string, task: Task) => void
+  onRemove: (key: string) => void
+  onPick: (key: string) => void
+  onChooseType: (key?: string) => void
 }
 
-export function TaskListEditor({kind, tasks, onChange, catalog, epoch, activeTask, onActivate, onCollapse}: TaskListEditorProps) {
-    const id = useId()
-    const section = useRef<HTMLElement>(null)
-    const slots = useRef<HTMLDivElement>(null)
-    const pointerDown = useRef(false)
-    const types = kind === 'objective' ? catalog.objectiveTypes : catalog.rewardTypes
-    const defaultType = defaultTaskType(kind, types)
-    const activeIndex = tasks.findIndex((task, index) => taskEditorId(kind, task, index) === activeTask)
-    const active = tasks[activeIndex]
-    useEffect(() => {
-        const press = () => { pointerDown.current = true }
-        const release = () => {
-            pointerDown.current = false
-            // Finish the click before a shorter modal can move its target.
-            requestAnimationFrame(() => {
-                if (activeTask && activeIndex >= 0 && !section.current?.contains(document.activeElement)) onCollapse(activeTask)
-            })
+export function TaskListEditor({ kind, rows, inputs, catalog, epoch, activeTrigger, onInput, onChange, onRemove,
+  onPick, onChooseType }: TaskListEditorProps) {
+  const addId = 'quest-add-' + kind
+  const types = kind === 'objective' ? catalog.objectiveTypes : catalog.rewardTypes
+  return <>
+    <p className="wizard-helper">{kind === 'objective' ? 'What must the player do?' : 'What does the player earn?'}</p>
+    <div className="wizard-task-list">
+      {rows.map(({ key, task }, index) => {
+        const targetId = taskInputId(key, 'target')
+        const typeId = taskInputId(key, 'type')
+        const componentsId = taskInputId(key, 'components')
+        const quantity = taskQuantity(task)
+        const quantityId = quantity && taskInputId(key, quantity.field)
+        const isItem = task.type === 'vuequests:collect_item' || task.type === 'vuequests:item'
+        const target = taskTarget(task, catalog)
+        const label = taskTypeLabel(task.type)
+        const changeQuantity = (text: string) => {
+          if (!quantity || !quantityId) return
+          onInput(quantityId, text)
+          const value = integerInput(text, quantity.min, quantity.max)
+          if (value === undefined) return
+          if (quantity.field === 'itemCount') onChange(key, { ...task, item: { ...task.item, id: task.item?.id ?? '', count: value } })
+          else onChange(key, { ...task, [quantity.field]: value })
         }
-        document.addEventListener('pointerdown', press, true)
-        document.addEventListener('pointerup', release, true)
-        document.addEventListener('pointercancel', release, true)
-        return () => {
-            document.removeEventListener('pointerdown', press, true)
-            document.removeEventListener('pointerup', release, true)
-            document.removeEventListener('pointercancel', release, true)
-        }
-    }, [activeTask, activeIndex, onCollapse])
-    useEffect(() => {
-        if (activeIndex >= 0) slots.current?.querySelectorAll<HTMLButtonElement>('.task-slot')[activeIndex]?.scrollIntoView({block: 'nearest', inline: 'nearest'})
-    }, [activeIndex, tasks.length])
-    const collapse = (returnFocus = false) => {
-        if (returnFocus && activeIndex >= 0) {
-            const buttons = slots.current?.querySelectorAll<HTMLButtonElement>('.task-slot')
-            buttons?.[activeIndex]?.focus({preventScroll: true})
-        }
-        if (activeTask) onCollapse(activeTask)
-    }
-    return <section ref={section} className="task-list" onBlur={event => {
-        if (active && !pointerDown.current && !event.currentTarget.contains(event.relatedTarget)) collapse()
-    }}>
-        <div className="subheading"><h3>{kind === 'objective' ? 'Objectives' : 'Rewards'}</h3>
-            <small>{tasks.length}</small>
-        </div>
-        <div className="task-icon-row">
-            <div ref={slots} className="task-icon-slots" role="group"
-                 aria-label={`${kind === 'objective' ? 'Objective' : 'Reward'} icons`}>
-                {tasks.map((task, index) => {
-                    const key = taskEditorId(kind, task, index)
-                    const selected = key === activeTask
-                    const count = objectiveCount(task) ?? (task.item ? task.item.count ?? 1 : undefined)
-                    const target = task.item?.id ?? task.entity
-                    const advancement = task.type === 'vuequests:advancement' ? task.advancement : undefined
-                    const detail = count !== undefined ? `${count} ${target ?? ''}` : advancement
-                    return <button key={key} type="button" className={`mc-button mc-button--icon task-slot${selected ? ' is-active' : ''}`}
-                                   aria-label={`Edit ${kind} ${index + 1}: ${taskTypeLabel(task.type)}`}
-                                   aria-expanded={selected} aria-controls={selected ? `${id}-editor` : undefined}
-                                   title={`${taskTypeLabel(task.type)}${detail ? ` · ${detail}` : ''}`}
-                                   onClick={() => onActivate(selected ? undefined : key)}>
-                        <ItemIcon id={taskDisplayIcon(kind, task)} epoch={epoch}/>
-                        {count !== undefined && <span className="task-slot-count" aria-hidden="true">{count}</span>}
-                    </button>
-                })}
-            </div>
-            <button type="button" className="mc-button mc-button--icon mc-button--green task-add-button"
-                    aria-label={`Add ${kind}`} title={`Add ${kind}`} disabled={!defaultType}
-                    onClick={() => {
-                        if (!defaultType) return
-                        const task = newTask(kind, defaultType)
-                        onChange([...tasks, task])
-                        onActivate(taskEditorId(kind, task, tasks.length))
-                    }}><ButtonSymbol symbol="plus"/>
+        return <div key={key} className="wizard-task" data-active={activeTrigger === targetId || activeTrigger === typeId || undefined}>
+          <div className="wizard-task-row">
+            <button type="button" id={targetId} className="wizard-task-target" aria-label={'Edit ' + kind + ' ' + (index + 1) + ': ' + label}
+              aria-expanded={task.type !== 'vuequests:experience' ? activeTrigger === targetId : undefined}
+              aria-controls={task.type !== 'vuequests:experience' ? 'quest-wizard-panel' : undefined} onClick={() => onPick(key)}>
+              <ItemIcon id={taskDisplayIcon(kind, task)} epoch={epoch} />
+              <span><strong>{target || label}</strong>{target && <small>{label}</small>}</span>
             </button>
+            {quantity && quantityId && <label className="field wizard-task-quantity">{quantity.label}
+              <input id={quantityId} type="text" inputMode="numeric" value={inputs[quantityId] ?? String(quantity.value)}
+                aria-invalid={integerInput(inputs[quantityId] ?? String(quantity.value), quantity.min, quantity.max) === undefined}
+                onChange={event => changeQuantity(event.target.value)} />
+            </label>}
+            <button type="button" className="mc-button mc-button--icon mc-button--small mc-button--red"
+              aria-label={'Remove ' + kind + ' ' + (index + 1)} onClick={() => onRemove(key)}>×</button>
+          </div>
+          <div className="wizard-task-actions">
+            <button type="button" id={typeId} className="mc-button mc-button--small" aria-expanded={activeTrigger === typeId}
+              aria-controls="quest-wizard-panel" onClick={() => onChooseType(key)}>Change type</button>
+            {isItem && <details className="advanced-fields">
+              <summary>Item components</summary>
+              <JsonField id={componentsId} label="Components" text={inputs[componentsId] ?? JSON.stringify(task.item?.components ?? {}, null, 2)}
+                onChange={text => {
+                  onInput(componentsId, text)
+                  const components = jsonObjectInput(text)
+                  if (components) onChange(key, { ...task, item: { ...task.item, id: task.item?.id ?? '', components } })
+                }} />
+            </details>}
+          </div>
         </div>
-        {!tasks.length && <p className="muted">No {kind === 'objective' ? 'objectives' : 'rewards'} yet.</p>}
-        {active && <TaskEditor key={activeTask} id={`${id}-editor`} kind={kind} task={active} index={activeIndex}
-                              onChange={changed => onChange(tasks.map((entry, i) => i === activeIndex ? changed : entry))}
-                              onRemove={() => {
-                                  onChange(tasks.filter((_, i) => i !== activeIndex))
-                                  collapse()
-                              }}
-                              onDone={() => collapse(true)} catalog={catalog} epoch={epoch}/>}
-    </section>
-}
-
-function TaskEditor({id, kind, task, index, onChange, onRemove, onDone, catalog, epoch}:
-                    {
-                        id: string;
-                        kind: TaskKind;
-                        task: Task;
-                        index: number;
-                        onChange: (task: Task) => void;
-                        onRemove: () => void;
-                        onDone: () => void;
-                        catalog: Catalog;
-                        epoch: number
-                    }) {
-    const editor = useRef<HTMLDivElement>(null)
-    const advancementInput = useRef<HTMLInputElement>(null)
-    const types = kind === 'objective' ? catalog.objectiveTypes : catalog.rewardTypes
-    const update = (change: Partial<Task>) => onChange({...task, ...change})
-    const isItem = task.type === 'vuequests:collect_item' || task.type === 'vuequests:item'
-    const isEntity = task.type === 'vuequests:entity'
-    const isAdvancement = task.type === 'vuequests:advancement'
-    const targetCount = objectiveCount(task)
-    useEffect(() => {
-        if (isAdvancement) advancementInput.current?.setCustomValidity(taskProblem(task) ?? '')
-    }, [isAdvancement, task])
-    const finish = () => {
-        const fields = editor.current?.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input, select, textarea')
-        if (fields && Array.from(fields).some(field => !field.reportValidity())) return
-        onDone()
-    }
-    return <div ref={editor} id={id} className="task-card task-expanded-editor">
-        <div className="task-card-header">
-            <span className="task-card-icon"><ItemIcon id={taskDisplayIcon(kind, task)} epoch={epoch}/></span>
-            <label className="field task-type-field">{kind === 'objective' ? 'Objective type' : 'Reward type'}
-                <select autoFocus value={task.type} title={task.type}
-                        onChange={event => onChange(changeTaskType(kind, task, event.target.value))}>
-                    {!types.some(type => type.id === task.type) &&
-                        <option value={task.type}>{taskTypeLabel(task.type)} (unavailable)</option>}
-                    {types.map(type => <option key={type.id}
-                                               value={type.id}>{taskTypeLabel(type.id)}{type.id.startsWith('vuequests:') ? '' : ` · ${type.id.split(':')[0]}`}</option>)}
-                </select>
-            </label>
-            <button type="button" className="mc-button mc-button--icon mc-button--red"
-                    aria-label={`Remove ${kind} ${index + 1}`} onClick={onRemove}>×
-            </button>
-        </div>
-        {(isItem || isEntity) && <div className="field-row task-item-fields">
-            {isItem
-                ? <RegistryPicker label="Item" value={task.item?.id ?? ''} onChange={id => update({
-                    item: {...task.item, id}
-                })} catalog={catalog} epoch={epoch}/>
-                : <RegistryPicker label="Entity" kind="entities" value={task.entity ?? ''}
-                                  onChange={entity => update({entity})} catalog={catalog} epoch={epoch}/>}
-            {targetCount !== undefined
-                ? <label className="field small-field objective-count-field">Count
-                    <input type="number" min={1} max={MAX_OBJECTIVE_COUNT} step={1} required value={targetCount}
-                           onChange={event => update({count: Number(event.target.value)})}/>
-                </label>
-                : <label className="field small-field">Count
-                    <input type="number" min={1} max={99} step={1} required value={task.item?.count ?? 1}
-                           onChange={event => update({
-                               item: {...task.item, id: task.item?.id ?? 'minecraft:book', count: Number(event.target.value)}
-                           })}/>
-                </label>}
-        </div>}
-        {isAdvancement && <label className="field">Advancement ID
-            <input ref={advancementInput} required list={`${id}-advancements`} value={task.advancement ?? ''}
-                   placeholder="minecraft:story/mine_stone" autoComplete="off" spellCheck={false}
-                   onChange={event => update({advancement: event.target.value})}/>
-            <datalist id={`${id}-advancements`}>
-                {catalog.advancements?.map(id => <option key={id} value={id}/>)}
-            </datalist>
-        </label>}
-        {task.type === 'vuequests:experience' &&
-            <label className="field">Experience<input type="number" min={0} step={1} required
-                                                      value={task.experience ?? 0}
-                                                      onChange={event => update({experience: Number(event.target.value)})}/></label>}
-        {isItem && <details className="advanced-fields">
-            <summary>Item components</summary>
-            <JsonField label="Components" value={task.item?.components ?? {}} onChange={components => update({
-                item: {...task.item, id: task.item?.id ?? 'minecraft:book', components},
-            })}/></details>}
-        {!isItem && !isEntity && !isAdvancement && task.type !== 'vuequests:experience' &&
-            <JsonField key={task.type}
-                       label={`Fields (${types.find(type => type.id === task.type)?.fields.join(', ') ?? 'custom type'})`}
-                       value={customTaskFields(kind, task)}
-                       onChange={fields => onChange(updateCustomTaskFields(kind, task, fields))}/>}
-        <div className="task-editor-footer">
-            <button type="button" className="mc-button mc-button--small mc-button--green" onClick={finish}>Done</button>
-        </div>
+      })}
     </div>
+    {!rows.length && <p className="muted">No {kind === 'objective' ? 'objectives' : 'rewards'} yet.</p>}
+    <button type="button" id={addId} className={'mc-button wizard-add' + (activeTrigger === addId ? ' mc-button--green' : '')}
+      disabled={!types.length} aria-expanded={activeTrigger === addId} aria-controls="quest-wizard-panel" onClick={() => onChooseType()}>
+      <ButtonSymbol symbol="plus" /> Add {kind}
+    </button>
+  </>
+}
+
+export function TaskSummary({ kind, rows, catalog, epoch }: Pick<TaskListEditorProps, 'kind' | 'rows' | 'catalog' | 'epoch'>) {
+  if (!rows.length) return <p className="muted">None</p>
+  return <ul className="wizard-summary-tasks">
+    {rows.map(({ key, task }) => {
+      const quantity = taskQuantity(task)
+      const target = taskTarget(task, catalog)
+      const components = task.item?.components
+      const fields = !target && !quantity ? customTaskFields(kind, task) : components
+      return <li key={key}>
+        <div className="wizard-summary-task-row">
+          <ItemIcon id={taskDisplayIcon(kind, task)} epoch={epoch} />
+          <span><strong>{taskTypeLabel(task.type)}</strong>
+            {target && <small>{target}</small>}</span>
+          {quantity && <span>{quantity.value}</span>}
+        </div>
+        {fields && Object.keys(fields).length > 0 && <details className="advanced-fields">
+          <summary>{components ? 'Item components' : 'Custom fields'}</summary>
+          <pre className="wizard-summary-payload">{JSON.stringify(fields, null, 2)}</pre>
+        </details>}
+      </li>
+    })}
+  </ul>
+}
+
+export function CustomTaskEditor({ kind, row, catalog, inputs, onInput, onChange }:
+  Pick<TaskListEditorProps, 'kind' | 'catalog' | 'inputs' | 'onInput' | 'onChange'> & { row: TaskRow }) {
+  const { key, task } = row
+  const id = taskInputId(key, 'fields')
+  const types = kind === 'objective' ? catalog.objectiveTypes : catalog.rewardTypes
+  const fields = types.find(type => type.id === task.type)?.fields
+  return <JsonField id={id} label={fields?.length ? 'Fields (' + fields.join(', ') + ')' : 'Custom fields'}
+    text={inputs[id] ?? JSON.stringify(customTaskFields(kind, task), null, 2)} onChange={text => {
+      onInput(id, text)
+      const value = jsonObjectInput(text)
+      if (value) onChange(key, updateCustomTaskFields(kind, task, value))
+    }} />
+}
+
+function taskTarget(task: Task, catalog: Catalog): string | undefined {
+  if (task.type === 'vuequests:collect_item' || task.type === 'vuequests:item') {
+    return catalog.items.find(entry => entry.id === task.item?.id)?.name ?? task.item?.id
+  }
+  if (task.type === 'vuequests:entity') return catalog.entities.find(entry => entry.id === task.entity)?.name ?? task.entity
+  if (task.type === 'vuequests:advancement') return task.advancement || 'Choose advancement'
+}
+
+function taskTypeLabel(type: string): string {
+  return taskTypeNames[type] ?? labelFor(type)
+}
+
+const taskTypeNames: Record<string, string> = {
+  'vuequests:collect_item': 'Collect item',
+  'vuequests:entity': 'Slay entity',
+  'vuequests:advancement': 'Get advancement',
+  'vuequests:item': 'Item reward',
+  'vuequests:experience': 'Experience',
+}
+
+const typeHints: Record<string, { icon: string; description: string }> = {
+  'vuequests:collect_item': { icon: 'minecraft:cobblestone', description: 'Require a quantity of an item.' },
+  'vuequests:entity': { icon: 'minecraft:iron_sword', description: 'Require kills of an entity type.' },
+  'vuequests:advancement': { icon: 'minecraft:enchanted_book', description: 'Require a Minecraft advancement.' },
+  'vuequests:item': { icon: 'minecraft:chest', description: 'Give the player an item stack.' },
+  'vuequests:experience': { icon: 'minecraft:experience_bottle', description: 'Give the player experience.' },
+}
+
+export function TaskTypePicker({ kind, catalog, epoch, value, onChoose }:
+  { kind: TaskKind; catalog: Catalog; epoch: number; value?: string; onChoose: (type: string) => void }) {
+  const types = kind === 'objective' ? catalog.objectiveTypes : catalog.rewardTypes
+  const order = Object.keys(typeHints)
+  const rank = (id: string) => id in typeHints ? order.indexOf(id) : order.length
+  const choices = [...types].sort((a, b) => rank(a.id) - rank(b.id))
+  return <div className="wizard-type-choices">
+    {value && !choices.some(type => type.id === value) && <p className="muted">{value} is currently unavailable.</p>}
+    {choices.map(({ id }) => <button key={id} type="button" className="mc-button wizard-type-choice"
+      aria-pressed={value ? value === id : undefined} onClick={() => onChoose(id)}>
+      <ItemIcon id={typeHints[id]?.icon ?? (kind === 'objective' ? 'minecraft:book' : 'minecraft:chest')} epoch={epoch} />
+      <span><strong>{taskTypeLabel(id)}</strong><small>{typeHints[id]?.description ?? id}</small></span>
+      <span aria-hidden="true">›</span>
+    </button>)}
+  </div>
 }

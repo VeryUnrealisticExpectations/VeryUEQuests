@@ -41,6 +41,7 @@ export default function App() {
     return () => window.removeEventListener('keydown', shortcut)
   }, [editor])
   return <div className="editor-app" style={{
+    '--grass-texture': `url("${gameTextureUrl('grass_block_side', textContext.assetRevision)}")`,
     '--dirt-texture': `url("${gameTextureUrl('dirt', textContext.assetRevision)}")`,
     '--stone-texture': `url("${gameTextureUrl('stone', textContext.assetRevision)}")`,
   } as CSSProperties}>
