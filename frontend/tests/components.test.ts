@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import type { ChatComponent, ComponentTextContext } from '../src/types.ts'
-import { ComponentHistory, componentInputChange, hasComponentContent, plainComponentText, projectComponent, replaceComponentRange, selectedComponent, styleComponentRange } from '../src/lib/components.ts'
+import { ComponentHistory, componentInputChange, hasComponentContent, isChatComponent, plainComponentText, projectComponent, replaceComponentRange, selectedComponent, styleComponentRange } from '../src/lib/components.ts'
 
 const context: ComponentTextContext = { assetRevision: 'one', source: 'local-client', language: 'en_us', rightToLeft: false, fonts: [],
   translations: [{ key: 'test.key', value: '%2$s %% %s' }], keybinds: [{ key: 'key.jump', label: 'Jump', resolved: 'Space' }] }
@@ -24,6 +24,39 @@ test('partial formatting preserves ancestor styles and unselected extra children
   assert.ok(leaves.every(leaf => JSON.stringify(leaf.style.clickEvent) === JSON.stringify(value.clickEvent)))
   assert.equal(plainComponentText(updated), 'Hello world')
   assert.equal(value.text, 'Hello')
+})
+
+test('repeated font changes replace the existing font and compact old style wrappers', () => {
+  const title = 'Get The Achievement'
+  const hoverEvent = { action: 'show_text', contents: { text: 'Hint', font: 'minecraft:alt' } }
+  let value: ChatComponent = { text: '', color: 'gold', hoverEvent, extra: [
+    { text: '', font: 'minecraft:default', extra: [{ text: title, font: 'minecraft:uniform', bold: false }] },
+  ] }
+  for (let i = 0; i < 100; i++) {
+    const font = i % 2 ? 'minecraft:uniform' : 'minecraft:default'
+    value = styleComponentRange(value, 0, title.length, { font })
+    assert.deepEqual(value, { text: title, font, color: 'gold', bold: false, hoverEvent })
+    assert.ok(isChatComponent(value))
+  }
+})
+
+test('repeated font changes preserve the separate styles of unselected array siblings', () => {
+  const anchor = { text: 'First', font: 'minecraft:alt', color: 'red', extra: [{ text: ' end' }] }
+  const token = { translate: 'test.key', with: [{ text: 'Argument', font: 'minecraft:uniform' }] }
+  const value: ChatComponent = [[anchor], token]
+  const before = projectComponent(value).leaves.filter(leaf => leaf.text)
+  let styled = styleComponentRange(value, 0, anchor.text.length, { font: 'minecraft:uniform' })
+  const length = JSON.stringify(styled).length
+  for (let i = 0; i < 20; i++) {
+    styled = styleComponentRange(styled, 0, anchor.text.length, { font: i % 2 ? 'minecraft:uniform' : 'minecraft:default' })
+    assert.equal(JSON.stringify(styled).length, length)
+  }
+  const after = projectComponent(styled).leaves.filter(leaf => leaf.text)
+  assert.deepEqual(after.map(leaf => leaf.text), before.map(leaf => leaf.text))
+  assert.deepEqual(after.map(leaf => leaf.style), [{ color: 'red', font: 'minecraft:uniform' }, ...before.slice(1).map(leaf => leaf.style)])
+  assert.deepEqual(after.at(-1)?.own, token)
+  assert.deepEqual(styleComponentRange(['A', 'B'], 0, 1, { font: 'minecraft:uniform' }),
+    [{ text: '', extra: [{ text: 'A', font: 'minecraft:uniform' }] }, 'B'])
 })
 
 test('removing inherited hover only affects the selected text', () => {
@@ -141,7 +174,7 @@ test('undo and redo preserve the full complex document and the clean deletion st
   assert.deepEqual(history.redo(restored), deleted)
 })
 
-test('typed token replacements strip the wrapper discriminator and preserve unchanged typed children', () => {
+test('typed token replacements strip the wrapper discriminator and style edits retain the typed token', () => {
   const fixtures: ChatComponent[] = [{ type: 'keybind', keybind: 'key.jump' }, { type: 'translatable', translate: 'test.key', with: ['A', 'B'] },
     { type: 'score', score: { name: 'Player', objective: 'points' } }]
   for (const fixture of fixtures) {
@@ -149,7 +182,7 @@ test('typed token replacements strip the wrapper discriminator and preserve unch
     assert.equal((replaced as { type?: string }).type, undefined)
     assert.equal(plainComponentText(replaced), 'Replacement')
     const styled = styleComponentRange(fixture, 0, 1, { color: 'red' })
-    assert.equal((styled as { type?: string }).type, undefined)
+    assert.deepEqual(styled, { ...fixture as object, color: 'red' })
     const atomic = projectComponent(styled).leaves.find(leaf => leaf.kind === 'atomic')!
     assert.deepEqual(atomic.own, { ...fixture as object, color: 'red' })
     const kept = projectComponent(replaceComponentRange(fixture, 0, 0, 'Prefix')).leaves.find(leaf => leaf.kind === 'atomic')!

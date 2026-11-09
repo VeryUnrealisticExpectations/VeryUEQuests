@@ -144,11 +144,20 @@ function inheritRootStyle(value: ChatComponent, inherited: ComponentObject): Cha
   return { ...value, ...styles(value, inherited) }
 }
 
-function transformLeaves(value: ChatComponent, changes: Map<string, ChatComponent[]>, removed: string[] = [], pruneDeleted = false): ChatComponent {
-  const walk = (component: ChatComponent, path: Path, inherited: ComponentObject): { component?: ChatComponent; changed: boolean } => {
+function compactStyleWrapper(value: ComponentObject): ChatComponent {
+  const child = value.extra?.[0]
+  if (value.text !== '' || value.extra?.length !== 1 || child === undefined || Array.isArray(child)
+    || Object.keys(value).some(key => key !== 'text' && key !== 'extra' && !COMPONENT_STYLES.some(style => style === key))) return value
+  return inheritRootStyle(child, styles(value, {}))
+}
+
+function transformLeaves(value: ChatComponent, changes: Map<string, ChatComponent[]>,
+  { styleEdit, pruneDeleted = false }: { styleEdit?: { removed: string[] }; pruneDeleted?: boolean } = {}): ChatComponent {
+  const walk = (component: ChatComponent, path: Path, inherited: ComponentObject, arrayAnchor = false): { component?: ChatComponent; changed: boolean } => {
     if (Array.isArray(component)) {
       const arrayStyle = rootStyle(component[0], inherited)
-      const children = component.map((entry, index) => walk(entry, [...path, index], index ? arrayStyle : inherited))
+      const children = component.map((entry, index) => walk(entry, [...path, index], index ? arrayStyle : inherited,
+        index === 0 && (arrayAnchor || component.length > 1)))
       if (!children.some(child => child.changed)) return { component, changed: false }
       const parts = children.flatMap(child => child.component === undefined ? [] : [child.component])
       if (!parts.length) return { changed: true }
@@ -160,7 +169,7 @@ function transformLeaves(value: ChatComponent, changes: Map<string, ChatComponen
     const parts = changes.get(pathId(path))
     if (typeof component === 'string') {
       if (!parts) return { component, changed: false }
-      const result = parts.length === 1 ? parts[0] : parts.length ? { text: '', extra: parts } : ''
+      const result = parts.length === 1 && !(styleEdit && arrayAnchor) ? parts[0] : parts.length ? { text: '', extra: parts } : ''
       return { component: pruneDeleted && !projectComponent(result).text.length ? undefined : result, changed: true }
     }
     const effective = styles(component, inherited)
@@ -178,11 +187,13 @@ function transformLeaves(value: ChatComponent, changes: Map<string, ChatComponen
         const part = parts[0]
         const oldWithoutText = { ...own }, newWithoutText = { ...part }
         delete oldWithoutText.text; delete newWithoutText.text
-        if (same(oldWithoutText, newWithoutText)) result = { ...part, ...(extras.length ? { extra: extras } : {}) }
-        else result = wrapper(component, parts, extras)
+        if ((styleEdit && !arrayAnchor && !extras.length) || same(oldWithoutText, newWithoutText)) {
+          result = { ...part, ...(extras.length ? { extra: extras } : {}) }
+        } else result = wrapper(component, parts, extras)
       } else result = wrapper(component, parts, extras)
-      for (const key of removed) delete result[key]
+      for (const key of styleEdit?.removed ?? []) delete result[key]
     }
+    if (styleEdit && !arrayAnchor) return { component: compactStyleWrapper(result), changed: true }
     return { component: pruneDeleted && !projectComponent(result).text.length ? undefined : result, changed: true }
   }
   return walk(value, [], {}).component ?? (typeof value === 'string' ? '' : { text: '' })
@@ -239,7 +250,7 @@ export function replaceComponentRange(value: ChatComponent, start: number, end: 
       changes.set(leaf.id, parts)
     }
   }
-  return transformLeaves(value, changes, [], pruneDeleted)
+  return transformLeaves(value, changes, { pruneDeleted })
 }
 
 function materializeAttributes(value: ChatComponent, keys: string[]): ChatComponent {
@@ -273,7 +284,7 @@ export function styleComponentRange(value: ChatComponent, start: number, end: nu
   const projection = projectComponent(value)
   const changes = new Map<string, ChatComponent[]>()
   for (const leaf of projection.leaves) {
-    if (leaf.start >= end || leaf.end <= start) continue
+    if (!leaf.text.length || leaf.start >= end || leaf.end <= start) continue
     if (leaf.kind === 'atomic') {
       const own = { ...(leaf.own as ComponentObject) }
       for (const [key, next] of Object.entries(change)) { if (next === null || next === undefined) delete own[key]; else own[key] = next }
@@ -287,7 +298,7 @@ export function styleComponentRange(value: ChatComponent, start: number, end: nu
       changes.set(leaf.id, parts)
     }
   }
-  return transformLeaves(value, changes, removed)
+  return transformLeaves(value, changes, { styleEdit: { removed } })
 }
 
 export function selectedComponent(value: ChatComponent, start: number, end: number): ChatComponent {
