@@ -14,7 +14,7 @@ import java.util.UUID;
 /**
  * @param display     todo; these should probably be localizable.
  * @param sectionUUID todo; not sure
- */ // todo;m maybe a record
+ */
 public record Quest(QuestPosition position, QuestDisplay display, UUID sectionUUID, UUID questId,
                     List<QuestObjective<?, ?>> objectives, List<RewardType<?>> rewards, List<UUID> dependencies) {
 

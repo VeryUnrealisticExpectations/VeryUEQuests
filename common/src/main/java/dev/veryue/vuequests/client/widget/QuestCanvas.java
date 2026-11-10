@@ -1,9 +1,12 @@
 package dev.veryue.vuequests.client.widget;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.veryue.vuequests.client.ClientQuestData;
+import dev.veryue.vuequests.client.QuestCanvasKeyMappings;
 import dev.veryue.vuequests.models.quest.Quest;
 import dev.veryue.vuequests.models.quest.Section;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -13,7 +16,6 @@ import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,10 +32,12 @@ public class QuestCanvas extends QuestPanel {
     private static final double PAN_SMOOTHING_NANOS = 25_000_000.0;
     private static final double PAN_SNAP_DISTANCE = 0.01;
     private static final double CLICK_SLOP = 3;
+    private static final int PAN_STEP = 24;
 
     private final List<QuestNodeWidget> nodes = new ArrayList<>();
     private final List<QuestDependencyLine> dependencyLines = new ArrayList<>();
     private final Consumer<Quest> onOpen;
+    private final QuestCanvasKeyMappings keyMappings;
     private Section section;
     private double panX;
     private double panY;
@@ -50,9 +54,10 @@ public class QuestCanvas extends QuestPanel {
     private double pressX;
     private double pressY;
 
-    public QuestCanvas(Font font, Consumer<Quest> onOpen) {
+    public QuestCanvas(Font font, Consumer<Quest> onOpen, QuestCanvasKeyMappings keyMappings) {
         super(font, Component.translatable("screen.vuequests.quest_menu"), QuestWidgetSprites.CANVAS);
         this.onOpen = onOpen;
+        this.keyMappings = keyMappings;
     }
 
     public void setSection(Section section) {
@@ -289,7 +294,14 @@ public class QuestCanvas extends QuestPanel {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (!isMouseOver(mouseX, mouseY) || button != 0) {
+        if (!isMouseOver(mouseX, mouseY)) {
+            return false;
+        }
+        if (viewport().containsPoint((int) mouseX, (int) mouseY)
+                && handleShortcut(InputConstants.Type.MOUSE.getOrCreate(button))) {
+            return true;
+        }
+        if (button != 0) {
             return false;
         }
         pressedNode = nodeAt(mouseX, mouseY);
@@ -344,34 +356,29 @@ public class QuestCanvas extends QuestPanel {
         return true;
     }
 
-    @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (!isActive() || !isFocused()) {
+    public boolean handleShortcut(InputConstants.Key key) {
+        if (!isActive()) {
             return false;
         }
-        // todo; add configurable keybinds that are context tied to the UI.
-        if (keyCode == GLFW.GLFW_KEY_HOME) {
+        KeyMapping mapping = keyMappings.matching(key);
+        if (mapping == keyMappings.recenter) {
             recenter();
-            return true;
-        }
-        if (keyCode == GLFW.GLFW_KEY_EQUAL || keyCode == GLFW.GLFW_KEY_KP_ADD
-                || keyCode == GLFW.GLFW_KEY_MINUS || keyCode == GLFW.GLFW_KEY_KP_SUBTRACT) {
+        } else if (mapping == keyMappings.zoomIn || mapping == keyMappings.zoomOut) {
             ScreenRectangle viewport = viewport();
-            int direction = keyCode == GLFW.GLFW_KEY_EQUAL || keyCode == GLFW.GLFW_KEY_KP_ADD ? 1 : -1;
+            int direction = mapping == keyMappings.zoomIn ? 1 : -1;
             zoomAt(direction, viewport.left() + viewport.width() / 2.0, viewport.top() + viewport.height() / 2.0);
-            return true;
+        } else if (mapping == keyMappings.panLeft) {
+            targetPanX += PAN_STEP;
+        } else if (mapping == keyMappings.panRight) {
+            targetPanX -= PAN_STEP;
+        } else if (mapping == keyMappings.panUp) {
+            targetPanY += PAN_STEP;
+        } else if (mapping == keyMappings.panDown) {
+            targetPanY -= PAN_STEP;
+        } else {
+            return false;
         }
-        if ((modifiers & GLFW.GLFW_MOD_SHIFT) != 0) {
-            switch (keyCode) {
-                case GLFW.GLFW_KEY_LEFT -> targetPanX += 24;
-                case GLFW.GLFW_KEY_RIGHT -> targetPanX -= 24;
-                case GLFW.GLFW_KEY_UP -> targetPanY += 24;
-                case GLFW.GLFW_KEY_DOWN -> targetPanY -= 24;
-                default -> { return super.keyPressed(keyCode, scanCode, modifiers); }
-            }
-            return true;
-        }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return true;
     }
 
     @Override

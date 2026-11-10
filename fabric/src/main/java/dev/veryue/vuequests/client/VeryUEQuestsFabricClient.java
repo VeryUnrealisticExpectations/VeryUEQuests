@@ -12,6 +12,8 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 public class VeryUEQuestsFabricClient implements ClientModInitializer {
 
+    private final QuestCanvasKeyMappings canvasKeys = new QuestCanvasKeyMappings();
+
     @Override
     public void onInitializeClient() {
         ClientEditorResources.initialize();
@@ -21,7 +23,8 @@ public class VeryUEQuestsFabricClient implements ClientModInitializer {
                 (payload, context) -> ClientQuestData.updateProgress(payload.user()));
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> ClientQuestData.clear());
         KeyBindingHelper.registerKeyBinding(VeryUEKeyMappings.OPEN_QUEST_MENU);
-        ClientTickEvents.END_CLIENT_TICK.register(client -> VeryUEKeyMappings.onClientTick(client, this::sendToServer));
+        canvasKeys.register(KeyBindingHelper::registerKeyBinding);
+        ClientTickEvents.END_CLIENT_TICK.register(client -> VeryUEKeyMappings.onClientTick(client, this::sendToServer, canvasKeys));
         ClientTickEvents.END_CLIENT_TICK.register(ClientEditorResources::tick);
     }
 

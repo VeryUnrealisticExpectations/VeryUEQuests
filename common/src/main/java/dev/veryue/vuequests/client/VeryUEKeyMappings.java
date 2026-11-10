@@ -21,10 +21,11 @@ public class VeryUEKeyMappings {
             "key.categories." + MOD_ID
     );
 
-    public static void onClientTick(Minecraft client, Consumer<CustomPacketPayload> sendToServer) {
+    public static void onClientTick(Minecraft client, Consumer<CustomPacketPayload> sendToServer,
+                                    QuestCanvasKeyMappings canvasKeys) {
         while (OPEN_QUEST_MENU.consumeClick()) {
             if (client.player != null && client.screen == null) {
-                QuestScreen screen = new QuestScreen(sendToServer::accept);
+                QuestScreen screen = new QuestScreen(sendToServer::accept, canvasKeys);
                 client.setScreen(screen);
                 if (client.screen == screen) {
                     sendToServer.accept(QuestScreenOpenedPayload.INSTANCE);

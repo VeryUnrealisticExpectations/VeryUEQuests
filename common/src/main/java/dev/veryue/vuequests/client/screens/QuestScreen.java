@@ -1,6 +1,8 @@
 package dev.veryue.vuequests.client.screens;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import dev.veryue.vuequests.client.ClientQuestData;
+import dev.veryue.vuequests.client.QuestCanvasKeyMappings;
 import dev.veryue.vuequests.client.widget.QuestCanvas;
 import dev.veryue.vuequests.client.widget.QuestSectionPanel;
 import dev.veryue.vuequests.client.widget.QuestSectionToggle;
@@ -26,15 +28,17 @@ import static dev.veryue.vuequests.VeryUEConstants.MOD_ID;
 public class QuestScreen extends Screen {
 
     private final Consumer<ClaimQuestRewardPayload> sendRewardClaim;
+    private final QuestCanvasKeyMappings canvasKeys;
     private QuestSectionPanel sectionPanel;
     private QuestSectionToggle sectionToggle;
     private QuestCanvas canvas;
     private QuestData data;
     private UUID selectedSection;
 
-    public QuestScreen(Consumer<ClaimQuestRewardPayload> sendRewardClaim) {
+    public QuestScreen(Consumer<ClaimQuestRewardPayload> sendRewardClaim, QuestCanvasKeyMappings canvasKeys) {
         super(Component.translatable("screen." + MOD_ID + ".quest_menu"));
         this.sendRewardClaim = sendRewardClaim;
+        this.canvasKeys = canvasKeys;
     }
 
     @Override
@@ -43,7 +47,7 @@ public class QuestScreen extends Screen {
         sectionPanel.setTabOrderGroup(0);
         sectionToggle = addWidget(new QuestSectionToggle(font, button -> toggleSections()));
         sectionToggle.setTabOrderGroup(1);
-        canvas = addWidget(new QuestCanvas(font, this::openQuest));
+        canvas = addWidget(new QuestCanvas(font, this::openQuest, canvasKeys));
         canvas.setTabOrderGroup(2);
 
         addRenderableOnly(canvas);
@@ -97,6 +101,12 @@ public class QuestScreen extends Screen {
         }
         selectedSection = sectionId;
         canvas.setSection(section);
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        return canvas.handleShortcut(InputConstants.getKey(keyCode, scanCode))
+                || super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override

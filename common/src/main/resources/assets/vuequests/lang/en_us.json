@@ -1,6 +1,14 @@
 {
     "key.categories.vuequests": "VUE Quests",
     "key.vuequests.open_quest_menu": "Open Quest Menu",
+    "key.categories.vuequests.quest_canvas": "VUE Quests - Quest Canvas (Quest Menu Only)",
+    "key.vuequests.canvas.recenter": "Recenter and Reset Zoom",
+    "key.vuequests.canvas.zoom_in": "Zoom In",
+    "key.vuequests.canvas.zoom_out": "Zoom Out",
+    "key.vuequests.canvas.pan_left": "Pan Left",
+    "key.vuequests.canvas.pan_right": "Pan Right",
+    "key.vuequests.canvas.pan_up": "Pan Up",
+    "key.vuequests.canvas.pan_down": "Pan Down",
     "screen.vuequests.quest_menu": "Quest Menu",
 
     "screen.vuequests.section_title": "VUE Quests",
@@ -31,6 +39,6 @@
     "narration.vuequests.position": "%s of %s",
     "narration.vuequests.selected_section": "Selected section",
     "narration.vuequests.panel_usage": "Use Tab or the arrow keys to move between entries. Press Enter or Space to select.",
-    "narration.vuequests.canvas_usage": "Use Tab or the arrow keys to browse quests. Press Enter or Space to open quest details. Hold Shift and press the arrow keys to move the map. Use the mouse wheel or plus and minus keys to zoom. Press Home to center the map and reset zoom.",
+    "narration.vuequests.canvas_usage": "Use Tab or the arrow keys to browse quests. Press Enter or Space to open quest details. Use the mouse wheel to zoom. By default, hold Shift and press the arrow keys to pan, use plus and minus to zoom, and press Home to recenter. Canvas shortcuts can be changed in Controls.",
     "narration.vuequests.details_usage": "Use the up and down arrows or Page Up and Page Down to scroll. Press Escape to close."
 }
