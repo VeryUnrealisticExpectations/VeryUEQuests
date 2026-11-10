@@ -21,6 +21,7 @@ import net.neoforged.neoforge.event.entity.player.AdvancementEvent.AdvancementPr
 import net.neoforged.neoforge.event.entity.player.AdvancementEvent.AdvancementProgressEvent.ProgressType;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerRespawnEvent;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
@@ -43,6 +44,7 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
         NeoForge.EVENT_BUS.addListener(this::onServerStopping);
         NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedIn);
         NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedOut);
+        NeoForge.EVENT_BUS.addListener(this::onPlayerRespawn);
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, this::onLivingDeath);
         NeoForge.EVENT_BUS.addListener(this::onAdvancementProgress);
     }
@@ -72,7 +74,10 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
         if (event.getPlayer() != null) {
             PacketDistributor.sendToPlayer(event.getPlayer(), QuestSyncPayload.create(event.getPlayer()));
         } else {
-            event.getPlayerList().getPlayers().forEach(player -> PacketDistributor.sendToPlayer(player, QuestSyncPayload.create(player)));
+            for (ServerPlayer player : event.getPlayerList().getPlayers()) {
+                restoreAttributeRewards(player);
+                PacketDistributor.sendToPlayer(player, QuestSyncPayload.create(player));
+            }
         }
     }
 
@@ -86,7 +91,13 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
 
     private void onPlayerLoggedIn(PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
-            loadPlayer(player.getUUID());
+            onPlayerLogin(player);
+        }
+    }
+
+    private void onPlayerRespawn(PlayerRespawnEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player) {
+            restoreAttributeRewards(player);
         }
     }
 

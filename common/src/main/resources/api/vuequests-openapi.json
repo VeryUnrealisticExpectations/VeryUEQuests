@@ -1337,7 +1337,7 @@
           "type"
         ],
         "additionalProperties": true,
-        "description": "Dispatched to the registered reward codec. vuequests:item requires item; vuequests:experience requires experience. Other mods can supply arbitrary codec fields."
+        "description": "Dispatched to the registered reward codec. Discover required fields for built-in and modded types through /check/rewards."
       },
       "ListMode": {
         "type": "string",

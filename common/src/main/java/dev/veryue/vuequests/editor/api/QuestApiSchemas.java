@@ -1,6 +1,7 @@
 package dev.veryue.vuequests.editor.api;
 
 import dev.veryue.vuequests.editor.api.models.JsonSchema;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,11 +30,22 @@ public class QuestApiSchemas {
         return entry(type, "reward_id", field, value);
     }
 
+    public static JsonSchema reward(String type, Map<String, JsonSchema> fields) {
+        return entry(type, "reward_id", fields);
+    }
+
     private static JsonSchema entry(String type, String idField, String field, JsonSchema value) {
+        return entry(type, idField, Map.of(field, value));
+    }
+
+    private static JsonSchema entry(String type, String idField, Map<String, JsonSchema> fields) {
         Map<String, JsonSchema> properties = new LinkedHashMap<>();
         properties.put("type", JsonSchema.type("string").values(type));
         properties.put(idField, JsonSchema.type("string").format("uuid").description("Generated when omitted in an API request."));
-        properties.put(field, value);
-        return JsonSchema.object(properties, List.of("type", field));
+        properties.putAll(fields);
+        List<String> required = new ArrayList<>();
+        required.add("type");
+        required.addAll(fields.keySet());
+        return JsonSchema.object(properties, required);
     }
 }

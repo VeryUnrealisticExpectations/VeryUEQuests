@@ -6,6 +6,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -33,6 +34,14 @@ public abstract class RewardType<T> {
 
     public ItemStack getIconStack() {
         return new ItemStack(Items.PAPER);
+    }
+
+    /**
+     * @return The icon label will control the text that appears in the 'rewards' section.
+     */
+    @Nullable
+    public Component getIconLabel() {
+        return null;
     }
 
     public Component getDisplayName() {

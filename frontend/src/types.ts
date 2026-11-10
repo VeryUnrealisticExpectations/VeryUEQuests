@@ -63,6 +63,11 @@ export interface Task {
   advancement?: string
   count?: number
   experience?: number
+  levels?: number
+  loot_table?: string
+  command?: string
+  attribute?: string
+  amount?: number
   [key: string]: unknown
 }
 export interface Quest {
@@ -92,6 +97,8 @@ export interface Catalog {
   blocks: RegistryEntry[]
   entities: RegistryEntry[]
   advancements: string[]
+  lootTables?: string[]
+  attributes?: RegistryEntry[]
   objectiveTypes: TypeEntry[]
   rewardTypes: TypeEntry[]
 }

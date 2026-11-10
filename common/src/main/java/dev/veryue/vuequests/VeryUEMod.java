@@ -102,6 +102,15 @@ public class VeryUEMod {
         return Optional.ofNullable(USERS.get(uuid));
     }
 
+    protected void onPlayerLogin(ServerPlayer player) {
+        loadPlayer(player.getUUID());
+        restoreAttributeRewards(player);
+    }
+
+    protected void restoreAttributeRewards(ServerPlayer player) {
+        getUser(player.getUUID()).ifPresent(user -> QuestReloadDelegate.INSTANCE.getData().restoreAttributeRewards(user, player));
+    }
+
     protected void onEntityDeath(LivingEntity entity, DamageSource source) {
         if (source.getEntity() instanceof ServerPlayer player) {
             getUser(player.getUUID()).ifPresent(user -> {

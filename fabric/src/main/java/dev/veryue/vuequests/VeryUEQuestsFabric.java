@@ -38,14 +38,18 @@ public class VeryUEQuestsFabric extends VeryUEMod implements ModInitializer {
             }
         });
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-            loadPlayer(handler.player.getUUID());
+            onPlayerLogin(handler.player);
             syncQuests(handler.player);
         });
+        ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> restoreAttributeRewards(newPlayer));
         ServerPlayerEvents.LEAVE.register(player -> unloadPlayer(player.getUUID()));
         ServerLivingEntityEvents.AFTER_DEATH.register(this::onEntityDeath);
         ServerLifecycleEvents.END_DATA_PACK_RELOAD.register((server, resourceManager, success) -> {
             if (success) {
-                server.getPlayerList().getPlayers().forEach(this::syncQuests);
+                for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+                    restoreAttributeRewards(player);
+                    syncQuests(player);
+                }
             }
         });
         ResourceManagerHelper.get(PackType.SERVER_DATA)

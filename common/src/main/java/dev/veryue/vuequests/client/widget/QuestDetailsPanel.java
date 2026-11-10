@@ -4,7 +4,6 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import dev.veryue.vuequests.client.ClientQuestData;
 import dev.veryue.vuequests.models.objective.QuestObjective;
 import dev.veryue.vuequests.models.quest.Quest;
-import dev.veryue.vuequests.models.reward.RewardExperience;
 import dev.veryue.vuequests.models.reward.RewardItem;
 import dev.veryue.vuequests.models.reward.RewardType;
 import net.minecraft.ChatFormatting;
@@ -93,7 +92,7 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
         drawHeading(graphics, DESCRIPTION, descriptionTop());
         drawLines(graphics, descriptionLines, textX(), descriptionTop(), false);
         drawHeading(graphics, REWARDS, rewardsTop());
-        drawIconGrid(graphics, rewardIcons, rewardsTop(), index -> rewardAmount(quest.rewards().get(index)), true);
+        drawIconGrid(graphics, rewardIcons, rewardsTop(), index -> quest.rewards().get(index).getIconLabel(), true);
     }
 
     private void drawIconGrid(GuiGraphics graphics, List<ItemStack> icons, int top, IntFunction<Component> labelAt,
@@ -221,14 +220,6 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
     private Component objectiveTooltip(QuestObjective<?, ?> objective) {
         return Component.empty().append(objective.getActionText()).append("\n")
                 .append(objective.getProgressText(ClientQuestData.getUser()));
-    }
-
-    private Component rewardAmount(RewardType<?> reward) {
-        return switch (reward) {
-            case RewardItem item -> Component.literal(Integer.toString(item.getStack().getCount()));
-            case RewardExperience experience -> Component.literal(Integer.toString(experience.getValue()));
-            default -> null;
-        };
     }
 
     private void renderRewardTooltip(GuiGraphics graphics, int index, int mouseX, int mouseY) {

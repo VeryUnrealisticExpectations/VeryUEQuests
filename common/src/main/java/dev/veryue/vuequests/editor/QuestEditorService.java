@@ -3,30 +3,35 @@ package dev.veryue.vuequests.editor;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.serialization.JsonOps;
+import dev.veryue.vuequests.VeryUERegistries;
 import dev.veryue.vuequests.data.quest.QuestData;
-import dev.veryue.vuequests.editor.api.models.responses.MutationResponse;
-import dev.veryue.vuequests.editor.api.models.QuestApiDocument;
+import dev.veryue.vuequests.editor.QuestEditorStorage.Document;
 import dev.veryue.vuequests.editor.api.QuestApiService;
+import dev.veryue.vuequests.editor.api.models.QuestApiDocument;
+import dev.veryue.vuequests.editor.api.models.responses.MutationResponse;
 import dev.veryue.vuequests.models.quest.Quest;
 import dev.veryue.vuequests.models.quest.Section;
 import dev.veryue.vuequests.platform.PlatformHelper;
-import dev.veryue.vuequests.VeryUERegistries;
-import dev.veryue.vuequests.editor.QuestEditorStorage.Document;
 import net.minecraft.SharedConstants;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.resources.RegistryOps;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.level.storage.LevelResource;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.ai.attributes.DefaultAttributes;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.SpawnEggItem;
-import net.minecraft.network.chat.ComponentSerialization;
+import net.minecraft.world.level.storage.LevelResource;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -47,7 +52,8 @@ public class QuestEditorService {
     public record RegistryEntry(String id, String name, String item) { }
     public record TypeEntry(String id, List<String> fields) { }
     public record Catalog(List<RegistryEntry> items, List<RegistryEntry> blocks, List<RegistryEntry> entities,
-                          List<String> advancements, List<TypeEntry> objectiveTypes, List<TypeEntry> rewardTypes) { }
+                          List<String> advancements, List<String> lootTables, List<RegistryEntry> attributes,
+                          List<TypeEntry> objectiveTypes, List<TypeEntry> rewardTypes) { }
 
     public static class ConflictException extends IllegalStateException {
         public ConflictException(String message) { super(message); }
@@ -184,10 +190,17 @@ public class QuestEditorService {
         }).toList();
         var advancements = server.getAdvancements().getAllAdvancements().stream()
                 .map(AdvancementHolder::id).map(ResourceLocation::toString).sorted().toList();
+        var lootTables = server.reloadableRegistries().getKeys(Registries.LOOT_TABLE).stream()
+                .map(ResourceLocation::toString).sorted().toList();
+        var playerAttributes = DefaultAttributes.getSupplier(EntityType.PLAYER);
+        var attributes = BuiltInRegistries.ATTRIBUTE.holders().filter(playerAttributes::hasAttribute)
+                .map(holder -> new RegistryEntry(holder.key().location().toString(),
+                        Component.translatable(holder.value().getDescriptionId()).getString(), null))
+                .sorted(Comparator.comparing(RegistryEntry::id)).toList();
         var objectives = VeryUERegistries.QUEST_OBJECTIVE_TYPES.keySet().stream().sorted().map(id ->
                 new TypeEntry(id.toString(), VeryUERegistries.QUEST_OBJECTIVE_TYPES.get(id).codec().keys(JsonOps.INSTANCE).map(JsonElement::getAsString).toList())).toList();
         var rewards = VeryUERegistries.REWARD_TYPES.keySet().stream().sorted().map(id ->
                 new TypeEntry(id.toString(), VeryUERegistries.REWARD_TYPES.get(id).codec().keys(JsonOps.INSTANCE).map(JsonElement::getAsString).toList())).toList();
-        return new Catalog(items, blocks, entities, advancements, objectives, rewards);
+        return new Catalog(items, blocks, entities, advancements, lootTables, attributes, objectives, rewards);
     }
 }

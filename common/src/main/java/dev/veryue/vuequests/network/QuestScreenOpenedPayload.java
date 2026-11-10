@@ -39,6 +39,7 @@ public record QuestScreenOpenedPayload() implements CustomPacketPayload {
         UUID uuid = player.getGameProfile().getId();
         // todo; REFACTOR - FUTURE
         // todo; technically a bug - what if the player logs out without checking?
+        //  maybe we run all checks when they're logging off...
         Optional<User> user = VeryUEMod.INSTANCE.getUser(uuid);
         if (user.isPresent()) {
             QuestData questData = QuestReloadDelegate.INSTANCE.getData();

@@ -1,7 +1,7 @@
 import type { Quest, Section, Task } from '../types.ts'
 import { componentLiteralLength, hasComponentContent } from './components.ts'
 import { dependencyProblem } from './quests.ts'
-import { MAX_OBJECTIVE_COUNT, objectiveCount, taskEditorId, taskProblem } from './taskEditor.ts'
+import { isAttributeAmount, MAX_OBJECTIVE_COUNT, objectiveCount, taskEditorId, taskProblem } from './taskEditor.ts'
 import type { TaskKind } from './taskEditor.ts'
 import { isRegistryId } from './registryPicker.ts'
 
@@ -39,11 +39,19 @@ export function jsonObjectInput(text: string): Record<string, unknown> | undefin
   }
 }
 
+export function attributeAmountInput(text: string): number | undefined {
+  const raw = text.trim()
+  if (!/^\+?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i.test(raw)) return
+  const amount = Number(raw)
+  if (isAttributeAmount(amount)) return amount
+}
+
 export function taskQuantity(task: Task) {
   const count = objectiveCount(task)
   if (count !== undefined) return { label: 'Quantity', field: 'count' as const, value: count, min: 1, max: MAX_OBJECTIVE_COUNT }
   if (task.type === 'vuequests:item') return { label: 'Quantity', field: 'itemCount' as const, value: task.item?.count ?? 1, min: 1, max: 99 }
   if (task.type === 'vuequests:experience') return { label: 'Experience', field: 'experience' as const, value: task.experience ?? 0, min: 0 }
+  if (task.type === 'vuequests:experience_levels') return { label: 'Levels', field: 'levels' as const, value: task.levels ?? 0, min: 1, max: 2_147_483_647 }
 }
 
 export const taskInputId = (key: string, field: string) => 'quest-' + key + '-' + field
@@ -103,6 +111,12 @@ export function questIssues(draft: Quest, rows: TaskRows, inputs: InputDrafts, s
         invalidQuantity = integerInput(inputs[target] ?? String(quantity.value), quantity.min, quantity.max) === undefined
         if (invalidQuantity) {
           issues.push({ stage, target, message: label + quantity.label + ' must be a valid whole number.' })
+        }
+      }
+      if (task.type === 'vuequests:attribute') {
+        const target = taskInputId(key, 'amount')
+        if (attributeAmountInput(inputs[target] ?? String(task.amount ?? '')) === undefined) {
+          issues.push({ stage, target, message: label + 'Attribute amount must be a finite positive number.' })
         }
       }
       for (const field of ['components', 'fields']) {

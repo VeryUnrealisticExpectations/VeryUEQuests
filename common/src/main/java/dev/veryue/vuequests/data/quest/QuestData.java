@@ -8,7 +8,10 @@ import dev.veryue.vuequests.models.objective.QuestObjective;
 import dev.veryue.vuequests.models.objective.QuestObjectiveSerializer;
 import dev.veryue.vuequests.models.quest.Quest;
 import dev.veryue.vuequests.models.quest.Section;
+import dev.veryue.vuequests.models.reward.RewardAttribute;
 import dev.veryue.vuequests.models.reward.RewardType;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.ArrayDeque;
@@ -117,10 +120,38 @@ public class QuestData {
         }
         for (RewardType<?> reward : quest.rewards()) {
             if (reward.getRewardId().equals(rewardId)) {
-                return reward.tryGiveReward(player) && user.getClaimedRewards().add(rewardId);
+                return user.tryClaimReward(reward, player);
             }
         }
         return false;
+    }
+
+    public void restoreAttributeRewards(User user, ServerPlayer player) {
+        if (user.getClaimedRewards().isEmpty()) {
+            return;
+        }
+        Map<ResourceLocation, RewardAttribute> claimed = new HashMap<>();
+        for (Quest quest : quests.values()) {
+            for (RewardType<?> reward : quest.rewards()) {
+                if (reward instanceof RewardAttribute attribute && user.getClaimedRewards().contains(attribute.getRewardId())) {
+                    claimed.putIfAbsent(attribute.getModifierId(), attribute);
+                }
+            }
+        }
+
+        var attributes = player.getAttributes();
+        BuiltInRegistries.ATTRIBUTE.holders().filter(attributes::hasAttribute).forEach(holder -> {
+            var instance = attributes.getInstance(holder);
+            for (var modifier : instance.getModifiers()) {
+                if (RewardAttribute.isRewardModifier(modifier.id())) {
+                    RewardAttribute reward = claimed.get(modifier.id());
+                    if (reward == null || !reward.getValue().equals(holder.key().location())) {
+                        instance.removeModifier(modifier.id());
+                    }
+                }
+            }
+        });
+        claimed.values().forEach(reward -> reward.tryGiveReward(player));
     }
 
     public List<Quest> accessibleQuests(User user) {

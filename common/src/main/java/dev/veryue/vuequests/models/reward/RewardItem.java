@@ -32,6 +32,11 @@ public class RewardItem extends RewardType<ItemStack> {
     }
 
     @Override
+    public Component getIconLabel() {
+        return Component.literal(Integer.toString(getStack().getCount()));
+    }
+
+    @Override
     public Component getDisplayName() {
         ItemStack stack = getStack();
         return Component.translatable("screen.vuequests.reward.item", stack.getCount(), stack.getHoverName());

@@ -14,7 +14,10 @@ export function taskDisplayIcon(kind: TaskKind, task: Task): string {
   if (task.type === 'vuequests:collect_item') return task.item?.id || 'minecraft:cobblestone'
   if (task.type === 'vuequests:entity') return 'minecraft:iron_sword'
   if (task.type === 'vuequests:item') return task.item?.id || 'minecraft:chest'
-  if (task.type === 'vuequests:experience') return 'minecraft:experience_bottle'
+  if (task.type === 'vuequests:experience' || task.type === 'vuequests:experience_levels') return 'minecraft:experience_bottle'
+  if (task.type === 'vuequests:advancement' && kind === 'reward') return 'minecraft:enchanted_book'
+  if (task.type === 'vuequests:command') return 'minecraft:command_block'
+  if (task.type === 'vuequests:attribute') return 'minecraft:golden_apple'
   return kind === 'objective' ? 'minecraft:book' : 'minecraft:chest'
 }
 
@@ -31,6 +34,10 @@ export function isAdvancementId(id: string): boolean {
   return isRegistryId(id) || isRegistryId(`minecraft:${id.replace(/^:/, '')}`)
 }
 
+export function isAttributeAmount(amount: unknown): amount is number {
+  return typeof amount === 'number' && Number.isFinite(amount) && amount > 0
+}
+
 export function taskProblem(task: Task): string | undefined {
   if (task.type === 'vuequests:collect_item' || task.type === 'vuequests:item') {
     if (!task.item || !isRegistryId(task.item.id)) return 'Choose an item.'
@@ -45,6 +52,19 @@ export function taskProblem(task: Task): string | undefined {
     if (typeof id !== 'string' || !isAdvancementId(id)) {
       return 'Enter a valid advancement ID, such as minecraft:story/mine_stone.'
     }
+  } else if (task.type === 'vuequests:experience_levels') {
+    if (!Number.isInteger(task.levels) || task.levels! < 1 || task.levels! > 2_147_483_647) {
+      return 'Experience levels must be a positive 32-bit integer.'
+    }
+  } else if (task.type === 'vuequests:loot_table') {
+    if (typeof task.loot_table !== 'string' || !isRegistryId(task.loot_table)) return 'Choose a loot table.'
+  } else if (task.type === 'vuequests:command') {
+    if (typeof task.command !== 'string' || !task.command.trim() || task.command.trim() === '/' || /[\r\n]/.test(task.command)) {
+      return 'Enter a single Minecraft command.'
+    }
+  } else if (task.type === 'vuequests:attribute') {
+    if (typeof task.attribute !== 'string' || !isRegistryId(task.attribute)) return 'Choose a player attribute.'
+    if (!isAttributeAmount(task.amount)) return 'Attribute amount must be a finite positive number.'
   }
   const target = objectiveCount(task)
   if (target !== undefined && (!Number.isInteger(target) || target < 1 || target > MAX_OBJECTIVE_COUNT)) {

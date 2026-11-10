@@ -26,6 +26,15 @@ public class QuestObjectiveTypes {
             ResourceLocation.fromNamespaceAndPath(VeryUEConstants.MOD_ID, "advancement"),
             ObjectiveGetAdvancement.CODEC, Codec.BOOL, QuestApiSchemas.objective("vuequests:advancement", "advancement",
                     JsonSchema.type("string").description("Datapack advancement ID, such as minecraft:story/mine_stone.")));
+    // TODO: ITEM SUBMISSION TYPE. This will take the item from your inventory. It will be a counting one, it'll take an itemstack
+    // TODO: XP Levels: - The player will be required to be a certain level to complete, also a counting one.
+    // TODO: Travel to Dimension : The player will visit a dimension to complete the objective auto completion will be base on the loaded dimensions I think this is a true/false one. It becomes true once the player visits the dimension
+    // TODO: Travel to Biome : The player will go to a biome to complete the objective auto completion will be based on the loaded biomes I think this is a true/false one. it becomes true once the player visits the biome
+    // TODO: Travel to Coordinates: The player will go to a set of coordinates to complete the objective. This can be a 'box' so a minX, minY, minZ, maxX, maxY, maxZ.
+    // TODO: Travel to Structure: The player will go to a STRUCTURE these are generally i think mineshafts, villages, strongholds
+    // TODO: Achieve Statistic: The player will achieve a certain number in a statistic. Auto completion is the statistic, this is a counting one (integer) based.
+    // TODO: Acknowledgement: The player acknowledges the quest, and it gets marked as completed.
+    
 
     public static <P> QuestObjectiveSerializer<P> register(String name, MapCodec<? extends QuestObjective<?, P>> codec) {
         return register(ResourceLocation.fromNamespaceAndPath(VeryUEConstants.MOD_ID, name), codec);

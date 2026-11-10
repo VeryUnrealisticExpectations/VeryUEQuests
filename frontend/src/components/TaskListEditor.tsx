@@ -2,7 +2,7 @@ import type { Catalog, Task } from '../types.ts'
 import { labelFor } from '../lib/quests.ts'
 import { customTaskFields, taskDisplayIcon, updateCustomTaskFields } from '../lib/taskEditor.ts'
 import type { TaskKind } from '../lib/taskEditor.ts'
-import { integerInput, jsonObjectInput, taskInputId, taskQuantity } from '../lib/questWizard.ts'
+import { attributeAmountInput, integerInput, jsonObjectInput, taskInputId, taskQuantity } from '../lib/questWizard.ts'
 import type { InputDrafts, TaskRow } from '../lib/questWizard.ts'
 import { ButtonSymbol } from './ButtonSymbol.tsx'
 import { ItemIcon } from './ItemIcon.tsx'
@@ -35,9 +35,12 @@ export function TaskListEditor({ kind, rows, inputs, catalog, epoch, activeTrigg
         const componentsId = taskInputId(key, 'components')
         const quantity = taskQuantity(task)
         const quantityId = quantity && taskInputId(key, quantity.field)
+        const amountId = taskInputId(key, 'amount')
+        const amountText = inputs[amountId] ?? String(task.amount ?? '')
         const isItem = task.type === 'vuequests:collect_item' || task.type === 'vuequests:item'
+        const inlineOnly = task.type === 'vuequests:experience' || task.type === 'vuequests:experience_levels'
         const target = taskTarget(task, catalog)
-        const label = taskTypeLabel(task.type)
+        const label = taskTypeLabel(kind, task.type)
         const changeQuantity = (text: string) => {
           if (!quantity || !quantityId) return
           onInput(quantityId, text)
@@ -49,8 +52,8 @@ export function TaskListEditor({ kind, rows, inputs, catalog, epoch, activeTrigg
         return <div key={key} className="wizard-task" data-active={activeTrigger === targetId || activeTrigger === typeId || undefined}>
           <div className="wizard-task-row">
             <button type="button" id={targetId} className="wizard-task-target" aria-label={'Edit ' + kind + ' ' + (index + 1) + ': ' + label}
-              aria-expanded={task.type !== 'vuequests:experience' ? activeTrigger === targetId : undefined}
-              aria-controls={task.type !== 'vuequests:experience' ? 'quest-wizard-panel' : undefined} onClick={() => onPick(key)}>
+              aria-expanded={inlineOnly ? undefined : activeTrigger === targetId}
+              aria-controls={inlineOnly ? undefined : 'quest-wizard-panel'} onClick={() => onPick(key)}>
               <ItemIcon id={taskDisplayIcon(kind, task)} epoch={epoch} />
               <span><strong>{target || label}</strong>{target && <small>{label}</small>}</span>
             </button>
@@ -58,6 +61,15 @@ export function TaskListEditor({ kind, rows, inputs, catalog, epoch, activeTrigg
               <input id={quantityId} type="text" inputMode="numeric" value={inputs[quantityId] ?? String(quantity.value)}
                 aria-invalid={integerInput(inputs[quantityId] ?? String(quantity.value), quantity.min, quantity.max) === undefined}
                 onChange={event => changeQuantity(event.target.value)} />
+            </label>}
+            {task.type === 'vuequests:attribute' && <label className="field wizard-task-quantity">Amount
+              <input id={amountId} type="text" inputMode="decimal" value={amountText}
+                aria-invalid={attributeAmountInput(amountText) === undefined} onChange={event => {
+                  const text = event.target.value
+                  onInput(amountId, text)
+                  const amount = attributeAmountInput(text)
+                  if (amount !== undefined) onChange(key, { ...task, amount })
+                }} />
             </label>}
             <button type="button" className="mc-button mc-button--icon mc-button--small mc-button--red"
               aria-label={'Remove ' + kind + ' ' + (index + 1)} onClick={() => onRemove(key)}>×</button>
@@ -97,9 +109,10 @@ export function TaskSummary({ kind, rows, catalog, epoch }: Pick<TaskListEditorP
       return <li key={key}>
         <div className="wizard-summary-task-row">
           <ItemIcon id={taskDisplayIcon(kind, task)} epoch={epoch} />
-          <span><strong>{taskTypeLabel(task.type)}</strong>
+          <span><strong>{taskTypeLabel(kind, task.type)}</strong>
             {target && <small>{target}</small>}</span>
           {quantity && <span>{quantity.value}</span>}
+          {task.type === 'vuequests:attribute' && task.amount !== undefined && <span>+{task.amount}</span>}
         </div>
         {fields && Object.keys(fields).length > 0 && <details className="advanced-fields">
           <summary>{components ? 'Item components' : 'Custom fields'}</summary>
@@ -130,9 +143,15 @@ function taskTarget(task: Task, catalog: Catalog): string | undefined {
   }
   if (task.type === 'vuequests:entity') return catalog.entities.find(entry => entry.id === task.entity)?.name ?? task.entity
   if (task.type === 'vuequests:advancement') return task.advancement || 'Choose advancement'
+  if (task.type === 'vuequests:loot_table') return task.loot_table || 'Choose loot table'
+  if (task.type === 'vuequests:command') return task.command || 'Enter command'
+  if (task.type === 'vuequests:attribute') {
+    return catalog.attributes?.find(entry => entry.id === task.attribute)?.name ?? (task.attribute || 'Choose attribute')
+  }
 }
 
-function taskTypeLabel(type: string): string {
+function taskTypeLabel(kind: TaskKind, type: string): string {
+  if (kind === 'reward' && type === 'vuequests:advancement') return 'Advancement reward'
   return taskTypeNames[type] ?? labelFor(type)
 }
 
@@ -142,6 +161,10 @@ const taskTypeNames: Record<string, string> = {
   'vuequests:advancement': 'Get advancement',
   'vuequests:item': 'Item reward',
   'vuequests:experience': 'Experience',
+  'vuequests:experience_levels': 'Experience levels',
+  'vuequests:loot_table': 'Loot table',
+  'vuequests:command': 'Command',
+  'vuequests:attribute': 'Attribute boost',
 }
 
 const typeHints: Record<string, { icon: string; description: string }> = {
@@ -150,7 +173,13 @@ const typeHints: Record<string, { icon: string; description: string }> = {
   'vuequests:advancement': { icon: 'minecraft:enchanted_book', description: 'Require a Minecraft advancement.' },
   'vuequests:item': { icon: 'minecraft:chest', description: 'Give the player an item stack.' },
   'vuequests:experience': { icon: 'minecraft:experience_bottle', description: 'Give the player experience.' },
+  'vuequests:experience_levels': { icon: 'minecraft:experience_bottle', description: 'Give the player whole experience levels.' },
+  'vuequests:loot_table': { icon: 'minecraft:chest', description: 'Roll a loaded loot table for the player.' },
+  'vuequests:command': { icon: 'minecraft:command_block', description: 'Run a command as the claiming player.' },
+  'vuequests:attribute': { icon: 'minecraft:golden_apple', description: 'Apply an additive player attribute modifier.' },
 }
+
+const advancementRewardHint = { icon: 'minecraft:enchanted_book', description: 'Grant a Minecraft advancement.' }
 
 export function TaskTypePicker({ kind, catalog, epoch, value, onChoose }:
   { kind: TaskKind; catalog: Catalog; epoch: number; value?: string; onChoose: (type: string) => void }) {
@@ -160,11 +189,14 @@ export function TaskTypePicker({ kind, catalog, epoch, value, onChoose }:
   const choices = [...types].sort((a, b) => rank(a.id) - rank(b.id))
   return <div className="wizard-type-choices">
     {value && !choices.some(type => type.id === value) && <p className="muted">{value} is currently unavailable.</p>}
-    {choices.map(({ id }) => <button key={id} type="button" className="mc-button wizard-type-choice"
-      aria-pressed={value ? value === id : undefined} onClick={() => onChoose(id)}>
-      <ItemIcon id={typeHints[id]?.icon ?? (kind === 'objective' ? 'minecraft:book' : 'minecraft:chest')} epoch={epoch} />
-      <span><strong>{taskTypeLabel(id)}</strong><small>{typeHints[id]?.description ?? id}</small></span>
-      <span aria-hidden="true">›</span>
-    </button>)}
+    {choices.map(({ id }) => {
+      const hint = kind === 'reward' && id === 'vuequests:advancement' ? advancementRewardHint : typeHints[id]
+      return <button key={id} type="button" className="mc-button wizard-type-choice"
+        aria-pressed={value ? value === id : undefined} onClick={() => onChoose(id)}>
+        <ItemIcon id={hint?.icon ?? (kind === 'objective' ? 'minecraft:book' : 'minecraft:chest')} epoch={epoch} />
+        <span><strong>{taskTypeLabel(kind, id)}</strong><small>{hint?.description ?? id}</small></span>
+        <span aria-hidden="true">›</span>
+      </button>
+    })}
   </div>
 }

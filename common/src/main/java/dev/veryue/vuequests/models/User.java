@@ -7,11 +7,14 @@ import com.mojang.serialization.codecs.RecordCodecBuilder.Instance;
 import com.mojang.serialization.codecs.RecordCodecBuilder.Mu;
 import dev.veryue.vuequests.models.objective.QuestObjective;
 import dev.veryue.vuequests.models.quest.Quest;
+import dev.veryue.vuequests.models.reward.RewardType;
 import net.minecraft.core.UUIDUtil;
+import net.minecraft.server.level.ServerPlayer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public abstract class User {
 
@@ -32,7 +35,8 @@ public abstract class User {
     private final UUID uuid;
     private final Set<UUID> completedQuests;
     private final Set<UUID> completedObjectives;
-    private final Set<UUID> claimedRewards;
+    private final Set<UUID> claimedRewards = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> pendingRewardClaims = ConcurrentHashMap.newKeySet();
 
 
     private final Map<UUID, QuestObjectiveProgress<?, ?>> questObjectiveProgress;
@@ -61,7 +65,7 @@ public abstract class User {
         this.uuid = Objects.requireNonNull(uuid);
         this.completedQuests = new LinkedHashSet<>(completedQuests);
         this.completedObjectives = new LinkedHashSet<>(completedObjectives);
-        this.claimedRewards = new LinkedHashSet<>(claimedRewards);
+        this.claimedRewards.addAll(claimedRewards);
         this.questObjectiveProgress = new HashMap<>(questObjectiveProgress);
     }
 
@@ -105,6 +109,18 @@ public abstract class User {
         return claimedRewards;
     }
 
+    public boolean tryClaimReward(RewardType<?> reward, ServerPlayer player) {
+        UUID rewardId = reward.getRewardId();
+        if (!pendingRewardClaims.add(rewardId)) {
+            return false;
+        }
+        try {
+            return !claimedRewards.contains(rewardId) && reward.tryGiveReward(player) && claimedRewards.add(rewardId);
+        } finally {
+            pendingRewardClaims.remove(rewardId);
+        }
+    }
+
     public void completeObjective(@NotNull QuestObjective<?, ?> objective) {
         completedObjectives.add((objective.getObjectiveId()));
     }
@@ -113,7 +129,7 @@ public abstract class User {
 
     public abstract void grantQuestCompletion(UUID uuid);
 
-    public abstract void handleReward(Quest quest);
+    public abstract void handleReward(Quest quest); // todo; not sure if i'll use this one
 
     public abstract boolean hasCompletedQuest(Quest quest);
 

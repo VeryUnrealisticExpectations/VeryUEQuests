@@ -29,6 +29,11 @@ public class RewardExperience extends RewardType<Integer> {
     }
 
     @Override
+    public Component getIconLabel() {
+        return Component.literal(Integer.toString(getValue()));
+    }
+
+    @Override
     public Component getDisplayName() {
         return Component.translatable("screen.vuequests.reward.experience", getValue());
     }

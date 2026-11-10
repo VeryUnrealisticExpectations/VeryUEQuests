@@ -4,7 +4,7 @@ import type { Catalog, ComponentTextContext, Position, Quest, Section, Task } fr
 import { DEFAULT_QUEST_BACKGROUND, dependencyProblem, newQuest, newTask } from '../lib/quests.ts'
 import { changeTaskType, taskEditorId } from '../lib/taskEditor.ts'
 import type { TaskKind } from '../lib/taskEditor.ts'
-import { blockedPrerequisites, integerInput, questIssues, questStages, sectionsWithDraft, taskInputId, taskRowsFor } from '../lib/questWizard.ts'
+import { blockedPrerequisites, integerInput, questIssues, questStages, sectionsWithDraft, taskInputId, taskQuantity, taskRowsFor } from '../lib/questWizard.ts'
 import type { InputDrafts, QuestIssue, QuestStage, QuestTextField, TaskRows } from '../lib/questWizard.ts'
 import { AdvancementPicker } from './AdvancementPicker.tsx'
 import { ComponentEditor } from './ComponentEditor.tsx'
@@ -14,6 +14,7 @@ import { QuestDetailsStage } from './QuestDetailsStage.tsx'
 import { QuestNodeIcon } from './QuestNodeIcon.tsx'
 import { PrerequisitePicker, QuestReviewStage } from './QuestReviewStage.tsx'
 import { RegistryPicker } from './RegistryPicker.tsx'
+import { ResourceIdPicker } from './ResourceIdPicker.tsx'
 import { CustomTaskEditor, TaskListEditor, TaskTypePicker } from './TaskListEditor.tsx'
 import { WizardDialog } from './WizardDialog.tsx'
 
@@ -91,9 +92,10 @@ export function QuestEditorDialog({ quest, section, sections, position, catalog,
   const clearTaskInputs = (key: string) => setInputs(current => Object.fromEntries(Object.entries(current)
     .filter(([id]) => !id.startsWith(taskInputId(key, '')))))
   const openTask = (taskKind: TaskKind, key: string, task: Task) => {
-    if (task.type === 'vuequests:experience') {
+    const quantity = taskQuantity(task)
+    if (quantity?.field === 'experience' || quantity?.field === 'levels') {
       setOpened(undefined)
-      focus(taskInputId(key, 'experience'))
+      focus(taskInputId(key, quantity.field))
     } else open({ kind: 'task', taskKind, key }, taskInputId(key, 'target'))
   }
   const selectType = (kind: TaskKind, type: string) => {
@@ -174,6 +176,24 @@ export function QuestEditorDialog({ quest, section, sections, position, catalog,
     } else if (task.type === 'vuequests:advancement') {
       panelTitle = 'Choose advancement'
       panelContent = <AdvancementPicker key={key} entries={catalog.advancements ?? []} value={task.advancement ?? ''} onChoose={advancement => commit({ advancement })} />
+    } else if (task.type === 'vuequests:loot_table') {
+      panelTitle = 'Choose loot table'
+      panelContent = <ResourceIdPicker key={key} kind="loot tables" entries={(catalog.lootTables ?? []).map(id => ({ id, name: id }))}
+        value={task.loot_table ?? ''} onChoose={loot_table => commit({ loot_table })} />
+    } else if (task.type === 'vuequests:attribute') {
+      panelTitle = 'Choose player attribute'
+      panelContent = <ResourceIdPicker key={key} kind="player attributes" entries={catalog.attributes ?? []}
+        value={task.attribute ?? ''} onChoose={attribute => commit({ attribute })} />
+    } else if (task.type === 'vuequests:command') {
+      panelTitle = 'Edit reward command'
+      panelContent = <>
+        <label className="field">Minecraft command
+          <input data-panel-focus type="text" value={task.command ?? ''} spellCheck={false} placeholder="give @s minecraft:diamond"
+            onChange={event => updateTask(panel.taskKind, key, { ...task, command: event.target.value })} />
+        </label>
+        <p className="muted">Runs at permission level 2. Use @s for the claimant, or another selector such as @a.</p>
+        <div className="wizard-panel-actions"><button type="button" className="mc-button" onClick={close}>Done</button></div>
+      </>
     } else {
       panelTitle = 'Edit ' + panel.taskKind + ' fields'
       panelContent = <><CustomTaskEditor key={key} kind={panel.taskKind} row={selected} inputs={inputs} catalog={catalog}

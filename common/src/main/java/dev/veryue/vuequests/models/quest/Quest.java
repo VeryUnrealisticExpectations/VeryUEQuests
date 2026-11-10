@@ -30,18 +30,4 @@ public record Quest(QuestPosition position, QuestDisplay display, UUID sectionUU
 
     // todo; we should version the quests for the editor, so they can be exported or something
 
-
-    public void completeQuest(User user) {
-        // todo; we have to:
-        //  give the user the reward --- not even that, we have to let the user be ABLE to claim the rewards
-        //  mark the quest as complete
-        //
-        user.grantQuestCompletion(this);
-
-        user.handleReward(this); // todo; do we do it this way?
-
-
-    }
-
-
 }
