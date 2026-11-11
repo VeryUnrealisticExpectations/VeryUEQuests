@@ -1,5 +1,6 @@
 package dev.veryue.vuequests.models.objective;
 
+import dev.veryue.vuequests.util.TextUtil;
 import dev.veryue.vuequests.models.QuestObjectiveProgress;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -29,6 +30,16 @@ public abstract class CountedQuestObjective<T> extends QuestObjective<T, Integer
         int target = getCount();
         int displayedCount = complete ? target : Mth.clamp(getProgressCount(progress), 0, target);
         return Component.literal(displayedCount + "/" + target);
+    }
+
+    @Override
+    protected MutableComponent formatIconLabel(@Nullable Integer progress, boolean complete) {
+        return Component.literal(TextUtil.abbreviateCount(getCount()));
+    }
+
+    @Override
+    protected double formatProgressFraction(@Nullable Integer progress) {
+        return (double) getProgressCount(progress) / getCount();
     }
 
     protected int getProgressCount(@Nullable Integer progress) {

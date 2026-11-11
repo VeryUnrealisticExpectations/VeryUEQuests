@@ -1,9 +1,12 @@
 package dev.veryue.vuequests;
 
 import dev.veryue.vuequests.client.ClientQuestData;
+import dev.veryue.vuequests.command.QuestDebugCommand;
+import dev.veryue.vuequests.command.QuestProgressCommands;
 import dev.veryue.vuequests.data.quest.QuestReloadDelegate;
 import dev.veryue.vuequests.editor.QuestEditorServer;
 import dev.veryue.vuequests.network.ClaimQuestRewardPayload;
+import dev.veryue.vuequests.network.QuestDebugTogglePayload;
 import dev.veryue.vuequests.network.QuestProgressSyncPayload;
 import dev.veryue.vuequests.network.QuestScreenOpenedPayload;
 import dev.veryue.vuequests.network.QuestSyncPayload;
@@ -16,6 +19,7 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
 import net.neoforged.neoforge.event.OnDatapackSyncEvent;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.player.AdvancementEvent.AdvancementProgressEvent;
 import net.neoforged.neoforge.event.entity.player.AdvancementEvent.AdvancementProgressEvent.ProgressType;
@@ -37,6 +41,7 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
         ((NeoForgePlatformHelper) PlatformHelper.INSTANCE).init(eventBus);
         VeryUERegistries.init();
         eventBus.addListener(this::registerPayloads);
+        NeoForge.EVENT_BUS.addListener(this::registerCommands);
         NeoForge.EVENT_BUS.addListener(this::onDatapackSync);
         NeoForge.EVENT_BUS.addListener(this::onAddReloadListeners);
         NeoForge.EVENT_BUS.addListener(this::onServerStarting);
@@ -49,6 +54,25 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
         NeoForge.EVENT_BUS.addListener(this::onAdvancementProgress);
     }
 
+    private void registerCommands(RegisterCommandsEvent event) {
+        QuestProgressCommands.register(event.getDispatcher(), this::syncProgress);
+        QuestDebugCommand.register(event.getDispatcher(), this::sendDebugToggle);
+    }
+
+    private void syncProgress(ServerPlayer player) {
+        if (player.connection.hasChannel(QuestProgressSyncPayload.TYPE)) {
+            PacketDistributor.sendToPlayer(player, QuestProgressSyncPayload.create(player));
+        }
+    }
+
+    private boolean sendDebugToggle(ServerPlayer player) {
+        if (!player.connection.hasChannel(QuestDebugTogglePayload.TYPE)) {
+            return false;
+        }
+        PacketDistributor.sendToPlayer(player, QuestDebugTogglePayload.INSTANCE);
+        return true;
+    }
+
     private void registerPayloads(RegisterPayloadHandlersEvent event) {
         event.registrar("1")
                 .playToClient(QuestSyncPayload.TYPE, QuestSyncPayload.STREAM_CODEC,
@@ -56,6 +80,8 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
                 .optional()
                 .playToClient(QuestProgressSyncPayload.TYPE, QuestProgressSyncPayload.STREAM_CODEC,
                         (payload, context) -> ClientQuestData.updateProgress(payload.user()))
+                .playToClient(QuestDebugTogglePayload.TYPE, QuestDebugTogglePayload.STREAM_CODEC,
+                        (payload, context) -> ClientQuestData.toggleDebug())
                 .playToServer(QuestScreenOpenedPayload.TYPE, QuestScreenOpenedPayload.STREAM_CODEC, (payload, context) -> {
                     if (context.player() instanceof ServerPlayer player) {
                         payload.handle(player);
@@ -63,9 +89,8 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
                     }
                 })
                 .playToServer(ClaimQuestRewardPayload.TYPE, ClaimQuestRewardPayload.STREAM_CODEC, (payload, context) -> {
-                    if (context.player() instanceof ServerPlayer player && payload.handle(player)
-                            && player.connection.hasChannel(QuestProgressSyncPayload.TYPE)) {
-                        context.reply(QuestProgressSyncPayload.create(player));
+                    if (context.player() instanceof ServerPlayer player && payload.handle(player)) {
+                        syncProgress(player);
                     }
                 });
     }

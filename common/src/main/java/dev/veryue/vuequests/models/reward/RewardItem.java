@@ -2,6 +2,7 @@ package dev.veryue.vuequests.models.reward;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import dev.veryue.vuequests.util.TextUtil;
 import dev.veryue.vuequests.registry.RewardTypes;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.network.chat.Component;
@@ -33,7 +34,7 @@ public class RewardItem extends RewardType<ItemStack> {
 
     @Override
     public Component getIconLabel() {
-        return Component.literal(Integer.toString(getStack().getCount()));
+        return Component.literal(TextUtil.abbreviateCount(getStack().getCount()));
     }
 
     @Override

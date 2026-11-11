@@ -11,11 +11,14 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,6 +36,7 @@ public class QuestCanvas extends QuestPanel {
     private static final double PAN_SNAP_DISTANCE = 0.01;
     private static final double CLICK_SLOP = 3;
     private static final int PAN_STEP = 24;
+    private static final SystemToast.SystemToastId QUEST_ID_COPIED = new SystemToast.SystemToastId();
 
     private final List<QuestNodeWidget> nodes = new ArrayList<>();
     private final List<QuestDependencyLine> dependencyLines = new ArrayList<>();
@@ -297,6 +301,10 @@ public class QuestCanvas extends QuestPanel {
         if (!isMouseOver(mouseX, mouseY)) {
             return false;
         }
+        if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT && !panning && ClientQuestData.isDebugEnabled()
+                && Screen.hasShiftDown() && copyQuestIdAt(mouseX, mouseY)) {
+            return true;
+        }
         if (viewport().containsPoint((int) mouseX, (int) mouseY)
                 && handleShortcut(InputConstants.Type.MOUSE.getOrCreate(button))) {
             return true;
@@ -311,6 +319,17 @@ public class QuestCanvas extends QuestPanel {
         if (pressedNode != null) {
             setFocused(pressedNode);
         }
+        return true;
+    }
+
+    private boolean copyQuestIdAt(double mouseX, double mouseY) {
+        QuestNodeWidget node = nodeAt(mouseX, mouseY);
+        if (node == null) {
+            return false;
+        }
+        Minecraft minecraft = Minecraft.getInstance();
+        minecraft.keyboardHandler.setClipboard(node.getQuest().questId().toString());
+        SystemToast.addOrUpdate(minecraft.getToasts(), QUEST_ID_COPIED, Component.translatable("screen.vuequests.debug.copied"), null);
         return true;
     }
 

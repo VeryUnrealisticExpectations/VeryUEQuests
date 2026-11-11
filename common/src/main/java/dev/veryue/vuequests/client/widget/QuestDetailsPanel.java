@@ -33,7 +33,9 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
     private static final int HEADING_COLOR = 0xFFFFFFFF;
     private static final int SECTION_GAP = 8;
     private static final int ICON_SIZE = 16;
-    private static final int ICON_STEP = 22;
+    private static final int ICON_GAP = 6;
+    private static final int OBJECTIVE_LABEL_WIDTH = 28;
+    private static final int OBJECTIVE_HEIGHT = ICON_SIZE + 2 + QuestWidgetSprites.OBJECTIVE_PROGRESS_HEIGHT;
     private static final int MAX_ICON_COLUMNS = 8;
     private static final Component OBJECTIVES = heading("objectives");
     private static final Component DESCRIPTION = heading("description");
@@ -49,6 +51,7 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
     private List<FormattedCharSequence> titleLines = List.of();
     private List<FormattedCharSequence> descriptionLines = List.of();
     private int iconColumns;
+    private int objectiveColumns;
     private int contentHeight;
     private int headingCenterOffset;
 
@@ -69,8 +72,9 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
         titleLines = font.split(Component.empty().withStyle(ChatFormatting.BOLD).append(getMessage()), centeredWidth);
         Component description = quest.display().description();
         descriptionLines = description.getString().isBlank() ? List.of() : font.split(description, textWidth);
-        iconColumns = Mth.clamp((centeredWidth + ICON_STEP - ICON_SIZE) / ICON_STEP, 1, MAX_ICON_COLUMNS);
-        contentHeight = rewardsTop() - contentTop() + iconGridHeight(rewardIcons.size());
+        iconColumns = Mth.clamp((centeredWidth + ICON_GAP) / (ICON_SIZE + ICON_GAP), 1, MAX_ICON_COLUMNS);
+        objectiveColumns = Mth.clamp((centeredWidth + ICON_GAP) / (OBJECTIVE_LABEL_WIDTH + ICON_GAP), 1, MAX_ICON_COLUMNS);
+        contentHeight = rewardsTop() - contentTop() + iconGridHeight(rewardIcons.size(), iconColumns, ICON_SIZE);
         setSize(width, Math.min(maxHeight, contentHeight + totalInnerPadding()));
         setScrollAmount(scrollAmount());
     }
@@ -88,7 +92,7 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
         drawLines(graphics, titleLines, headingCenterX(), contentTop(), true);
         drawHeading(graphics, OBJECTIVES, objectivesTop());
         drawIconGrid(graphics, objectiveIcons, objectivesTop(),
-                index -> quest.objectives().get(index).getProgressText(ClientQuestData.getUser()), false);
+                index -> quest.objectives().get(index).getIconLabel(ClientQuestData.getUser()), false);
         drawHeading(graphics, DESCRIPTION, descriptionTop());
         drawLines(graphics, descriptionLines, textX(), descriptionTop(), false);
         drawHeading(graphics, REWARDS, rewardsTop());
@@ -102,21 +106,28 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
             return;
         }
         boolean canClaimRewards = showClaimBadges && ClientQuestData.canClaimRewards(quest);
+        int columns = showClaimBadges ? iconColumns : objectiveColumns;
+        int cellWidth = showClaimBadges ? ICON_SIZE : OBJECTIVE_LABEL_WIDTH;
+        int cellHeight = showClaimBadges ? ICON_SIZE : OBJECTIVE_HEIGHT;
         for (int i = 0; i < icons.size(); i++) {
-            int y = top + i / iconColumns * ICON_STEP;
-            if (withinContentAreaTopBottom(y, y + ICON_SIZE)) {
-                int column = i % iconColumns;
-                int x = iconRowLeft(i - column, icons.size()) + column * ICON_STEP;
+            int y = top + i / columns * (cellHeight + ICON_GAP);
+            if (withinContentAreaTopBottom(y, y + cellHeight)) {
+                int column = i % columns;
+                int x = iconRowLeft(i - column, icons.size(), columns, cellWidth)
+                        + column * (cellWidth + ICON_GAP) + (cellWidth - ICON_SIZE) / 2;
                 graphics.renderItem(icons.get(i), x, y);
                 if (showClaimBadges) {
                     boolean claimed = ClientQuestData.isRewardClaimed(quest.rewards().get(i));
                     if (claimed || canClaimRewards) {
                         QuestWidgetSprites.blitClaimBadge(graphics, x, y, claimed);
                     }
+                } else {
+                    QuestWidgetSprites.blitObjectiveProgress(graphics, x, y + ICON_SIZE + 2,
+                            quest.objectives().get(i).getProgressFraction(ClientQuestData.getUser()));
                 }
                 Component label = labelAt.apply(i);
                 if (label != null) {
-                    drawIconLabel(graphics, label, x, y);
+                    drawIconLabel(graphics, label, x, y, cellWidth);
                 }
             }
         }
@@ -129,13 +140,14 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
             return;
         }
         double contentY = mouseY + scrollAmount();
-        int objectiveIndex = iconAt(mouseX, contentY - objectivesTop(), objectiveIcons.size());
+        int objectiveIndex = iconAt(mouseX, contentY - objectivesTop(), objectiveIcons.size(), objectiveColumns,
+                OBJECTIVE_LABEL_WIDTH, OBJECTIVE_HEIGHT);
         if (objectiveIndex >= 0) {
             Component tooltip = objectiveTooltip(quest.objectives().get(objectiveIndex));
             graphics.renderTooltip(font, font.split(tooltip, Math.min(170, getWidth())), mouseX, mouseY);
             return;
         }
-        int rewardIndex = iconAt(mouseX, contentY - rewardsTop(), rewardIcons.size());
+        int rewardIndex = iconAt(mouseX, contentY - rewardsTop(), rewardIcons.size(), iconColumns, ICON_SIZE, ICON_SIZE);
         if (rewardIndex >= 0) {
             renderRewardTooltip(graphics, rewardIndex, mouseX, mouseY);
             return;
@@ -149,7 +161,7 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (active && visible && button == 0 && insideClip(mouseX, mouseY)) {
-            int rewardIndex = iconAt(mouseX, mouseY + scrollAmount() - rewardsTop(), rewardIcons.size());
+            int rewardIndex = iconAt(mouseX, mouseY + scrollAmount() - rewardsTop(), rewardIcons.size(), iconColumns, ICON_SIZE, ICON_SIZE);
             if (rewardIndex >= 0) {
                 RewardType<?> reward = quest.rewards().get(rewardIndex);
                 if (ClientQuestData.canClaimRewards(quest) && !ClientQuestData.isRewardClaimed(reward)) {
@@ -206,9 +218,9 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
         graphics.drawString(font, heading, left, sectionTop - lineHeight(), HEADING_COLOR, false);
     }
 
-    private void drawIconLabel(GuiGraphics graphics, Component label, int x, int y) {
+    private void drawIconLabel(GuiGraphics graphics, Component label, int x, int y, int labelWidth) {
         int textWidth = font.width(label);
-        float scale = Math.min(0.75F, (ICON_SIZE - 1F) / Math.max(1, textWidth));
+        float scale = Math.min(0.75F, (labelWidth - 1F) / Math.max(1, textWidth));
         PoseStack pose = graphics.pose();
         pose.pushPose();
         pose.translate(x + ICON_SIZE - 1, y + ICON_SIZE - 1, 200);
@@ -234,25 +246,27 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
         }
     }
 
-    private int iconAt(double mouseX, double y, int iconCount) {
-        if (y < 0 || y % ICON_STEP >= ICON_SIZE) {
+    private int iconAt(double mouseX, double y, int iconCount, int columns, int cellWidth, int cellHeight) {
+        int rowStep = cellHeight + ICON_GAP;
+        int columnStep = cellWidth + ICON_GAP;
+        if (y < 0 || y % rowStep >= cellHeight) {
             return -1;
         }
-        int rowStart = (int) (y / ICON_STEP) * iconColumns;
+        int rowStart = (int) (y / rowStep) * columns;
         if (rowStart >= iconCount) {
             return -1;
         }
-        double x = mouseX - iconRowLeft(rowStart, iconCount);
-        if (x < 0 || x % ICON_STEP >= ICON_SIZE) {
+        double x = mouseX - iconRowLeft(rowStart, iconCount, columns, cellWidth);
+        if (x < 0 || x % columnStep >= cellWidth) {
             return -1;
         }
-        int index = rowStart + (int) (x / ICON_STEP);
-        return index < Math.min(rowStart + iconColumns, iconCount) ? index : -1;
+        int index = rowStart + (int) (x / columnStep);
+        return index < Math.min(rowStart + columns, iconCount) ? index : -1;
     }
 
-    private int iconRowLeft(int rowStart, int iconCount) {
-        int iconsInRow = Math.min(iconColumns, iconCount - rowStart);
-        return headingCenterX() - ((iconsInRow - 1) * ICON_STEP + ICON_SIZE) / 2;
+    private int iconRowLeft(int rowStart, int iconCount, int columns, int cellWidth) {
+        int iconsInRow = Math.min(columns, iconCount - rowStart);
+        return headingCenterX() - ((iconsInRow - 1) * (cellWidth + ICON_GAP) + cellWidth) / 2;
     }
 
     private void drawLines(GuiGraphics graphics, List<FormattedCharSequence> lines, int anchorX, int y, boolean centered) {
@@ -286,16 +300,16 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
     }
 
     private int descriptionTop() {
-        return objectivesTop() + iconGridHeight(objectiveIcons.size()) + SECTION_GAP + lineHeight();
+        return objectivesTop() + iconGridHeight(objectiveIcons.size(), objectiveColumns, OBJECTIVE_HEIGHT) + SECTION_GAP + lineHeight();
     }
 
     private int rewardsTop() {
         return descriptionTop() + descriptionLines.size() * lineHeight() + SECTION_GAP + lineHeight();
     }
 
-    private int iconGridHeight(int iconCount) {
-        int rows = Mth.positiveCeilDiv(iconCount, iconColumns);
-        return rows == 0 ? lineHeight() : (rows - 1) * ICON_STEP + ICON_SIZE;
+    private int iconGridHeight(int iconCount, int columns, int cellHeight) {
+        int rows = Mth.positiveCeilDiv(iconCount, columns);
+        return rows == 0 ? lineHeight() : (rows - 1) * (cellHeight + ICON_GAP) + cellHeight;
     }
 
     @Override

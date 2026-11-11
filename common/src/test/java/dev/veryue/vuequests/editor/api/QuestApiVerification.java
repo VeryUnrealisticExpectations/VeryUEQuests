@@ -38,6 +38,10 @@ import dev.veryue.vuequests.models.quest.Quest;
 import dev.veryue.vuequests.models.quest.QuestDisplay;
 import dev.veryue.vuequests.models.quest.QuestPosition;
 import dev.veryue.vuequests.models.quest.Section;
+import dev.veryue.vuequests.models.reward.RewardExperience;
+import dev.veryue.vuequests.models.reward.RewardExperienceLevels;
+import dev.veryue.vuequests.models.reward.RewardItem;
+import dev.veryue.vuequests.models.reward.RewardType;
 import dev.veryue.vuequests.network.QuestSyncPayload;
 import dev.veryue.vuequests.registry.QuestObjectiveTypes;
 import io.netty.buffer.Unpooled;
@@ -85,12 +89,20 @@ public class QuestApiVerification {
         QuestApiTextProgressObjective.init();
         VeryUERegistries.QUEST_OBJECTIVE_TYPES.freeze();
         VeryUERegistries.REWARD_TYPES.freeze();
+        if (arguments.length == 1 && arguments[0].equals("--objective-presentation")) {
+            verifyObjectivePresentation();
+            verifyRewardPresentation();
+            System.out.println("Objective and reward presentation verification passed: " + checks + " checks.");
+            return;
+        }
         var ops = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY).createSerializationContext(JsonOps.INSTANCE);
         Gson json = QuestApiJson.create(ops);
         verifyModels(json, ops);
         verifyObjectiveCounts(json, ops);
         verifyAdvancementObjective(json, ops);
         verifyObjectiveProgress();
+        verifyObjectivePresentation();
+        verifyRewardPresentation();
         verifyUserSerialization();
         verifyQuestBackgrounds();
         verifyHttp();
@@ -339,6 +351,69 @@ public class QuestApiVerification {
                         && completed.getKey().equals("screen.vuequests.progress.done")
                         && TextColor.fromLegacyFormat(ChatFormatting.GREEN).equals(done.getStyle().getColor()),
                 "A custom formatter can fall back to the default completed status");
+    }
+
+    private static void verifyObjectivePresentation() {
+        int[] counts = {1, 999, 1_000, 1_250, 333_333, 999_999, 1_000_000, 333_333_333, 999_999_999, 1_000_000_000, Integer.MAX_VALUE};
+        String[] labels = {"1", "999", "1k", "1.3k", "333.3k", "1m", "1m", "333.3m", "1b", "1b", "2.1b"};
+        for (int i = 0; i < counts.length; i++) {
+            ObjectiveCollectItem objective = new ObjectiveCollectItem(UUID.randomUUID(), new ItemStack(Items.BAKED_POTATO), counts[i]);
+            check(objective.getIconLabel(null).getString().equals(labels[i]), "Compact objective requirement for " + counts[i]);
+            check(objective.getProgressText(null).getString().equals("0/" + counts[i]), "Tooltip retains the exact requirement for " + counts[i]);
+        }
+
+        PlayerUser player = new PlayerUser(UUID.randomUUID());
+        ObjectiveContext context = new ObjectiveContext(null, Map.of());
+        ObjectiveCollectItem objective = new ObjectiveCollectItem(UUID.randomUUID(), new ItemStack(Items.BAKED_POTATO), Integer.MAX_VALUE);
+        check(objective.getProgressFraction(null) == 0 && objective.getProgressFraction(player) == 0,
+                "Missing players and missing objective progress show an empty bar");
+        var progress = player.incrementObjectiveProgress(objective, context);
+        progress.setCurrentProgress(-1);
+        check(objective.getProgressFraction(player) == 0, "Negative objective progress cannot draw outside the bar");
+        progress.setCurrentProgress(Integer.MAX_VALUE / 2);
+        check(Math.abs(objective.getProgressFraction(player) - 0.5) < 0.000001,
+                "Large objective targets retain proportional bar progress");
+        progress.setCurrentProgress(Integer.MAX_VALUE - 1);
+        check(objective.getProgressFraction(player) < 1
+                        && TextColor.fromLegacyFormat(ChatFormatting.YELLOW).equals(objective.getIconLabel(player).getStyle().getColor()),
+                "A large objective one item short remains incomplete and yellow");
+        progress.setCurrentProgress(Integer.MAX_VALUE);
+        check(objective.getProgressFraction(player) == 1
+                        && TextColor.fromLegacyFormat(ChatFormatting.GREEN).equals(objective.getIconLabel(player).getStyle().getColor()),
+                "Reaching the target fills the bar and turns the label green");
+        progress.setCurrentProgress(0);
+        player.completeObjective(objective);
+        check(objective.getProgressFraction(player) == 1 && objective.getProgressText(player).getString().equals(Integer.MAX_VALUE + "/" + Integer.MAX_VALUE),
+                "Manual completion fills the bar even without counted progress");
+
+        ObjectiveCollectItem small = new ObjectiveCollectItem(UUID.randomUUID(), new ItemStack(Items.BAKED_POTATO), 10);
+        player.incrementObjectiveProgress(small, context).setCurrentProgress(11);
+        check(small.getProgressFraction(player) == 1, "Excess counted progress stays within the bar");
+        ObjectiveGetAdvancement advancement = new ObjectiveGetAdvancement(UUID.randomUUID(), ResourceLocation.parse("minecraft:story/mine_stone"));
+        check(advancement.getProgressFraction(player) == 0, "Pending boolean objectives show an empty bar");
+        player.incrementObjectiveProgress(advancement, context).setCurrentProgress(true);
+        check(advancement.getProgressFraction(player) == 1, "Completed boolean objectives show a full bar");
+    }
+
+    private static void verifyRewardPresentation() {
+        List<RewardType<?>> rewards = List.of(
+                new RewardItem(UUID.randomUUID(), new ItemStack(Items.DIAMOND, 333_333)),
+                new RewardExperience(UUID.randomUUID(), 333_333),
+                new RewardExperienceLevels(UUID.randomUUID(), 333_333));
+        for (RewardType<?> reward : rewards) {
+            check(reward.getIconLabel().getString().equals("333.3k"), "Reward quantities share the objective count abbreviation");
+            check(reward.getDisplayName().getContents() instanceof TranslatableContents tooltip
+                            && Integer.valueOf(333_333).equals(tooltip.getArgs()[0]),
+                    "Reward tooltips retain the exact quantity");
+        }
+        check(new RewardItem(UUID.randomUUID(), new ItemStack(Items.DIAMOND, 64)).getIconLabel().getString().equals("64"),
+                "Small reward quantities remain exact");
+        check(new RewardExperience(UUID.randomUUID(), 0).getIconLabel().getString().equals("0"),
+                "Zero experience rewards remain exact");
+        check(new RewardExperience(UUID.randomUUID(), -333_333).getIconLabel().getString().equals("-333.3k"),
+                "Negative experience quantities preserve their sign when abbreviated");
+        check(new RewardExperience(UUID.randomUUID(), Integer.MIN_VALUE).getIconLabel().getString().equals("-2.1b"),
+                "Abbreviated experience supports the full signed int range");
     }
 
     private static void verifyUserSerialization() throws Exception {

@@ -3,6 +3,7 @@ package dev.veryue.vuequests.client.widget;
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.veryue.vuequests.client.ClientQuestData;
 import dev.veryue.vuequests.models.quest.Quest;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -10,8 +11,11 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.item.ItemStack;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -59,7 +63,20 @@ public class QuestNodeWidget extends Button {
     }
 
     public void renderQuestTooltip(GuiGraphics graphics, Font font, int mouseX, int mouseY) {
-        graphics.renderTooltip(font, questTooltip.toCharSequence(Minecraft.getInstance()), mouseX, mouseY);
+        graphics.renderTooltip(font, tooltipLines(Minecraft.getInstance()), mouseX, mouseY);
+    }
+
+    private List<FormattedCharSequence> tooltipLines(Minecraft minecraft) {
+        List<FormattedCharSequence> lines = questTooltip.toCharSequence(minecraft);
+        if (!ClientQuestData.isDebugEnabled()) {
+            return lines;
+        }
+        List<FormattedCharSequence> debugLines = new ArrayList<>(lines);
+        debugLines.add(Component.translatable("screen.vuequests.debug.quest_id", quest.questId().toString())
+                .withStyle(ChatFormatting.AQUA).getVisualOrderText());
+        debugLines.add(Component.translatable("screen.vuequests.debug.copy_hint")
+                .withStyle(ChatFormatting.GRAY).getVisualOrderText());
+        return debugLines;
     }
 
     public Quest getQuest() {

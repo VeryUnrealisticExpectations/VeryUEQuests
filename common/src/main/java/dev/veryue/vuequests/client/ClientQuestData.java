@@ -8,6 +8,7 @@ import dev.veryue.vuequests.models.quest.Quest;
 import dev.veryue.vuequests.models.quest.Section;
 import dev.veryue.vuequests.models.reward.RewardType;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -18,6 +19,7 @@ public class ClientQuestData {
     private static QuestData data = QuestData.EMPTY;
     @Nullable
     private static PlayerUser user;
+    private static boolean debugEnabled;
 
     public static void update(List<Section> sections, PlayerUser playerUser) {
         if (hasIntegratedServer()) {
@@ -74,8 +76,19 @@ public class ClientQuestData {
         return user != null && getData().canClaimRewards(quest, user);
     }
 
+    public static boolean isDebugEnabled() {
+        return debugEnabled;
+    }
+
+    public static void toggleDebug() {
+        debugEnabled = !debugEnabled;
+        Minecraft.getInstance().gui.getChat().addMessage(Component.translatable(debugEnabled
+                ? "commands.vuequests.debug.enabled" : "commands.vuequests.debug.disabled"));
+    }
+
     public static void clear() {
         data = QuestData.EMPTY;
         user = null;
+        debugEnabled = false;
     }
 }

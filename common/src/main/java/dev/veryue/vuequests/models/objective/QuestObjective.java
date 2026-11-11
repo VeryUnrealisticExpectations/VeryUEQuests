@@ -8,6 +8,7 @@ import dev.veryue.vuequests.models.User;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.util.Mth;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -51,10 +52,36 @@ public abstract class QuestObjective<T, TYPE> {
     }
 
     public Component getProgressText(@Nullable User user) {
+        return progressText(user, false);
+    }
+
+    public Component getIconLabel(@Nullable User user) {
+        return progressText(user, true);
+    }
+
+    private Component progressText(@Nullable User user, boolean iconLabel) {
         QuestObjectiveProgress<T, TYPE> progress = user == null ? null : user.getObjectiveProgress(this);
-        boolean complete = user != null && (user.hasCompletedObjective(this) || (progress != null && progress.isComplete(this)));
+        boolean complete = isComplete(user, progress);
         TYPE currentProgress = progress == null ? null : progress.getCurrentProgress();
-        return formatProgress(currentProgress, complete).withStyle(complete ? ChatFormatting.GREEN : ChatFormatting.YELLOW);
+        MutableComponent text = iconLabel ? formatIconLabel(currentProgress, complete) : formatProgress(currentProgress, complete);
+        return text.withStyle(complete ? ChatFormatting.GREEN : ChatFormatting.YELLOW);
+    }
+
+    public double getProgressFraction(@Nullable User user) {
+        QuestObjectiveProgress<T, TYPE> progress = user == null ? null : user.getObjectiveProgress(this);
+        return isComplete(user, progress) ? 1 : Mth.clamp(formatProgressFraction(progress == null ? null : progress.getCurrentProgress()), 0, 1);
+    }
+
+    private boolean isComplete(@Nullable User user, @Nullable QuestObjectiveProgress<T, TYPE> progress) {
+        return user != null && (user.hasCompletedObjective(this) || (progress != null && progress.isComplete(this)));
+    }
+
+    protected double formatProgressFraction(@Nullable TYPE progress) {
+        return 0;
+    }
+
+    protected MutableComponent formatIconLabel(@Nullable TYPE progress, boolean complete) {
+        return formatProgress(progress, complete);
     }
 
     protected MutableComponent formatProgress(@Nullable TYPE progress, boolean complete) {

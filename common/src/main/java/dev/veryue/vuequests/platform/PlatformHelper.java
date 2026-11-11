@@ -1,6 +1,7 @@
 package dev.veryue.vuequests.platform;
 
 import dev.veryue.vuequests.VeryUEConstants;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -16,6 +17,8 @@ public interface PlatformHelper {
             .orElseThrow(() -> new IllegalStateException("No platform helper is available for this mod platform"));
 
     boolean isModLoaded(String modId);
+
+    boolean hasPermission(CommandSourceStack source, CommandPermission permission);
 
     default List<Path> assetRoots() { return List.of(); }
 

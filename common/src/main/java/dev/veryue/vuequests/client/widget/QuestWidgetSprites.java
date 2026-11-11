@@ -7,6 +7,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.locale.Language;
 import net.minecraft.util.FastColor;
+import net.minecraft.util.Mth;
 
 import static dev.veryue.vuequests.VeryUEConstants.MOD_ID;
 
@@ -23,6 +24,11 @@ public class QuestWidgetSprites {
     public static final ResourceLocation SECTION = sprite("section");
     public static final ResourceLocation SECTION_SELECTED = sprite("section_selected");
     public static final ResourceLocation SCROLLBAR = sprite("scrollbar");
+    public static final ResourceLocation OBJECTIVE_PROGRESS_BACKGROUND = sprite("objective_progress_background");
+    public static final ResourceLocation OBJECTIVE_PROGRESS_INCOMPLETE = sprite("objective_progress_incomplete");
+    public static final ResourceLocation OBJECTIVE_PROGRESS_COMPLETE = sprite("objective_progress_complete");
+    public static final int OBJECTIVE_PROGRESS_WIDTH = 16;
+    public static final int OBJECTIVE_PROGRESS_HEIGHT = 4;
 
     public static ResourceLocation sprite(String name) {
         return ResourceLocation.fromNamespaceAndPath(MOD_ID, "quest_menu/" + name);
@@ -45,6 +51,18 @@ public class QuestWidgetSprites {
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         graphics.blitSprite(claimed ? REWARD_CLAIMED : REWARD_UNCLAIMED, x, y, 200, 16, 16);
+    }
+
+    public static void blitObjectiveProgress(GuiGraphics graphics, int x, int y, double progress) {
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        graphics.blitSprite(OBJECTIVE_PROGRESS_BACKGROUND, x, y, 200, OBJECTIVE_PROGRESS_WIDTH, OBJECTIVE_PROGRESS_HEIGHT);
+        boolean complete = progress >= 1;
+        int fillWidth = complete ? OBJECTIVE_PROGRESS_WIDTH : Mth.clamp((int) (progress * OBJECTIVE_PROGRESS_WIDTH), 0, OBJECTIVE_PROGRESS_WIDTH - 1);
+        if (fillWidth > 0) {
+            graphics.blitSprite(complete ? OBJECTIVE_PROGRESS_COMPLETE : OBJECTIVE_PROGRESS_INCOMPLETE,
+                    OBJECTIVE_PROGRESS_WIDTH, OBJECTIVE_PROGRESS_HEIGHT, 0, 0, x, y, 200, fillWidth, OBJECTIVE_PROGRESS_HEIGHT);
+        }
     }
 
     private static void blit(GuiGraphics graphics, ResourceLocation sprite, int x, int y, int width, int height,

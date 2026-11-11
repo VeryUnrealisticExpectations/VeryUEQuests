@@ -1,7 +1,9 @@
 package dev.veryue.vuequests.platform;
 
+import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -20,6 +22,11 @@ public class FabricPlatformHelper implements PlatformHelper {
     @Override
     public boolean isModLoaded(String modId) {
         return FabricLoader.getInstance().isModLoaded(modId);
+    }
+
+    @Override
+    public boolean hasPermission(CommandSourceStack source, CommandPermission permission) {
+        return Permissions.check(source, permission.nodeName(), CommandPermission.DEFAULT_LEVEL);
     }
 
     @Override

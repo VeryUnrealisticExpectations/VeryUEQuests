@@ -125,6 +125,38 @@ public abstract class User {
         completedObjectives.add((objective.getObjectiveId()));
     }
 
+    public synchronized void resetQuestProgress(Quest quest) {
+        completedQuests.remove(quest.questId());
+        for (QuestObjective<?, ?> objective : quest.objectives()) {
+            clearObjectiveProgress(objective.getObjectiveId());
+        }
+        for (RewardType<?> reward : quest.rewards()) {
+            claimedRewards.remove(reward.getRewardId());
+        }
+    }
+
+    public synchronized void completeQuestProgress(Quest quest) {
+        quest.objectives().forEach(this::completeObjective);
+        grantQuestCompletion(quest);
+    }
+
+    public synchronized void resetObjectiveProgress(Quest quest, UUID objectiveId) {
+        clearObjectiveProgress(objectiveId);
+        completedQuests.remove(quest.questId());
+    }
+
+    public synchronized void completeObjectiveProgress(Quest quest, QuestObjective<?, ?> objective) {
+        completeObjective(objective);
+        if (quest.objectives().stream().allMatch(this::hasCompletedObjective)) {
+            grantQuestCompletion(quest);
+        }
+    }
+
+    private void clearObjectiveProgress(UUID objectiveId) {
+        completedObjectives.remove(objectiveId);
+        questObjectiveProgress.remove(objectiveId);
+    }
+
     public abstract void grantQuestCompletion(Quest quest);
 
     public abstract void grantQuestCompletion(UUID uuid);

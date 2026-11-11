@@ -1,6 +1,7 @@
 package dev.veryue.vuequests.client;
 
 import dev.veryue.vuequests.client.editor.ClientEditorResources;
+import dev.veryue.vuequests.network.QuestDebugTogglePayload;
 import dev.veryue.vuequests.network.QuestProgressSyncPayload;
 import dev.veryue.vuequests.network.QuestSyncPayload;
 import net.fabricmc.api.ClientModInitializer;
@@ -21,6 +22,7 @@ public class VeryUEQuestsFabricClient implements ClientModInitializer {
                 (payload, context) -> ClientQuestData.update(payload.sections(), payload.user()));
         ClientPlayNetworking.registerGlobalReceiver(QuestProgressSyncPayload.TYPE,
                 (payload, context) -> ClientQuestData.updateProgress(payload.user()));
+        ClientPlayNetworking.registerGlobalReceiver(QuestDebugTogglePayload.TYPE, (payload, context) -> ClientQuestData.toggleDebug());
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> ClientQuestData.clear());
         KeyBindingHelper.registerKeyBinding(VeryUEKeyMappings.OPEN_QUEST_MENU);
         canvasKeys.register(KeyBindingHelper::registerKeyBinding);

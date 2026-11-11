@@ -127,14 +127,13 @@ public class QuestData {
     }
 
     public void restoreAttributeRewards(User user, ServerPlayer player) {
-        if (user.getClaimedRewards().isEmpty()) {
-            return;
-        }
         Map<ResourceLocation, RewardAttribute> claimed = new HashMap<>();
-        for (Quest quest : quests.values()) {
-            for (RewardType<?> reward : quest.rewards()) {
-                if (reward instanceof RewardAttribute attribute && user.getClaimedRewards().contains(attribute.getRewardId())) {
-                    claimed.putIfAbsent(attribute.getModifierId(), attribute);
+        if (!user.getClaimedRewards().isEmpty()) {
+            for (Quest quest : quests.values()) {
+                for (RewardType<?> reward : quest.rewards()) {
+                    if (reward instanceof RewardAttribute attribute && user.getClaimedRewards().contains(attribute.getRewardId())) {
+                        claimed.putIfAbsent(attribute.getModifierId(), attribute);
+                    }
                 }
             }
         }
