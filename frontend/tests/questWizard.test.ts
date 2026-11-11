@@ -3,6 +3,16 @@ import assert from 'node:assert/strict'
 import { dependencyProblem, newQuest, newSection, newTask } from '../src/lib/quests.ts'
 import { blockedPrerequisites, integerInput, questIssues, sectionsWithDraft, taskInputId, taskRowsFor } from '../src/lib/questWizard.ts'
 
+test('travel coordinate drafts remain invalid when an unfinished input keeps its committed value', () => {
+  const section = newSection()
+  const draft = newQuest(section.section_id, { x: 0, y: 0 })
+  draft.objectives = [newTask('objective', 'vuequests:travel_coordinates')]
+  const rows = { objective: taskRowsFor('objective', draft.objectives), reward: [] }
+  const target = taskInputId(rows.objective[0].key, 'min_x')
+  assert.deepEqual(questIssues(draft, rows, { [target]: '-' }, [section]).map(issue => issue.target), [target])
+  assert.equal(draft.objectives[0].min_x, 0)
+})
+
 test('review validates closed stages and incomplete input without overwriting committed task values', () => {
   const section = newSection()
   const draft = newQuest(section.section_id, { x: -10, y: 12 })

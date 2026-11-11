@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.Objects;
 
 public class QuestData {
     public static final QuestData EMPTY = new QuestData(ImmutableMap.of(), ImmutableMap.of());
@@ -59,10 +60,15 @@ public class QuestData {
     }
 
 
-    public List<QuestObjective<?, ?>> handleQuestTrigger(User user, QuestObjectiveSerializer<?> objectiveType, ObjectiveContext context) {
-        List<QuestObjective<?, ?>> matchingObjectives = new ArrayList<>();
+    public boolean handleQuestTriggerChanges(User user, QuestObjectiveSerializer<?> objectiveType, ObjectiveContext context) {
+        return handleQuestTrigger(user, objectiveType, context, null, null);
+    }
+
+    private boolean handleQuestTrigger(User user, QuestObjectiveSerializer<?> objectiveType, ObjectiveContext context,
+                                       UUID questId, UUID objectiveId) {
+        boolean changed = false;
         for (Quest quest : questsByObjectiveType(objectiveType)) {
-            if (!prerequisitesMet(quest.questId(), user)) {
+            if ((questId != null && !questId.equals(quest.questId())) || !prerequisitesMet(quest.questId(), user)) {
                 continue;
             }
 
@@ -70,10 +76,13 @@ public class QuestData {
             for (QuestObjective<?, ?> objective : quest.objectives()) {
                 if (user.hasCompletedObjective(objective)) {
                     objectivesCompleted++;
-                } else if (objectiveType.equals(objective.getType())) {
-                    matchingObjectives.add(objective);
+                } else if (objectiveType.equals(objective.getType()) && (objectiveId == null || objectiveId.equals(objective.getObjectiveId()))) {
+                    Object previous = progressValue(user, objective);
                     if (handleObjectiveTrigger(user, objective, context)) {
                         objectivesCompleted++;
+                        changed = true;
+                    } else if (!Objects.equals(previous, progressValue(user, objective))) {
+                        changed = true;
                     }
                 }
             }
@@ -82,7 +91,28 @@ public class QuestData {
             }
         }
 
-        return matchingObjectives;
+        return changed;
+    }
+
+    private <T, P> P progressValue(User user, QuestObjective<T, P> objective) {
+        QuestObjectiveProgress<T, P> progress = user.getObjectiveProgress(objective);
+        return progress == null ? null : progress.getCurrentProgress();
+    }
+
+    public boolean interactWithObjective(User user, ServerPlayer player, UUID questId, UUID objectiveId) {
+        Quest quest = quests.get(questId);
+        if (quest == null || !user.getUuid().equals(player.getUUID()) || !prerequisitesMet(questId, user)) {
+            return false;
+        }
+        for (QuestObjective<?, ?> objective : quest.objectives()) {
+            if (objectiveId.equals(objective.getObjectiveId()) && objective.requiresInteraction() && !user.hasCompletedObjective(objective)) {
+                ObjectiveContext context = ObjectiveContext.createContext(player.serverLevel())
+                        .withParameter(ObjectiveContext.PLAYER, player)
+                        .withParameter(ObjectiveContext.INTERACTION, objectiveId).build();
+                return handleQuestTrigger(user, objective.getType(), context, questId, objectiveId);
+            }
+        }
+        return false;
     }
 
     private <T, TYPE> boolean handleObjectiveTrigger(User user, QuestObjective<T, TYPE> objective, ObjectiveContext context) {

@@ -15,6 +15,8 @@ import { QuestNodeIcon } from './QuestNodeIcon.tsx'
 import { PrerequisitePicker, QuestReviewStage } from './QuestReviewStage.tsx'
 import { RegistryPicker } from './RegistryPicker.tsx'
 import { ResourceIdPicker } from './ResourceIdPicker.tsx'
+import { StatisticTaskEditor } from './StatisticTaskEditor.tsx'
+import { TravelCoordinatesEditor } from './TravelCoordinatesEditor.tsx'
 import { CustomTaskEditor, TaskListEditor, TaskTypePicker } from './TaskListEditor.tsx'
 import { WizardDialog } from './WizardDialog.tsx'
 
@@ -93,7 +95,10 @@ export function QuestEditorDialog({ quest, section, sections, position, catalog,
     .filter(([id]) => !id.startsWith(taskInputId(key, '')))))
   const openTask = (taskKind: TaskKind, key: string, task: Task) => {
     const quantity = taskQuantity(task)
-    if (quantity?.field === 'experience' || quantity?.field === 'levels') {
+    if (task.type === 'vuequests:acknowledgement') {
+      setOpened(undefined)
+      focus(taskInputId(key, 'target'))
+    } else if (quantity?.field === 'experience' || quantity?.field === 'levels') {
       setOpened(undefined)
       focus(taskInputId(key, quantity.field))
     } else open({ kind: 'task', taskKind, key }, taskInputId(key, 'target'))
@@ -137,10 +142,10 @@ export function QuestEditorDialog({ quest, section, sections, position, catalog,
       open({ kind: 'detail', field: issue.target === 'quest-title' ? 'title' : 'icon' }, issue.target)
     } else if (issue.target === 'quest-prerequisites') {
       open({ kind: 'prerequisites' }, issue.target)
-    } else if (issue.taskKey && (issue.target.endsWith('-target') || issue.target.endsWith('-fields'))) {
+    } else if (issue.taskKey && (issue.target.endsWith('-target') || issue.target.endsWith('-fields') || /-(min|max)_[xyz]$/.test(issue.target))) {
       const kind = issue.stage === 'objectives' ? 'objective' : 'reward'
       const row = rows[kind].find(entry => entry.key === issue.taskKey)
-      if (row && issue.target.endsWith('-fields')) open({ kind: 'task', taskKind: kind, key: row.key }, taskInputId(row.key, 'target'), issue.target)
+      if (row && !issue.target.endsWith('-target')) open({ kind: 'task', taskKind: kind, key: row.key }, taskInputId(row.key, 'target'), issue.target)
       else if (row) openTask(kind, row.key, row.task)
     }
   }
@@ -165,7 +170,7 @@ export function QuestEditorDialog({ quest, section, sections, position, catalog,
   } else if (panel?.kind === 'task' && selected) {
     const { task, key } = selected
     const commit = (change: Partial<Task>) => { updateTask(panel.taskKind, key, { ...task, ...change }); close() }
-    if (task.type === 'vuequests:collect_item' || task.type === 'vuequests:item') {
+    if (task.type === 'vuequests:collect_item' || task.type === 'vuequests:submit_item' || task.type === 'vuequests:item') {
       panelTitle = 'Choose ' + panel.taskKind + ' item'
       panelContent = <RegistryPicker key={key} label="Search items" value={task.item?.id ?? ''} catalog={catalog} epoch={epoch} panel
         onChange={id => commit({ item: { ...task.item, id } })} />
@@ -184,6 +189,21 @@ export function QuestEditorDialog({ quest, section, sections, position, catalog,
       panelTitle = 'Choose player attribute'
       panelContent = <ResourceIdPicker key={key} kind="player attributes" entries={catalog.attributes ?? []}
         value={task.attribute ?? ''} onChoose={attribute => commit({ attribute })} />
+    } else if (task.type === 'vuequests:travel_dimension' || task.type === 'vuequests:travel_biome' || task.type === 'vuequests:travel_structure') {
+      const field = task.type === 'vuequests:travel_dimension' ? 'dimension' : task.type === 'vuequests:travel_biome' ? 'biome' : 'structure'
+      const entries = field === 'dimension' ? catalog.dimensions : field === 'biome' ? catalog.biomes : catalog.structures
+      panelTitle = 'Choose ' + field
+      panelContent = <ResourceIdPicker key={key} kind={field + 's'} entries={(entries ?? []).map(id => ({ id, name: id }))}
+        value={task[field] ?? ''} onChoose={id => commit({ [field]: id })} />
+    } else if (task.type === 'vuequests:travel_coordinates' || task.type === 'vuequests:statistic') {
+      panelTitle = task.type === 'vuequests:statistic' ? 'Choose statistic' : 'Edit travel coordinates'
+      panelContent = <>
+        {task.type === 'vuequests:statistic'
+          ? <StatisticTaskEditor key={key} task={task} catalog={catalog} onChange={changed => updateTask(panel.taskKind, key, changed)} />
+          : <TravelCoordinatesEditor task={task} rowKey={key} catalog={catalog} inputs={inputs} onInput={input}
+            onChange={changed => updateTask(panel.taskKind, key, changed)} />}
+        <div className="wizard-panel-actions"><button type="button" className="mc-button" onClick={close}>Done</button></div>
+      </>
     } else if (task.type === 'vuequests:command') {
       panelTitle = 'Edit reward command'
       panelContent = <>

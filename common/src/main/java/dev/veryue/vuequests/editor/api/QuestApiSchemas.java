@@ -19,6 +19,10 @@ public class QuestApiSchemas {
         return entry(type, "objective_id", field, value);
     }
 
+    public static JsonSchema objective(String type, Map<String, JsonSchema> fields) {
+        return entry(type, "objective_id", fields);
+    }
+
     public static JsonSchema countedObjective(String type, String field, JsonSchema value, String countDescription) {
         JsonSchema schema = objective(type, field, value);
         schema.properties.put("count", JsonSchema.type("integer").format("int32")

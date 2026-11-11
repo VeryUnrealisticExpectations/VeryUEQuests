@@ -8,6 +8,9 @@ import dev.veryue.vuequests.models.ObjectiveContext;
 import dev.veryue.vuequests.models.PlayerUser;
 import dev.veryue.vuequests.models.User;
 import dev.veryue.vuequests.registry.QuestObjectiveTypes;
+import dev.veryue.vuequests.models.objective.QuestObjectiveSerializer;
+import net.minecraft.core.GlobalPos;
+import net.minecraft.stats.Stat;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -30,6 +33,8 @@ public class VeryUEMod {
 
     private final Logger LOGGER = LoggerFactory.getLogger(VeryUEConstants.MOD_ID);
     private final Map<UUID, User> USERS = new ConcurrentHashMap<>();
+    private final Map<UUID, GlobalPos> lastTravelPositions = new HashMap<>();
+    private final Map<UUID, Integer> lastExperienceLevels = new HashMap<>();
     private UserLoader loader;
     private ScheduledExecutorService saveExecutor;
     private ScheduledFuture<?> autosave;
@@ -77,6 +82,8 @@ public class VeryUEMod {
     }
 
     public void unloadPlayer(UUID uuid) {
+        lastTravelPositions.remove(uuid);
+        lastExperienceLevels.remove(uuid);
         User user = USERS.remove(uuid);
         if (user != null && saveExecutor != null) {
             UserLoader activeLoader = loader;
@@ -105,6 +112,7 @@ public class VeryUEMod {
     protected void onPlayerLogin(ServerPlayer player) {
         loadPlayer(player.getUUID());
         restoreAttributeRewards(player);
+        checkPlayerObjectives(player);
     }
 
     protected void restoreAttributeRewards(ServerPlayer player) {
@@ -118,7 +126,9 @@ public class VeryUEMod {
                         .withParameter(ObjectiveContext.PLAYER, player)
                         .withParameter(ObjectiveContext.ENTITY, entity)
                         .build();
-                QuestReloadDelegate.INSTANCE.getData().handleQuestTrigger(user, QuestObjectiveTypes.ENTITY, context);
+                if (QuestReloadDelegate.INSTANCE.getData().handleQuestTriggerChanges(user, QuestObjectiveTypes.ENTITY, context)) {
+                    syncProgress(player);
+                }
             });
         }
     }
@@ -129,7 +139,60 @@ public class VeryUEMod {
                     .withParameter(ObjectiveContext.PLAYER, player)
                     .withParameter(ObjectiveContext.ADVANCEMENT, advancement)
                     .build();
-            QuestReloadDelegate.INSTANCE.getData().handleQuestTrigger(user, QuestObjectiveTypes.ADVANCEMENT, context);
+            if (QuestReloadDelegate.INSTANCE.getData().handleQuestTriggerChanges(user, QuestObjectiveTypes.ADVANCEMENT, context)) {
+                syncProgress(player);
+            }
+        });
+    }
+
+    protected void syncProgress(ServerPlayer player) {
+    }
+
+    public void onPlayerMoved(ServerPlayer player) {
+        GlobalPos position = GlobalPos.of(player.level().dimension(), player.blockPosition());
+        if (!position.equals(lastTravelPositions.put(player.getUUID(), position))) {
+            triggerPlayerObjectives(player, QuestObjectiveTypes.TRAVEL_DIMENSION, QuestObjectiveTypes.TRAVEL_BIOME,
+                    QuestObjectiveTypes.TRAVEL_COORDINATES, QuestObjectiveTypes.TRAVEL_STRUCTURE);
+        }
+    }
+
+    public void onExperienceChanged(ServerPlayer player) {
+        int level = player.experienceLevel;
+        Integer previousLevel = lastExperienceLevels.put(player.getUUID(), level);
+        if (previousLevel == null || previousLevel != level) {
+            triggerPlayerObjectives(player, QuestObjectiveTypes.EXPERIENCE_LEVELS);
+        }
+    }
+
+    public void onStatisticChanged(ServerPlayer player, Stat<?> statistic) {
+        getUser(player.getUUID()).ifPresent(user -> {
+            ObjectiveContext context = ObjectiveContext.createContext(player.serverLevel())
+                    .withParameter(ObjectiveContext.PLAYER, player).withParameter(ObjectiveContext.STATISTIC, statistic).build();
+            if (QuestReloadDelegate.INSTANCE.getData().handleQuestTriggerChanges(user, QuestObjectiveTypes.STATISTIC, context)) {
+                syncProgress(player);
+            }
+        });
+    }
+
+    public void checkPlayerObjectives(ServerPlayer player) {
+        // todo; maybe split this out if it's not very performant
+        lastTravelPositions.put(player.getUUID(), GlobalPos.of(player.level().dimension(), player.blockPosition()));
+        lastExperienceLevels.put(player.getUUID(), player.experienceLevel);
+        triggerPlayerObjectives(player, QuestObjectiveTypes.COLLECT_ITEM, QuestObjectiveTypes.ADVANCEMENT,
+                QuestObjectiveTypes.EXPERIENCE_LEVELS, QuestObjectiveTypes.STATISTIC, QuestObjectiveTypes.TRAVEL_DIMENSION,
+                QuestObjectiveTypes.TRAVEL_BIOME, QuestObjectiveTypes.TRAVEL_COORDINATES, QuestObjectiveTypes.TRAVEL_STRUCTURE);
+    }
+
+    private void triggerPlayerObjectives(ServerPlayer player, QuestObjectiveSerializer<?>... types) {
+        getUser(player.getUUID()).ifPresent(user -> {
+            ObjectiveContext context = ObjectiveContext.createContext(player.serverLevel()).withParameter(ObjectiveContext.PLAYER, player).build();
+            boolean changed = false;
+            for (QuestObjectiveSerializer<?> type : types) {
+                changed |= QuestReloadDelegate.INSTANCE.getData().handleQuestTriggerChanges(user, type, context);
+            }
+            if (changed) {
+                syncProgress(player);
+            }
         });
     }
 
@@ -147,6 +210,8 @@ public class VeryUEMod {
         } finally {
             saveExecutor.close();
             USERS.clear();
+            lastTravelPositions.clear();
+            lastExperienceLevels.clear();
             autosave = null;
             saveExecutor = null;
             loader = null;

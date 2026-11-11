@@ -19,7 +19,7 @@ export function newQuest(sectionId: string, position: Position): Quest {
 
 export function newTask(kind: 'objective' | 'reward', type: string, id: string = crypto.randomUUID()): Task {
   const identity = kind === 'objective' ? { objective_id: id } : { reward_id: id }
-  if (type === 'vuequests:collect_item') return { ...identity, type, item: { id: 'minecraft:cobblestone' }, count: 1 }
+  if (type === 'vuequests:collect_item' || type === 'vuequests:submit_item') return { ...identity, type, item: { id: 'minecraft:cobblestone' }, count: 1 }
   if (type === 'vuequests:entity') return { ...identity, type, entity: 'minecraft:zombie', count: 1 }
   if (type === 'vuequests:advancement') return { ...identity, type, advancement: '' }
   if (type === 'vuequests:item') return { ...identity, type, item: { id: 'minecraft:diamond', count: 1 } }
@@ -28,6 +28,11 @@ export function newTask(kind: 'objective' | 'reward', type: string, id: string =
   if (type === 'vuequests:loot_table') return { ...identity, type, loot_table: '' }
   if (type === 'vuequests:command') return { ...identity, type, command: '' }
   if (type === 'vuequests:attribute') return { ...identity, type, attribute: '', amount: 1 }
+  if (type === 'vuequests:travel_dimension') return { ...identity, type, dimension: '' }
+  if (type === 'vuequests:travel_biome') return { ...identity, type, biome: '' }
+  if (type === 'vuequests:travel_structure') return { ...identity, type, structure: '' }
+  if (type === 'vuequests:travel_coordinates') return { ...identity, type, dimension: 'minecraft:overworld', min_x: 0, min_y: 0, min_z: 0, max_x: 0, max_y: 0, max_z: 0 }
+  if (type === 'vuequests:statistic') return { ...identity, type, stat_type: 'minecraft:custom', statistic: '', count: 1 }
   return { ...identity, type }
 }
 

@@ -3,6 +3,7 @@ package dev.veryue.vuequests.client.widget;
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.veryue.vuequests.client.ClientQuestData;
 import dev.veryue.vuequests.models.objective.QuestObjective;
+import dev.veryue.vuequests.models.objective.ObjectiveAcknowledge;
 import dev.veryue.vuequests.models.quest.Quest;
 import dev.veryue.vuequests.models.reward.RewardItem;
 import dev.veryue.vuequests.models.reward.RewardType;
@@ -46,6 +47,7 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
     private final Quest quest;
     private final Predicate<Style> onTextClick;
     private final Consumer<RewardType<?>> onRewardClick;
+    private final Consumer<QuestObjective<?, ?>> onObjectiveClick;
     private final List<ItemStack> objectiveIcons;
     private final List<ItemStack> rewardIcons;
     private List<FormattedCharSequence> titleLines = List.of();
@@ -55,12 +57,14 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
     private int contentHeight;
     private int headingCenterOffset;
 
-    public QuestDetailsPanel(Font font, Quest quest, Predicate<Style> onTextClick, Consumer<RewardType<?>> onRewardClick) {
+    public QuestDetailsPanel(Font font, Quest quest, Predicate<Style> onTextClick, Consumer<RewardType<?>> onRewardClick,
+                             Consumer<QuestObjective<?, ?>> onObjectiveClick) {
         super(0, 0, 0, 0, quest.display().title());
         this.font = font;
         this.quest = quest;
         this.onTextClick = onTextClick;
         this.onRewardClick = onRewardClick;
+        this.onObjectiveClick = onObjectiveClick;
         objectiveIcons = quest.objectives().stream().map(QuestObjective::getIconStack).toList();
         rewardIcons = quest.rewards().stream().map(RewardType::getIconStack).toList();
     }
@@ -115,18 +119,24 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
                 int column = i % columns;
                 int x = iconRowLeft(i - column, icons.size(), columns, cellWidth)
                         + column * (cellWidth + ICON_GAP) + (cellWidth - ICON_SIZE) / 2;
-                graphics.renderItem(icons.get(i), x, y);
+                boolean acknowledgement = !showClaimBadges && quest.objectives().get(i) instanceof ObjectiveAcknowledge;
+                if (acknowledgement) {
+                    QuestWidgetSprites.blitAcknowledgement(graphics, x, y,
+                            ClientQuestData.getUser() != null && ClientQuestData.getUser().hasCompletedObjective(quest.objectives().get(i)));
+                } else {
+                    graphics.renderItem(icons.get(i), x, y);
+                }
                 if (showClaimBadges) {
                     boolean claimed = ClientQuestData.isRewardClaimed(quest.rewards().get(i));
                     if (claimed || canClaimRewards) {
                         QuestWidgetSprites.blitClaimBadge(graphics, x, y, claimed);
                     }
-                } else {
+                } else if (!acknowledgement) {
                     QuestWidgetSprites.blitObjectiveProgress(graphics, x, y + ICON_SIZE + 2,
                             quest.objectives().get(i).getProgressFraction(ClientQuestData.getUser()));
                 }
                 Component label = labelAt.apply(i);
-                if (label != null) {
+                if (label != null && !acknowledgement) {
                     drawIconLabel(graphics, label, x, y, cellWidth);
                 }
             }
@@ -161,6 +171,16 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (active && visible && button == 0 && insideClip(mouseX, mouseY)) {
+            int objectiveIndex = iconAt(mouseX, mouseY + scrollAmount() - objectivesTop(), objectiveIcons.size(), objectiveColumns,
+                    OBJECTIVE_LABEL_WIDTH, OBJECTIVE_HEIGHT);
+            if (objectiveIndex >= 0) {
+                QuestObjective<?, ?> objective = quest.objectives().get(objectiveIndex);
+                if (objective.requiresInteraction() && ClientQuestData.prerequisitesMet(quest) && ClientQuestData.getUser() != null
+                        && !ClientQuestData.getUser().hasCompletedObjective(objective)) {
+                    onObjectiveClick.accept(objective);
+                    return true;
+                }
+            }
             int rewardIndex = iconAt(mouseX, mouseY + scrollAmount() - rewardsTop(), rewardIcons.size(), iconColumns, ICON_SIZE, ICON_SIZE);
             if (rewardIndex >= 0) {
                 RewardType<?> reward = quest.rewards().get(rewardIndex);

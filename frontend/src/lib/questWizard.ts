@@ -119,6 +119,17 @@ export function questIssues(draft: Quest, rows: TaskRows, inputs: InputDrafts, s
           issues.push({ stage, target, message: label + 'Attribute amount must be a finite positive number.' })
         }
       }
+      if (task.type === 'vuequests:travel_coordinates') {
+        for (const corner of ['min', 'max'] as const) {
+          for (const axis of ['x', 'y', 'z'] as const) {
+            const field = `${corner}_${axis}` as const
+            const target = taskInputId(key, field)
+            if (integerInput(inputs[target] ?? String(task[field] ?? ''), -2_147_483_648, 2_147_483_647) === undefined) {
+              issues.push({ stage, target, taskKey: key, message: label + field + ' must be a signed 32-bit integer.' })
+            }
+          }
+        }
+      }
       for (const field of ['components', 'fields']) {
         const target = taskInputId(key, field)
         const raw = inputs[target]

@@ -68,6 +68,17 @@ export interface Task {
   command?: string
   attribute?: string
   amount?: number
+  dimension?: string
+  biome?: string
+  structure?: string
+  stat_type?: string
+  statistic?: string
+  min_x?: number
+  min_y?: number
+  min_z?: number
+  max_x?: number
+  max_y?: number
+  max_z?: number
   [key: string]: unknown
 }
 export interface Quest {
@@ -99,6 +110,10 @@ export interface Catalog {
   advancements: string[]
   lootTables?: string[]
   attributes?: RegistryEntry[]
+  dimensions?: string[]
+  biomes?: string[]
+  structures?: string[]
+  statisticTypes?: { id: string; name: string; values: string[] }[]
   objectiveTypes: TypeEntry[]
   rewardTypes: TypeEntry[]
 }

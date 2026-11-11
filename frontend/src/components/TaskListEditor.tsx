@@ -37,8 +37,8 @@ export function TaskListEditor({ kind, rows, inputs, catalog, epoch, activeTrigg
         const quantityId = quantity && taskInputId(key, quantity.field)
         const amountId = taskInputId(key, 'amount')
         const amountText = inputs[amountId] ?? String(task.amount ?? '')
-        const isItem = task.type === 'vuequests:collect_item' || task.type === 'vuequests:item'
-        const inlineOnly = task.type === 'vuequests:experience' || task.type === 'vuequests:experience_levels'
+        const isItem = task.type === 'vuequests:collect_item' || task.type === 'vuequests:submit_item' || task.type === 'vuequests:item'
+        const inlineOnly = task.type === 'vuequests:experience' || task.type === 'vuequests:experience_levels' || task.type === 'vuequests:acknowledgement'
         const target = taskTarget(task, catalog)
         const label = taskTypeLabel(kind, task.type)
         const changeQuantity = (text: string) => {
@@ -138,19 +138,26 @@ export function CustomTaskEditor({ kind, row, catalog, inputs, onInput, onChange
 }
 
 function taskTarget(task: Task, catalog: Catalog): string | undefined {
-  if (task.type === 'vuequests:collect_item' || task.type === 'vuequests:item') {
+  if (task.type === 'vuequests:collect_item' || task.type === 'vuequests:submit_item' || task.type === 'vuequests:item') {
     return catalog.items.find(entry => entry.id === task.item?.id)?.name ?? task.item?.id
   }
   if (task.type === 'vuequests:entity') return catalog.entities.find(entry => entry.id === task.entity)?.name ?? task.entity
   if (task.type === 'vuequests:advancement') return task.advancement || 'Choose advancement'
   if (task.type === 'vuequests:loot_table') return task.loot_table || 'Choose loot table'
   if (task.type === 'vuequests:command') return task.command || 'Enter command'
+  if (task.type === 'vuequests:travel_dimension') return task.dimension || 'Choose dimension'
+  if (task.type === 'vuequests:travel_biome') return task.biome || 'Choose biome'
+  if (task.type === 'vuequests:travel_structure') return task.structure || 'Choose structure'
+  if (task.type === 'vuequests:travel_coordinates') return `${task.dimension}: (${task.min_x}, ${task.min_y}, ${task.min_z}) to (${task.max_x}, ${task.max_y}, ${task.max_z})`
+  if (task.type === 'vuequests:statistic') return task.statistic ? `${task.stat_type} / ${task.statistic}` : 'Choose statistic'
+  if (task.type === 'vuequests:acknowledgement') return 'Click to acknowledge'
   if (task.type === 'vuequests:attribute') {
     return catalog.attributes?.find(entry => entry.id === task.attribute)?.name ?? (task.attribute || 'Choose attribute')
   }
 }
 
 function taskTypeLabel(kind: TaskKind, type: string): string {
+  if (kind === 'objective' && type === 'vuequests:experience_levels') return 'Reach experience level'
   if (kind === 'reward' && type === 'vuequests:advancement') return 'Advancement reward'
   return taskTypeNames[type] ?? labelFor(type)
 }
@@ -158,6 +165,13 @@ function taskTypeLabel(kind: TaskKind, type: string): string {
 const taskTypeNames: Record<string, string> = {
   'vuequests:collect_item': 'Collect item',
   'vuequests:entity': 'Slay entity',
+  'vuequests:submit_item': 'Submit item',
+  'vuequests:travel_dimension': 'Visit dimension',
+  'vuequests:travel_biome': 'Visit biome',
+  'vuequests:travel_coordinates': 'Visit coordinates',
+  'vuequests:travel_structure': 'Visit structure',
+  'vuequests:statistic': 'Achieve statistic',
+  'vuequests:acknowledgement': 'Acknowledgement',
   'vuequests:advancement': 'Get advancement',
   'vuequests:item': 'Item reward',
   'vuequests:experience': 'Experience',
@@ -170,6 +184,13 @@ const taskTypeNames: Record<string, string> = {
 const typeHints: Record<string, { icon: string; description: string }> = {
   'vuequests:collect_item': { icon: 'minecraft:cobblestone', description: 'Require a quantity of an item.' },
   'vuequests:entity': { icon: 'minecraft:iron_sword', description: 'Require kills of an entity type.' },
+  'vuequests:submit_item': { icon: 'minecraft:hopper', description: 'Take matching items when the player clicks the objective.' },
+  'vuequests:travel_dimension': { icon: 'minecraft:obsidian', description: 'Visit a loaded dimension.' },
+  'vuequests:travel_biome': { icon: 'minecraft:grass_block', description: 'Visit a loaded biome.' },
+  'vuequests:travel_coordinates': { icon: 'minecraft:compass', description: 'Reach an inclusive box of block coordinates in a dimension.' },
+  'vuequests:travel_structure': { icon: 'minecraft:stone_bricks', description: 'Visit a structure piece.' },
+  'vuequests:statistic': { icon: 'minecraft:writable_book', description: 'Reach a target in a Minecraft statistic.' },
+  'vuequests:acknowledgement': { icon: 'minecraft:paper', description: 'Click the objective to acknowledge it.' },
   'vuequests:advancement': { icon: 'minecraft:enchanted_book', description: 'Require a Minecraft advancement.' },
   'vuequests:item': { icon: 'minecraft:chest', description: 'Give the player an item stack.' },
   'vuequests:experience': { icon: 'minecraft:experience_bottle', description: 'Give the player experience.' },
@@ -190,7 +211,8 @@ export function TaskTypePicker({ kind, catalog, epoch, value, onChoose }:
   return <div className="wizard-type-choices">
     {value && !choices.some(type => type.id === value) && <p className="muted">{value} is currently unavailable.</p>}
     {choices.map(({ id }) => {
-      const hint = kind === 'reward' && id === 'vuequests:advancement' ? advancementRewardHint : typeHints[id]
+      const hint = kind === 'reward' && id === 'vuequests:advancement' ? advancementRewardHint
+        : kind === 'objective' && id === 'vuequests:experience_levels' ? { icon: 'minecraft:experience_bottle', description: 'Reach an experience level without spending XP.' } : typeHints[id]
       return <button key={id} type="button" className="mc-button wizard-type-choice"
         aria-pressed={value ? value === id : undefined} onClick={() => onChoose(id)}>
         <ItemIcon id={hint?.icon ?? (kind === 'objective' ? 'minecraft:book' : 'minecraft:chest')} epoch={epoch} />

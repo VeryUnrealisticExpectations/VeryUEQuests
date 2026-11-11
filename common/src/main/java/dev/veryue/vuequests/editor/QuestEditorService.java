@@ -53,6 +53,7 @@ public class QuestEditorService {
     public record TypeEntry(String id, List<String> fields) { }
     public record Catalog(List<RegistryEntry> items, List<RegistryEntry> blocks, List<RegistryEntry> entities,
                           List<String> advancements, List<String> lootTables, List<RegistryEntry> attributes,
+                          List<String> dimensions, List<String> biomes, List<String> structures, List<StatisticTypeEntry> statisticTypes,
                           List<TypeEntry> objectiveTypes, List<TypeEntry> rewardTypes) { }
 
     public static class ConflictException extends IllegalStateException {
@@ -201,6 +202,15 @@ public class QuestEditorService {
                 new TypeEntry(id.toString(), VeryUERegistries.QUEST_OBJECTIVE_TYPES.get(id).codec().keys(JsonOps.INSTANCE).map(JsonElement::getAsString).toList())).toList();
         var rewards = VeryUERegistries.REWARD_TYPES.keySet().stream().sorted().map(id ->
                 new TypeEntry(id.toString(), VeryUERegistries.REWARD_TYPES.get(id).codec().keys(JsonOps.INSTANCE).map(JsonElement::getAsString).toList())).toList();
-        return new Catalog(items, blocks, entities, advancements, lootTables, attributes, objectives, rewards);
+        var dimensions = server.levelKeys().stream().map(key -> key.location().toString()).sorted().toList();
+        var biomes = server.registryAccess().registryOrThrow(Registries.BIOME).keySet().stream().map(ResourceLocation::toString).sorted().toList();
+        var structures = server.registryAccess().registryOrThrow(Registries.STRUCTURE).keySet().stream().map(ResourceLocation::toString).sorted().toList();
+        var statistics = BuiltInRegistries.STAT_TYPE.keySet().stream().sorted().map(id -> {
+            var type = BuiltInRegistries.STAT_TYPE.get(id);
+            return new StatisticTypeEntry(id.toString(), type.getDisplayName().getString(),
+                    type.getRegistry().keySet().stream().map(ResourceLocation::toString).sorted().toList());
+        }).toList();
+        return new Catalog(items, blocks, entities, advancements, lootTables, attributes,
+                dimensions, biomes, structures, statistics, objectives, rewards);
     }
 }

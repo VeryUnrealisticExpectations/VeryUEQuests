@@ -92,6 +92,10 @@ public abstract class QuestObjective<T, TYPE> {
         return value;
     }
 
+    public boolean requiresInteraction() {
+        return false;
+    }
+
     public abstract void incrementObjectiveProgress(User user, QuestObjectiveProgress<T, TYPE> objectiveProgress, ObjectiveContext context);
 
     public abstract boolean isComplete(QuestObjectiveProgress<T, TYPE> progress);

@@ -112,7 +112,8 @@ public class QuestNodeWidget extends Button {
             graphics.flush();
             graphics.setColor(brightness, brightness, brightness, 1);
             graphics.renderItem(icon, 4, 4);
-            if (!quest.rewards().isEmpty() && (allRewardsClaimed || canClaimRewards)) {
+            boolean showBadge = quest.rewards().isEmpty() ? complete : allRewardsClaimed || canClaimRewards;
+            if (showBadge) {
                 graphics.flush();
                 graphics.setColor(1, 1, 1, 1);
                 QuestWidgetSprites.blitClaimBadge(graphics, 0, 0, allRewardsClaimed);

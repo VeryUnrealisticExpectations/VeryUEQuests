@@ -10,7 +10,7 @@ import dev.veryue.vuequests.client.widget.QuestWidgetSprites;
 import dev.veryue.vuequests.data.quest.QuestData;
 import dev.veryue.vuequests.models.quest.Quest;
 import dev.veryue.vuequests.models.quest.Section;
-import dev.veryue.vuequests.network.ClaimQuestRewardPayload;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
@@ -27,7 +27,7 @@ import static dev.veryue.vuequests.VeryUEConstants.MOD_ID;
 
 public class QuestScreen extends Screen {
 
-    private final Consumer<ClaimQuestRewardPayload> sendRewardClaim;
+    private final Consumer<CustomPacketPayload> sendToServer;
     private final QuestCanvasKeyMappings canvasKeys;
     private QuestSectionPanel sectionPanel;
     private QuestSectionToggle sectionToggle;
@@ -35,9 +35,9 @@ public class QuestScreen extends Screen {
     private QuestData data;
     private UUID selectedSection;
 
-    public QuestScreen(Consumer<ClaimQuestRewardPayload> sendRewardClaim, QuestCanvasKeyMappings canvasKeys) {
+    public QuestScreen(Consumer<CustomPacketPayload> sendToServer, QuestCanvasKeyMappings canvasKeys) {
         super(Component.translatable("screen." + MOD_ID + ".quest_menu"));
-        this.sendRewardClaim = sendRewardClaim;
+        this.sendToServer = sendToServer;
         this.canvasKeys = canvasKeys;
     }
 
@@ -76,7 +76,7 @@ public class QuestScreen extends Screen {
     }
 
     private void openQuest(Quest quest) {
-        minecraft.setScreen(new QuestDetailsScreen(this, quest, sendRewardClaim));
+        minecraft.setScreen(new QuestDetailsScreen(this, quest, sendToServer));
     }
 
     private void refreshData() {

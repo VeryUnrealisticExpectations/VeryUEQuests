@@ -21,6 +21,8 @@ public class QuestWidgetSprites {
     public static final ResourceLocation CLOSE = sprite("close");
     public static final ResourceLocation REWARD_UNCLAIMED = sprite("reward_unclaimed");
     public static final ResourceLocation REWARD_CLAIMED = sprite("reward_claimed");
+    public static final ResourceLocation ACKNOWLEDGED = sprite("objective_acknowledged");
+    public static final ResourceLocation ACKNOWLEDGEMENT_PENDING = sprite("objective_acknowledgement_pending");
     public static final ResourceLocation SECTION = sprite("section");
     public static final ResourceLocation SECTION_SELECTED = sprite("section_selected");
     public static final ResourceLocation SCROLLBAR = sprite("scrollbar");
@@ -63,6 +65,12 @@ public class QuestWidgetSprites {
             graphics.blitSprite(complete ? OBJECTIVE_PROGRESS_COMPLETE : OBJECTIVE_PROGRESS_INCOMPLETE,
                     OBJECTIVE_PROGRESS_WIDTH, OBJECTIVE_PROGRESS_HEIGHT, 0, 0, x, y, 200, fillWidth, OBJECTIVE_PROGRESS_HEIGHT);
         }
+    }
+
+    public static void blitAcknowledgement(GuiGraphics graphics, int x, int y, boolean acknowledged) {
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        graphics.blitSprite(acknowledged ? ACKNOWLEDGED : ACKNOWLEDGEMENT_PENDING, x, y + 2, 200, 16, 13);
     }
 
     private static void blit(GuiGraphics graphics, ResourceLocation sprite, int x, int y, int width, int height,

@@ -5,6 +5,8 @@ import dev.veryue.vuequests.client.widget.QuestDetailsPanel;
 import dev.veryue.vuequests.client.widget.QuestWidgetSprites;
 import dev.veryue.vuequests.models.quest.Quest;
 import dev.veryue.vuequests.network.ClaimQuestRewardPayload;
+import dev.veryue.vuequests.network.InteractQuestObjectivePayload;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.ImageButton;
 import net.minecraft.client.gui.components.Tooltip;
@@ -23,7 +25,7 @@ public class QuestDetailsScreen extends Screen {
 
     private final QuestScreen parent;
     private final Quest quest;
-    private final Consumer<ClaimQuestRewardPayload> sendRewardClaim;
+    private final Consumer<CustomPacketPayload> sendToServer;
     private QuestDetailsPanel details;
     private ImageButton closeButton;
     private int panelX;
@@ -31,17 +33,18 @@ public class QuestDetailsScreen extends Screen {
     private int panelWidth;
     private int panelHeight;
 
-    public QuestDetailsScreen(QuestScreen parent, Quest quest, Consumer<ClaimQuestRewardPayload> sendRewardClaim) {
+    public QuestDetailsScreen(QuestScreen parent, Quest quest, Consumer<CustomPacketPayload> sendToServer) {
         super(quest.display().title());
         this.parent = parent;
         this.quest = quest;
-        this.sendRewardClaim = sendRewardClaim;
+        this.sendToServer = sendToServer;
     }
 
     @Override
     protected void init() {
         details = addRenderableWidget(new QuestDetailsPanel(font, quest, this::handleComponentClicked,
-                reward -> sendRewardClaim.accept(new ClaimQuestRewardPayload(quest.questId(), reward.getRewardId()))));
+                reward -> sendToServer.accept(new ClaimQuestRewardPayload(quest.questId(), reward.getRewardId())),
+                objective -> sendToServer.accept(new InteractQuestObjectivePayload(quest.questId(), objective.getObjectiveId()))));
         Component close = Component.translatable("screen.vuequests.close");
         WidgetSprites closeSprites = new WidgetSprites(QuestWidgetSprites.CLOSE, QuestWidgetSprites.CLOSE);
         closeButton = addRenderableWidget(new ImageButton(0, 0, CLOSE_SIZE, CLOSE_SIZE, closeSprites, button -> onClose(), close));

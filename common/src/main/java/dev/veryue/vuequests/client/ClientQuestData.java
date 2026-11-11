@@ -4,10 +4,13 @@ import com.google.common.collect.ImmutableMap;
 import dev.veryue.vuequests.data.quest.QuestData;
 import dev.veryue.vuequests.data.quest.QuestReloadDelegate;
 import dev.veryue.vuequests.models.PlayerUser;
+import dev.veryue.vuequests.models.objective.QuestObjective;
 import dev.veryue.vuequests.models.quest.Quest;
 import dev.veryue.vuequests.models.quest.Section;
 import dev.veryue.vuequests.models.reward.RewardType;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
@@ -16,6 +19,7 @@ import java.util.UUID;
 
 public class ClientQuestData {
 
+    private static final SystemToast.SystemToastId OBJECTIVE_COMPLETED = new SystemToast.SystemToastId();
     private static QuestData data = QuestData.EMPTY;
     @Nullable
     private static PlayerUser user;
@@ -41,7 +45,25 @@ public class ClientQuestData {
     }
 
     public static void updateProgress(PlayerUser playerUser) {
+        PlayerUser previousUser = user;
         user = playerUser;
+        if (previousUser != null && previousUser.getUuid().equals(playerUser.getUuid())
+                && !previousUser.getCompletedObjectives().containsAll(playerUser.getCompletedObjectives())) {
+            showObjectiveCompletionToasts(previousUser, playerUser);
+        }
+    }
+
+    private static void showObjectiveCompletionToasts(PlayerUser previousUser, PlayerUser playerUser) {
+        for (Quest quest : getData().quests().values()) {
+            for (QuestObjective<?, ?> objective : quest.objectives()) {
+                if (playerUser.hasCompletedObjective(objective) && !previousUser.hasCompletedObjective(objective)) {
+                    Minecraft minecraft = Minecraft.getInstance();
+                    Component message = Component.empty().append(quest.display().title()).append("\n").append(objective.getActionText());
+                    minecraft.getToasts().addToast(SystemToast.multiline(minecraft, OBJECTIVE_COMPLETED,
+                            Component.translatable("toast.vuequests.objective_completed").withStyle(ChatFormatting.GREEN), message));
+                }
+            }
+        }
     }
 
     public static QuestData getData() {

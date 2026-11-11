@@ -1304,14 +1304,65 @@
             "format": "int32",
             "minimum": 1,
             "maximum": 2147483647,
-            "description": "Required item quantity for vuequests:collect_item or kill count for vuequests:entity. Defaults to the legacy item.count for Collect Item when present, otherwise 1."
+            "description": "Target quantity for collect_item, submit_item, entity or statistic objectives. Item objectives default to legacy item.count when present, otherwise 1; entity and statistic default to 1."
+          },
+          "levels": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 2147483647,
+            "description": "Required player level for vuequests:experience_levels. XP is not consumed."
+          },
+          "dimension": {
+            "type": "string",
+            "description": "Loaded dimension ID for travel_dimension and travel_coordinates."
+          },
+          "biome": {
+            "type": "string",
+            "description": "Loaded minecraft:worldgen/biome registry ID for travel_biome."
+          },
+          "structure": {
+            "type": "string",
+            "description": "Loaded minecraft:worldgen/structure registry ID for travel_structure."
+          },
+          "stat_type": {
+            "type": "string",
+            "description": "Loaded minecraft:stat_type registry ID for statistic objectives, for example minecraft:custom."
+          },
+          "statistic": {
+            "type": "string",
+            "description": "Value ID from the selected stat_type registry, for example minecraft:jump for minecraft:custom."
+          },
+          "min_x": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "min_y": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "min_z": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "max_x": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "max_y": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "max_z": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "required": [
           "type"
         ],
         "additionalProperties": true,
-        "description": "Dispatched to the registered objective codec. vuequests:collect_item requires item, vuequests:entity requires entity, and vuequests:advancement requires advancement. Other mods can supply arbitrary codec fields."
+        "description": "Dispatched to the registered objective codec. collect_item and submit_item require item; entity requires entity; advancement requires advancement; experience_levels requires levels. Travel objectives require dimension, biome or structure; travel_coordinates requires dimension and all six inclusive integer bounds with minima at most maxima. statistic requires stat_type and statistic. acknowledgement has no target fields and completes on a server-validated click. Discover full built-in and extension schemas through /check/objectives."
       },
       "Reward": {
         "type": "object",

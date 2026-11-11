@@ -1,7 +1,34 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import type { Task } from '../src/types.ts'
+import { newTask } from '../src/lib/quests.ts'
 import { changeTaskType, customTaskFields, defaultTaskType, objectiveCount, taskDisplayIcon, taskEditorId, taskProblem, updateCustomTaskFields } from '../src/lib/taskEditor.ts'
+
+test('new objectives retain separate targets and validate travel and statistic configuration', () => {
+  const submission = newTask('objective', 'vuequests:submit_item')
+  assert.equal(objectiveCount({ ...submission, count: 1000 }), 1000)
+  assert.equal(taskProblem({ ...submission, count: 1000 }), undefined)
+  assert.equal(taskProblem(newTask('objective', 'vuequests:acknowledgement')), undefined)
+  assert.equal(objectiveCount(newTask('objective', 'vuequests:acknowledgement')), undefined)
+  assert.equal(taskProblem(newTask('objective', 'vuequests:experience_levels')), undefined)
+  for (const [type, field, value] of [
+    ['travel_dimension', 'dimension', 'example:moon'], ['travel_biome', 'biome', 'example:forest'],
+    ['travel_structure', 'structure', 'example:fortress'],
+  ]) {
+    const task = newTask('objective', `vuequests:${type}`)
+    assert.ok(taskProblem(task))
+    assert.equal(taskProblem({ ...task, [field]: value }), undefined)
+  }
+  const statistic = newTask('objective', 'vuequests:statistic')
+  assert.ok(taskProblem(statistic))
+  assert.equal(taskProblem({ ...statistic, statistic: 'minecraft:jump', count: 100 }), undefined)
+  assert.ok(taskProblem({ ...statistic, statistic: 'minecraft:jump', count: 0 }))
+  const box = newTask('objective', 'vuequests:travel_coordinates')
+  assert.equal(taskProblem(box), undefined)
+  assert.ok(taskProblem({ ...box, min_x: 1, max_x: 0 }))
+  assert.ok(taskProblem({ ...box, max_y: 2_147_483_648 }))
+  assert.ok(taskProblem({ ...box, min_z: 0.5 }))
+})
 
 test('validation catches invalid tasks even when their controls are collapsed', () => {
   const hidden: Task = { type: 'vuequests:collect_item', item: { id: 'minecraft:stone', count: 0 } }

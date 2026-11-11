@@ -34,6 +34,7 @@ import dev.veryue.vuequests.models.objective.ObjectiveCollectItem;
 import dev.veryue.vuequests.models.objective.ObjectiveGetAdvancement;
 import dev.veryue.vuequests.models.objective.ObjectiveSlayEntity;
 import dev.veryue.vuequests.models.objective.QuestObjective;
+import dev.veryue.vuequests.models.objective.QuestObjectiveVerification;
 import dev.veryue.vuequests.models.quest.Quest;
 import dev.veryue.vuequests.models.quest.QuestDisplay;
 import dev.veryue.vuequests.models.quest.QuestPosition;
@@ -97,6 +98,7 @@ public class QuestApiVerification {
         }
         var ops = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY).createSerializationContext(JsonOps.INSTANCE);
         Gson json = QuestApiJson.create(ops);
+        checks += QuestObjectiveVerification.verify(json, ops);
         verifyModels(json, ops);
         verifyObjectiveCounts(json, ops);
         verifyAdvancementObjective(json, ops);
@@ -243,14 +245,14 @@ public class QuestApiVerification {
         check(player.incrementObjectiveProgress(legacySlay, death).getCurrentProgress() == null,
                 "A death of another entity type gives no slay progress");
         for (int i = 0; i < 129; i++) {
-            data.handleQuestTrigger(player, QuestObjectiveTypes.ENTITY, death);
+            data.handleQuestTriggerChanges(player, QuestObjectiveTypes.ENTITY, death);
         }
         check(!player.hasCompletedObjective(slay) && slay.getProgressText(player).getString().equals("129/130"),
                 "Kill triggers count above 99 and report partial progress");
-        data.handleQuestTrigger(player, QuestObjectiveTypes.ENTITY, death);
+        data.handleQuestTriggerChanges(player, QuestObjectiveTypes.ENTITY, death);
         check(player.hasCompletedObjective(slay) && player.hasCompletedQuest(quest),
                 "The target kill completes the objective and the mixed quest regardless of objective order");
-        data.handleQuestTrigger(player, QuestObjectiveTypes.ENTITY, death);
+        data.handleQuestTriggerChanges(player, QuestObjectiveTypes.ENTITY, death);
         check(player.getObjectiveProgress(slay).getCurrentProgress() == 130, "Kills stop counting at the objective target");
     }
 
@@ -282,7 +284,7 @@ public class QuestApiVerification {
 
         ObjectiveContext other = ObjectiveContext.createContext(null)
                 .withParameter(ObjectiveContext.ADVANCEMENT, ResourceLocation.parse("minecraft:story/root")).build();
-        data.handleQuestTrigger(player, QuestObjectiveTypes.ADVANCEMENT, other);
+        data.handleQuestTriggerChanges(player, QuestObjectiveTypes.ADVANCEMENT, other);
         var progress = player.getObjectiveProgress(objective);
         check(progress != null && !progress.isComplete(objective) && !player.hasCompletedQuest(quest),
                 "Earning an unrelated advancement leaves the quest incomplete");
@@ -292,7 +294,7 @@ public class QuestApiVerification {
 
         ObjectiveContext earned = ObjectiveContext.createContext(null)
                 .withParameter(ObjectiveContext.ADVANCEMENT, target).build();
-        data.handleQuestTrigger(player, QuestObjectiveTypes.ADVANCEMENT, earned);
+        data.handleQuestTriggerChanges(player, QuestObjectiveTypes.ADVANCEMENT, earned);
         check(Boolean.TRUE.equals(progress.getCurrentProgress()) && player.hasCompletedObjective(objective)
                         && player.hasCompletedQuest(quest), "Earning the configured advancement completes its objective and quest");
         Component done = objective.getProgressText(player);
@@ -491,11 +493,14 @@ public class QuestApiVerification {
         var entityObjective = second.objectives().getFirst();
         check(quests.accessibleQuests(player).equals(List.of(first)), "Root quests are accessible without progress");
         check(quests.accessibleQuests(player, entityObjective.getType()).isEmpty(), "Typed lookup excludes locked quests");
-        check(quests.handleQuestTrigger(player, collectObjective.getType(), context).equals(List.of(collectObjective)),
+        check(!quests.handleQuestTriggerChanges(player, collectObjective.getType(), context)
+                        && player.getQuestObjectiveProgress().keySet().equals(Set.of(collectObjective.getObjectiveId())),
                 "Trigger selects only the matching objective from a mixed quest");
-        check(quests.handleQuestTrigger(player, QuestApiTestObjective.TYPE, context).equals(List.of(first.objectives().get(1))),
+        check(!quests.handleQuestTriggerChanges(player, QuestApiTestObjective.TYPE, context)
+                        && player.getObjectiveProgress(first.objectives().get(1)) != null
+                        && player.getObjectiveProgress(entityObjective) == null,
                 "Trigger dispatch preserves the types of a custom objective in a mixed quest");
-        check(quests.handleQuestTrigger(player, QuestApiTestObjective.LEGACY, context).isEmpty(), "An unused trigger type has no matches");
+        check(!quests.handleQuestTriggerChanges(player, QuestApiTestObjective.LEGACY, context), "An unused trigger type does not change progress");
         check(quests.prerequisitesMet(firstId, player), "Root quest has no prerequisites");
         check(!quests.prerequisitesMet(secondId, player), "Unmet prerequisite blocks quest");
         check(quests.availableDependents(firstId, player).isEmpty(), "Incomplete quest does not unlock dependents");
