@@ -1,5 +1,6 @@
 package dev.veryue.vuequests;
 
+import dev.veryue.vuequests.config.ServerConfig;
 import dev.veryue.vuequests.data.FlatFileUserLoader;
 import dev.veryue.vuequests.data.UserLoader;
 import dev.veryue.vuequests.data.quest.QuestReloadDelegate;
@@ -20,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -36,6 +38,7 @@ public class VeryUEMod {
     private final Map<UUID, GlobalPos> lastTravelPositions = new HashMap<>();
     private final Map<UUID, Integer> lastExperienceLevels = new HashMap<>();
     private UserLoader loader;
+    private ServerConfig serverConfig = ServerConfig.DEFAULT;
     private ScheduledExecutorService saveExecutor;
     private ScheduledFuture<?> autosave;
 
@@ -45,6 +48,14 @@ public class VeryUEMod {
 
     public void start(MinecraftServer server) {
         start(new FlatFileUserLoader(server));
+    }
+
+    protected void loadServerConfig(Path file) {
+        serverConfig = ServerConfig.load(file);
+    }
+
+    public ServerConfig getServerConfig() {
+        return serverConfig;
     }
 
     public void start(UserLoader userLoader) {

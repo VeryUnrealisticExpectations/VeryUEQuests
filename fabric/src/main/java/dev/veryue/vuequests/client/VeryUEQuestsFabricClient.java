@@ -4,6 +4,7 @@ import dev.veryue.vuequests.client.editor.ClientEditorResources;
 import dev.veryue.vuequests.network.QuestDebugTogglePayload;
 import dev.veryue.vuequests.network.QuestProgressSyncPayload;
 import dev.veryue.vuequests.network.QuestSyncPayload;
+import dev.veryue.vuequests.network.QuestViewSyncPayload;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
@@ -18,6 +19,8 @@ public class VeryUEQuestsFabricClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         ClientEditorResources.initialize();
+        ClientPlayNetworking.registerGlobalReceiver(QuestViewSyncPayload.TYPE,
+                (payload, context) -> ClientQuestData.setQuestView(payload.view()));
         ClientPlayNetworking.registerGlobalReceiver(QuestSyncPayload.TYPE,
                 (payload, context) -> ClientQuestData.update(payload.sections(), payload.user()));
         ClientPlayNetworking.registerGlobalReceiver(QuestProgressSyncPayload.TYPE,

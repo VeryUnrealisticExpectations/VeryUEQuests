@@ -21,6 +21,11 @@
     "commands.vuequests.debug.disabled": "Quest debug mode disabled.",
     "commands.vuequests.debug.unsupported": "Quest debug mode requires an updated VUE Quests client.",
     "screen.vuequests.quest_menu": "Quest Menu",
+    "screen.vuequests.available": "Available",
+    "screen.vuequests.completed": "Completed",
+    "screen.vuequests.no_available_quests": "No quests are available yet.",
+    "narration.vuequests.linear_list_usage": "Use Up and Down to select a quest. Scroll to browse available and completed quests. Press Tab for quest details.",
+    "narration.vuequests.linear_details_usage": "Scroll or use Up, Down, Page Up and Page Down to read. Use Left and Right to select an objective or reward, then Enter or Space to interact or claim.",
 
     "screen.vuequests.section_title": "VUE Quests",
     "screen.vuequests.expand_sections": "Expand",

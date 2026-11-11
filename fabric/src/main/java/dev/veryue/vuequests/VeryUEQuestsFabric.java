@@ -10,6 +10,7 @@ import dev.veryue.vuequests.network.QuestDebugTogglePayload;
 import dev.veryue.vuequests.network.QuestProgressSyncPayload;
 import dev.veryue.vuequests.network.QuestScreenOpenedPayload;
 import dev.veryue.vuequests.network.QuestSyncPayload;
+import dev.veryue.vuequests.network.QuestViewSyncPayload;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
@@ -21,8 +22,11 @@ import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.packs.PackType;
+
+import static dev.veryue.vuequests.VeryUEConstants.MOD_ID;
 
 public class VeryUEQuestsFabric extends VeryUEMod implements ModInitializer {
 
@@ -34,6 +38,7 @@ public class VeryUEQuestsFabric extends VeryUEMod implements ModInitializer {
             QuestDebugCommand.register(dispatcher, this::sendDebugToggle);
         });
         PayloadTypeRegistry.playS2C().register(QuestSyncPayload.TYPE, QuestSyncPayload.STREAM_CODEC);
+        PayloadTypeRegistry.playS2C().register(QuestViewSyncPayload.TYPE, QuestViewSyncPayload.STREAM_CODEC);
         PayloadTypeRegistry.playS2C().register(QuestProgressSyncPayload.TYPE, QuestProgressSyncPayload.STREAM_CODEC);
         PayloadTypeRegistry.playS2C().register(QuestDebugTogglePayload.TYPE, QuestDebugTogglePayload.STREAM_CODEC);
         PayloadTypeRegistry.playC2S().register(QuestScreenOpenedPayload.TYPE, QuestScreenOpenedPayload.STREAM_CODEC);
@@ -58,6 +63,7 @@ public class VeryUEQuestsFabric extends VeryUEMod implements ModInitializer {
         });
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             onPlayerLogin(handler.player);
+            ServerPlayNetworking.send(handler.player, new QuestViewSyncPayload(getServerConfig().questView()));
             syncQuests(handler.player);
         });
         ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
@@ -83,7 +89,10 @@ public class VeryUEQuestsFabric extends VeryUEMod implements ModInitializer {
         });
         ResourceManagerHelper.get(PackType.SERVER_DATA)
                 .registerReloadListener(QuestReloadDelegate.ID, QuestReloadListener::new);
-        ServerLifecycleEvents.SERVER_STARTING.register(this::start);
+        ServerLifecycleEvents.SERVER_STARTING.register(server -> {
+            loadServerConfig(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID + ".json"));
+            start(server);
+        });
         ServerLifecycleEvents.SERVER_STARTED.register(QuestEditorServer::start);
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
             stop();

@@ -1,6 +1,7 @@
 package dev.veryue.vuequests.client;
 
 import com.google.common.collect.ImmutableMap;
+import dev.veryue.vuequests.config.QuestView;
 import dev.veryue.vuequests.data.quest.QuestData;
 import dev.veryue.vuequests.data.quest.QuestReloadDelegate;
 import dev.veryue.vuequests.models.PlayerUser;
@@ -24,6 +25,17 @@ public class ClientQuestData {
     @Nullable
     private static PlayerUser user;
     private static boolean debugEnabled;
+    @Nullable
+    private static QuestView questView;
+
+    @Nullable
+    public static QuestView getQuestView() {
+        return questView;
+    }
+
+    public static void setQuestView(QuestView view) {
+        questView = view;
+    }
 
     public static void update(List<Section> sections, PlayerUser playerUser) {
         if (hasIntegratedServer()) {
@@ -112,5 +124,6 @@ public class ClientQuestData {
         data = QuestData.EMPTY;
         user = null;
         debugEnabled = false;
+        questView = null;
     }
 }

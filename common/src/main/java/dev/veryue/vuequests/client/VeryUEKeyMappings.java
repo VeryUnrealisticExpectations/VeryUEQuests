@@ -2,6 +2,9 @@ package dev.veryue.vuequests.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.veryue.vuequests.client.screens.QuestScreen;
+import dev.veryue.vuequests.client.screens.LinearQuestScreen;
+import dev.veryue.vuequests.config.QuestView;
+import net.minecraft.client.gui.screens.Screen;
 import dev.veryue.vuequests.network.QuestScreenOpenedPayload;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -24,8 +27,10 @@ public class VeryUEKeyMappings {
     public static void onClientTick(Minecraft client, Consumer<CustomPacketPayload> sendToServer,
                                     QuestCanvasKeyMappings canvasKeys) {
         while (OPEN_QUEST_MENU.consumeClick()) {
-            if (client.player != null && client.screen == null) {
-                QuestScreen screen = new QuestScreen(sendToServer::accept, canvasKeys);
+            QuestView view = ClientQuestData.getQuestView();
+            if (client.player != null && client.screen == null && view != null) {
+                Screen screen = view == QuestView.LIST ? new LinearQuestScreen(sendToServer)
+                        : new QuestScreen(sendToServer, canvasKeys);
                 client.setScreen(screen);
                 if (client.screen == screen) {
                     sendToServer.accept(QuestScreenOpenedPayload.INSTANCE);

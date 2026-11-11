@@ -11,6 +11,7 @@ import dev.veryue.vuequests.network.QuestDebugTogglePayload;
 import dev.veryue.vuequests.network.QuestProgressSyncPayload;
 import dev.veryue.vuequests.network.QuestScreenOpenedPayload;
 import dev.veryue.vuequests.network.QuestSyncPayload;
+import dev.veryue.vuequests.network.QuestViewSyncPayload;
 import dev.veryue.vuequests.platform.NeoForgePlatformHelper;
 import dev.veryue.vuequests.platform.PlatformHelper;
 import net.minecraft.server.level.ServerPlayer;
@@ -18,6 +19,7 @@ import net.minecraft.server.TickTask;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
 import net.neoforged.neoforge.event.OnDatapackSyncEvent;
@@ -89,6 +91,8 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
         event.registrar("1")
                 .playToClient(QuestSyncPayload.TYPE, QuestSyncPayload.STREAM_CODEC,
                         (payload, context) -> ClientQuestData.update(payload.sections(), payload.user()))
+                .playToClient(QuestViewSyncPayload.TYPE, QuestViewSyncPayload.STREAM_CODEC,
+                        (payload, context) -> ClientQuestData.setQuestView(payload.view()))
                 .optional()
                 .playToClient(QuestProgressSyncPayload.TYPE, QuestProgressSyncPayload.STREAM_CODEC,
                         (payload, context) -> ClientQuestData.updateProgress(payload.user()))
@@ -132,12 +136,14 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
     }
 
     private void onServerStarting(ServerStartingEvent event) {
+        loadServerConfig(FMLPaths.CONFIGDIR.get().resolve(MOD_ID + ".json"));
         start(event.getServer());
     }
 
     private void onPlayerLoggedIn(PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             onPlayerLogin(player);
+            PacketDistributor.sendToPlayer(player, new QuestViewSyncPayload(getServerConfig().questView()));
             PacketDistributor.sendToPlayer(player, QuestSyncPayload.create(player));
         }
     }
