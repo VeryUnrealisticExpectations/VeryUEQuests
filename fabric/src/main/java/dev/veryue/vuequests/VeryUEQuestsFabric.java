@@ -2,6 +2,7 @@ package dev.veryue.vuequests;
 
 import dev.veryue.vuequests.command.QuestDebugCommand;
 import dev.veryue.vuequests.command.QuestProgressCommands;
+import dev.veryue.vuequests.command.QuestReloadCommand;
 import dev.veryue.vuequests.data.quest.QuestReloadDelegate;
 import dev.veryue.vuequests.editor.QuestEditorServer;
 import dev.veryue.vuequests.network.ClaimQuestRewardPayload;
@@ -36,6 +37,7 @@ public class VeryUEQuestsFabric extends VeryUEMod implements ModInitializer {
         CommandRegistrationCallback.EVENT.register((dispatcher, registries, environment) -> {
             QuestProgressCommands.register(dispatcher, this::syncProgress);
             QuestDebugCommand.register(dispatcher, this::sendDebugToggle);
+            QuestReloadCommand.register(dispatcher, this::reloadServerConfig);
         });
         PayloadTypeRegistry.playS2C().register(QuestSyncPayload.TYPE, QuestSyncPayload.STREAM_CODEC);
         PayloadTypeRegistry.playS2C().register(QuestViewSyncPayload.TYPE, QuestViewSyncPayload.STREAM_CODEC);
@@ -63,7 +65,7 @@ public class VeryUEQuestsFabric extends VeryUEMod implements ModInitializer {
         });
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             onPlayerLogin(handler.player);
-            ServerPlayNetworking.send(handler.player, new QuestViewSyncPayload(getServerConfig().questView()));
+            syncServerConfig(handler.player);
             syncQuests(handler.player);
         });
         ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
@@ -99,6 +101,11 @@ public class VeryUEQuestsFabric extends VeryUEMod implements ModInitializer {
             QuestEditorServer.stop();
             QuestReloadDelegate.INSTANCE.clear();
         });
+    }
+
+    @Override
+    protected void syncServerConfig(ServerPlayer player) {
+        ServerPlayNetworking.send(player, new QuestViewSyncPayload(getServerConfig().questView()));
     }
 
     private void syncQuests(ServerPlayer player) {

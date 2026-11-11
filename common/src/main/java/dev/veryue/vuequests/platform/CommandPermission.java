@@ -5,7 +5,8 @@ import static dev.veryue.vuequests.VeryUEConstants.MOD_ID;
 public enum CommandPermission {
     QUEST_PROGRESS("progress.quest"),
     OBJECTIVE_PROGRESS("progress.objective"),
-    DEBUG("debug");
+    DEBUG("debug"),
+    RELOAD("reload");
 
     public static final int DEFAULT_LEVEL = 4;
 

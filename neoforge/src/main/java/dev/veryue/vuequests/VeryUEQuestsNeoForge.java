@@ -3,6 +3,7 @@ package dev.veryue.vuequests;
 import dev.veryue.vuequests.client.ClientQuestData;
 import dev.veryue.vuequests.command.QuestDebugCommand;
 import dev.veryue.vuequests.command.QuestProgressCommands;
+import dev.veryue.vuequests.command.QuestReloadCommand;
 import dev.veryue.vuequests.data.quest.QuestReloadDelegate;
 import dev.veryue.vuequests.editor.QuestEditorServer;
 import dev.veryue.vuequests.network.ClaimQuestRewardPayload;
@@ -70,6 +71,12 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
     private void registerCommands(RegisterCommandsEvent event) {
         QuestProgressCommands.register(event.getDispatcher(), this::syncProgress);
         QuestDebugCommand.register(event.getDispatcher(), this::sendDebugToggle);
+        QuestReloadCommand.register(event.getDispatcher(), this::reloadServerConfig);
+    }
+
+    @Override
+    protected void syncServerConfig(ServerPlayer player) {
+        PacketDistributor.sendToPlayer(player, new QuestViewSyncPayload(getServerConfig().questView()));
     }
 
     @Override
@@ -143,7 +150,7 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
     private void onPlayerLoggedIn(PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             onPlayerLogin(player);
-            PacketDistributor.sendToPlayer(player, new QuestViewSyncPayload(getServerConfig().questView()));
+            syncServerConfig(player);
             PacketDistributor.sendToPlayer(player, QuestSyncPayload.create(player));
         }
     }

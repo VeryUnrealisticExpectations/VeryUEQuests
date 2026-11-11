@@ -29,7 +29,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-public class VeryUEMod {
+public abstract class VeryUEMod {
 
     public static VeryUEMod INSTANCE;
 
@@ -39,6 +39,7 @@ public class VeryUEMod {
     private final Map<UUID, Integer> lastExperienceLevels = new HashMap<>();
     private UserLoader loader;
     private ServerConfig serverConfig = ServerConfig.DEFAULT;
+    private Path serverConfigPath;
     private ScheduledExecutorService saveExecutor;
     private ScheduledFuture<?> autosave;
 
@@ -52,11 +53,24 @@ public class VeryUEMod {
 
     protected void loadServerConfig(Path file) {
         serverConfig = ServerConfig.load(file);
+        serverConfigPath = file.toAbsolutePath().normalize();
     }
 
     public ServerConfig getServerConfig() {
         return serverConfig;
     }
+
+    public void reloadServerConfig(MinecraftServer server) {
+        if (serverConfigPath == null) {
+            throw new IllegalStateException("The VUE Quests server config has not been loaded yet");
+        }
+        loadServerConfig(serverConfigPath);
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            syncServerConfig(player);
+        }
+    }
+
+    protected abstract void syncServerConfig(ServerPlayer player);
 
     public void start(UserLoader userLoader) {
         Objects.requireNonNull(userLoader);
@@ -156,8 +170,7 @@ public class VeryUEMod {
         });
     }
 
-    protected void syncProgress(ServerPlayer player) {
-    }
+    protected abstract void syncProgress(ServerPlayer player);
 
     public void onPlayerMoved(ServerPlayer player) {
         GlobalPos position = GlobalPos.of(player.level().dimension(), player.blockPosition());

@@ -20,6 +20,8 @@
     "commands.vuequests.debug.enabled": "Quest debug mode enabled.",
     "commands.vuequests.debug.disabled": "Quest debug mode disabled.",
     "commands.vuequests.debug.unsupported": "Quest debug mode requires an updated VUE Quests client.",
+    "commands.vuequests.reload.success": "Reloaded the VUE Quests server config and synchronized online players.",
+    "commands.vuequests.reload.failed": "Could not reload the VUE Quests server config: %s",
     "screen.vuequests.quest_menu": "Quest Menu",
     "screen.vuequests.available": "Available",
     "screen.vuequests.completed": "Completed",
