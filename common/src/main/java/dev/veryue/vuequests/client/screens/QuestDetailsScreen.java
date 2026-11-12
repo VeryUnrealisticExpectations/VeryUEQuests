@@ -1,6 +1,7 @@
 package dev.veryue.vuequests.client.screens;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import dev.veryue.vuequests.client.util.GuiSpriteRenderer;
 import dev.veryue.vuequests.client.widget.QuestDetailsPanel;
 import dev.veryue.vuequests.client.widget.QuestWidgetSprites;
 import dev.veryue.vuequests.models.quest.Quest;
@@ -87,7 +88,7 @@ public class QuestDetailsScreen extends Screen {
         graphics.fill(0, 0, width, height, 0x99000000);
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        graphics.blitSprite(QuestWidgetSprites.DETAILS_PANEL, panelX, panelY, panelWidth, panelHeight);
+        GuiSpriteRenderer.blit(graphics, QuestWidgetSprites.DETAILS_PANEL, panelX, panelY, panelWidth, panelHeight, 0xFFFFFFFF);
         RenderSystem.disableBlend();
     }
 

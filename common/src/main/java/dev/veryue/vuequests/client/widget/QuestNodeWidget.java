@@ -109,17 +109,14 @@ public class QuestNodeWidget extends Button {
             boolean complete = canClaimRewards || ClientQuestData.isQuestComplete(quest);
             boolean allRewardsClaimed = quest.rewards().stream().allMatch(ClientQuestData::isRewardClaimed);
             QuestWidgetSprites.blitTinted(graphics, quest.display().backgroundSprite(), 0, 0, SIZE, SIZE, backgroundTint(complete, allRewardsClaimed));
-            graphics.flush();
             graphics.setColor(brightness, brightness, brightness, 1);
             graphics.renderItem(icon, 4, 4);
             boolean showBadge = quest.rewards().isEmpty() ? complete : allRewardsClaimed || canClaimRewards;
             if (showBadge) {
-                graphics.flush();
                 graphics.setColor(1, 1, 1, 1);
                 QuestWidgetSprites.blitClaimBadge(graphics, 0, 0, allRewardsClaimed);
             }
         } finally {
-            graphics.flush();
             graphics.setColor(1, 1, 1, 1);
             pose.popPose();
         }

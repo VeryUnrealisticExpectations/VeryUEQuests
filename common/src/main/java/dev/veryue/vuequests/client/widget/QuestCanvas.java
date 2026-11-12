@@ -18,6 +18,7 @@ import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
+import net.minecraft.util.profiling.ProfilerFiller;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
@@ -227,21 +228,35 @@ public class QuestCanvas extends QuestPanel {
         graphics.enableScissor(viewport.left(), viewport.top(), viewport.right(), viewport.bottom());
         PoseStack pose = graphics.pose();
         pose.pushPose();
+        ProfilerFiller profiler = Minecraft.getInstance().getProfiler();
+        profiler.push("connections");
         try {
             pose.translate(renderOffsetX, renderOffsetY, 0);
+            int renderedConnections = 0;
             for (QuestDependencyLine line : dependencyLines) {
-                line.render(graphics);
+                if (line.intersects(viewport, renderOffsetX, renderOffsetY)) {
+                    line.render(graphics);
+                    renderedConnections++;
+                }
             }
             graphics.flush();
+            profiler.incrementCounter("total_connections", dependencyLines.size());
+            profiler.incrementCounter("rendered_connections", renderedConnections);
+            profiler.popPush("nodes");
+            int renderedNodes = 0;
             for (QuestNodeWidget node : nodes) {
                 if (node.getRight() + renderOffsetX > viewport.left() && node.getX() + renderOffsetX < viewport.right()
                         && node.getBottom() + renderOffsetY > viewport.top() && node.getY() + renderOffsetY < viewport.bottom()) {
                     node.setLocked(!ClientQuestData.prerequisitesMet(node.getQuest()));
                     node.render(graphics, node == hovered ? (int) (mouseX - renderOffsetX) : -1,
                             node == hovered ? (int) (mouseY - renderOffsetY) : -1, partialTick);
+                    renderedNodes++;
                 }
             }
+            profiler.incrementCounter("total_nodes", nodes.size());
+            profiler.incrementCounter("rendered_nodes", renderedNodes);
         } finally {
+            profiler.pop();
             pose.popPose();
         }
         if (nodes.isEmpty()) {

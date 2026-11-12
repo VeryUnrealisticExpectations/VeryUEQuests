@@ -17,6 +17,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
+import net.minecraft.util.profiling.ProfilerFiller;
 
 import java.util.Comparator;
 import java.util.List;
@@ -123,10 +124,30 @@ public class QuestScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        refreshData();
-        super.render(graphics, mouseX, mouseY, partialTick);
-        if (sectionToggle.isMouseOver(mouseX, mouseY)) {
-            setTooltipForNextRenderPass(sectionToggle.getTooltip(), DefaultTooltipPositioner.INSTANCE, true);
+        ProfilerFiller profiler = minecraft.getProfiler();
+        profiler.push("vuequests_graph");
+        profiler.push("refresh");
+        try {
+            refreshData();
+            profiler.popPush("widgets");
+            super.render(graphics, mouseX, mouseY, partialTick);
+            if (sectionToggle.isMouseOver(mouseX, mouseY)) {
+                setTooltipForNextRenderPass(sectionToggle.getTooltip(), DefaultTooltipPositioner.INSTANCE, true);
+            }
+        } finally {
+            profiler.pop();
+            profiler.pop();
+        }
+    }
+
+    @Override
+    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        ProfilerFiller profiler = minecraft.getProfiler();
+        profiler.push("vanilla_background");
+        try {
+            super.renderBackground(graphics, mouseX, mouseY, partialTick);
+        } finally {
+            profiler.pop();
         }
     }
 

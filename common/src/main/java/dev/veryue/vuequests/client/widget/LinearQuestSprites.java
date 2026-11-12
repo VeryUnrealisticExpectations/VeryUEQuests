@@ -1,6 +1,7 @@
 package dev.veryue.vuequests.client.widget;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import dev.veryue.vuequests.client.util.GuiSpriteRenderer;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -21,13 +22,13 @@ public class LinearQuestSprites {
         int[] insets = {4, 2, 1, 1, 0, 0};
         for (int row = 0; row < CORNER_RADIUS; row++) {
             graphics.enableScissor(x + insets[row], y + row, x + width - insets[row], y + row + 1);
-            graphics.blitSprite(BACKGROUND, x, y, width, height);
+            GuiSpriteRenderer.blit(graphics, BACKGROUND, x, y, width, height, 0xFFFFFFFF);
             graphics.disableScissor();
         }
         graphics.enableScissor(x, y + CORNER_RADIUS, x + width, y + height);
-        graphics.blitSprite(BACKGROUND, x, y, width, height);
+        GuiSpriteRenderer.blit(graphics, BACKGROUND, x, y, width, height, 0xFFFFFFFF);
         graphics.disableScissor();
-        graphics.blitSprite(FRAME, x, y, width, height);
+        GuiSpriteRenderer.blit(graphics, FRAME, x, y, width, height, 0xFFFFFFFF);
     }
 
     public static void heading(GuiGraphics graphics, Font font, Component heading, int x, int y, int width) {

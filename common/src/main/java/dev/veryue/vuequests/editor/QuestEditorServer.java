@@ -22,17 +22,34 @@ public class QuestEditorServer {
     private static HttpServer server;
     private static ExecutorService executor;
 
-    public static void start(MinecraftServer minecraftServer) {
+    public static synchronized boolean start(MinecraftServer minecraftServer) {
+        if (minecraftServer.isDedicatedServer()) return false;
+        if (server != null) return true;
         String host = System.getProperty(MOD_ID + ".editor.host", "127.0.0.1");
         try {
             QuestEditorAssets.discoverRoots();
             QuestEditorResources.start(minecraftServer);
             int port = Integer.parseInt(System.getProperty(MOD_ID + ".editor.port", "6700"));
-            int boundPort = start(host, port, new QuestEditorService(minecraftServer));
-            LOGGER.info("Quest editor available at http://{}:{}/", host, boundPort);
-        } catch (IOException | IllegalArgumentException exception) {
+            start(host, port, new QuestEditorService(minecraftServer));
+            LOGGER.info("Quest editor available at {}", getUrl());
+            return true;
+        } catch (IOException | RuntimeException exception) {
+            stop();
             LOGGER.error("Could not start the quest editor HTTP server", exception);
+            return false;
         }
+    }
+
+    public static synchronized boolean isRunning() {
+        return server != null;
+    }
+
+    public static synchronized String getUrl() {
+        if (server == null) throw new IllegalStateException("The quest editor is not running.");
+        InetSocketAddress address = server.getAddress();
+        String host = address.getAddress().isAnyLocalAddress() ? "localhost" : address.getHostString();
+        if (host.contains(":")) host = "[" + host + "]";
+        return "http://" + host + ":" + address.getPort() + "/";
     }
 
     static synchronized int start(String host, int port, QuestEditorService service) throws IOException {

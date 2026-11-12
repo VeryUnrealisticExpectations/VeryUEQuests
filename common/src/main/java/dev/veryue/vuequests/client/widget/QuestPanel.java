@@ -3,6 +3,7 @@ package dev.veryue.vuequests.client.widget;
 import net.minecraft.client.gui.ComponentPath;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.AbstractContainerWidget;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.narration.NarratableEntry;
@@ -11,6 +12,7 @@ import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.navigation.FocusNavigationEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.profiling.ProfilerFiller;
 
 public abstract class QuestPanel extends AbstractContainerWidget {
 
@@ -30,8 +32,15 @@ public abstract class QuestPanel extends AbstractContainerWidget {
 
     @Override
     protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(graphics);
-        renderContents(graphics, mouseX, mouseY, partialTick);
+        ProfilerFiller profiler = Minecraft.getInstance().getProfiler();
+        profiler.push("panel_background");
+        try {
+            renderBackground(graphics);
+            profiler.popPush("panel_contents");
+            renderContents(graphics, mouseX, mouseY, partialTick);
+        } finally {
+            profiler.pop();
+        }
     }
 
     protected void renderBackground(GuiGraphics graphics) {

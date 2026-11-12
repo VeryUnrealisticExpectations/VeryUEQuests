@@ -13,6 +13,7 @@ import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
 import net.minecraft.locale.Language;
 import net.minecraft.util.Mth;
+import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.item.ItemStack;
 import org.lwjgl.glfw.GLFW;
 
@@ -92,6 +93,16 @@ public class LinearQuestList extends AbstractWidget {
 
     @Override
     protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        ProfilerFiller profiler = Minecraft.getInstance().getProfiler();
+        profiler.push("quest_list");
+        try {
+            renderRows(graphics, mouseX, mouseY);
+        } finally {
+            profiler.pop();
+        }
+    }
+
+    private void renderRows(GuiGraphics graphics, int mouseX, int mouseY) {
         clampScroll();
         graphics.enableScissor(getX(), getY(), getRight(), getBottom());
         int top = getY() - (int) scroll;

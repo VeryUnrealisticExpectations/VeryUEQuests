@@ -5,6 +5,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.renderer.RenderType;
 import org.joml.Matrix4f;
 
@@ -16,6 +17,16 @@ public record QuestDependencyLine(QuestNodeWidget prerequisite, QuestNodeWidget 
     private static final int ARROW_COLOR = 0xFFF2D080;
     private static final float ARROW_LENGTH = 6;
     private static final float ARROW_HEIGHT = 4;
+
+    public boolean intersects(ScreenRectangle viewport, double offsetX, double offsetY) {
+        double startX = prerequisite.getX() + prerequisite.getWidth() / 2.0 + offsetX;
+        double startY = prerequisite.getY() + prerequisite.getHeight() / 2.0 + offsetY;
+        double endX = dependent.getX() + dependent.getWidth() / 2.0 + offsetX;
+        double endY = dependent.getY() + dependent.getHeight() / 2.0 + offsetY;
+        double padding = 6 * prerequisite.getWidth() / (double) QuestNodeWidget.SIZE + 1;
+        return Math.max(startX, endX) + padding >= viewport.left() && Math.min(startX, endX) - padding <= viewport.right()
+                && Math.max(startY, endY) + padding >= viewport.top() && Math.min(startY, endY) - padding <= viewport.bottom();
+    }
 
     public void render(GuiGraphics graphics) {
         double startX = prerequisite.getX() + prerequisite.getWidth() / 2.0;

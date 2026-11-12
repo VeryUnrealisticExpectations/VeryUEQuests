@@ -6,7 +6,8 @@ public enum CommandPermission {
     QUEST_PROGRESS("progress.quest"),
     OBJECTIVE_PROGRESS("progress.objective"),
     DEBUG("debug"),
-    RELOAD("reload");
+    RELOAD("reload"),
+    WEBEDITOR("webeditor");
 
     public static final int DEFAULT_LEVEL = 4;
 

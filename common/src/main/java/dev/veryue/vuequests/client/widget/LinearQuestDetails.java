@@ -20,6 +20,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
+import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.item.ItemStack;
 import org.lwjgl.glfw.GLFW;
 
@@ -160,6 +161,7 @@ public class LinearQuestDetails extends AbstractScrollWidget {
         int hoveredObjective = inside(mouseX, mouseY) ? objectiveAt(mouseY) : -1;
         for (int i = 0; i < actions.size(); i++) {
             int y = top() + objectivesTop + objectiveOffsets[i];
+            if (!withinContentAreaTopBottom(y, top() + objectivesTop + objectiveOffsets[i + 1])) continue;
             QuestObjective<?, ?> objective = quest.objectives().get(i);
             RenderAnimation animation = objectiveInsets.computeIfAbsent(objective.getObjectiveId(), id -> new RenderAnimation(0));
             ItemStack icon = objectiveIcons.get(i);
@@ -182,6 +184,7 @@ public class LinearQuestDetails extends AbstractScrollWidget {
         for (int i = 0; i < rewardIcons.size(); i++) {
             int x = rewardX(i);
             int y = top() + rewardsTop + i / rewardColumns * REWARD_STEP;
+            if (!withinContentAreaTopBottom(y - REWARD_PADDING, y + ICON + REWARD_PADDING)) continue;
             RewardType<?> reward = quest.rewards().get(i);
             ItemStack icon = rewardIcons.get(i);
             RenderAnimation animation = rewardScales.computeIfAbsent(reward.getRewardId(), id -> new RenderAnimation(1));
@@ -197,6 +200,16 @@ public class LinearQuestDetails extends AbstractScrollWidget {
 
     @Override
     public void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        ProfilerFiller profiler = Minecraft.getInstance().getProfiler();
+        profiler.push("quest_details");
+        try {
+            renderDetails(graphics, mouseX, mouseY, partialTick);
+        } finally {
+            profiler.pop();
+        }
+    }
+
+    private void renderDetails(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         super.renderWidget(graphics, mouseX, mouseY, partialTick);
         if (quest == null || !inside(mouseX, mouseY)) return;
         int reward = rewardAt(mouseX, mouseY);
@@ -314,7 +327,7 @@ public class LinearQuestDetails extends AbstractScrollWidget {
 
     private void drawLines(GuiGraphics graphics, List<FormattedCharSequence> lines, int x, int y, int color) {
         for (FormattedCharSequence line : lines) {
-            graphics.drawString(font, line, x, y, color);
+            if (withinContentAreaTopBottom(y, y + lineHeight())) graphics.drawString(font, line, x, y, color);
             y += lineHeight();
         }
     }

@@ -1,6 +1,7 @@
 package dev.veryue.vuequests.client.widget;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import dev.veryue.vuequests.client.util.GuiSpriteRenderer;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -75,15 +76,7 @@ public class QuestWidgetSprites {
 
     private static void blit(GuiGraphics graphics, ResourceLocation sprite, int x, int y, int width, int height,
                              float red, float green, float blue) {
-        graphics.flush();
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        graphics.setColor(red, green, blue, TEXTURE_ALPHA);
-        try {
-            graphics.blitSprite(sprite, x, y, width, height);
-        } finally {
-            graphics.setColor(1, 1, 1, 1);
-        }
+        GuiSpriteRenderer.blit(graphics, sprite, x, y, width, height, red, green, blue, TEXTURE_ALPHA);
     }
 
     public static void renderHeader(GuiGraphics graphics, Font font, Component title, int x, int y, int width) {

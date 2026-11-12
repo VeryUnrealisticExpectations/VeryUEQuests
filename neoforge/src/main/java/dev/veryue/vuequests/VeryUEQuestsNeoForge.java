@@ -4,6 +4,7 @@ import dev.veryue.vuequests.client.ClientQuestData;
 import dev.veryue.vuequests.command.QuestDebugCommand;
 import dev.veryue.vuequests.command.QuestProgressCommands;
 import dev.veryue.vuequests.command.QuestReloadCommand;
+import dev.veryue.vuequests.command.QuestWebEditorCommand;
 import dev.veryue.vuequests.data.quest.QuestReloadDelegate;
 import dev.veryue.vuequests.editor.QuestEditorServer;
 import dev.veryue.vuequests.network.ClaimQuestRewardPayload;
@@ -54,7 +55,7 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
         NeoForge.EVENT_BUS.addListener(this::onDatapackSync);
         NeoForge.EVENT_BUS.addListener(this::onAddReloadListeners);
         NeoForge.EVENT_BUS.addListener(this::onServerStarting);
-        NeoForge.EVENT_BUS.addListener(this::onServerStarted);
+        //NeoForge.EVENT_BUS.addListener(this::onServerStarted);
         NeoForge.EVENT_BUS.addListener(this::onServerStopping);
         NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedIn);
         NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedOut);
@@ -72,6 +73,7 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
         QuestProgressCommands.register(event.getDispatcher(), this::syncProgress);
         QuestDebugCommand.register(event.getDispatcher(), this::sendDebugToggle);
         QuestReloadCommand.register(event.getDispatcher(), this::reloadServerConfig);
+        QuestWebEditorCommand.register(event.getDispatcher());
     }
 
     @Override
@@ -138,9 +140,9 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
         }
     }
 
-    private void onServerStarted(ServerStartedEvent event) {
+    /*private void onServerStarted(ServerStartedEvent event) {
         QuestEditorServer.start(event.getServer());
-    }
+    }*/
 
     private void onServerStarting(ServerStartingEvent event) {
         loadServerConfig(FMLPaths.CONFIGDIR.get().resolve(MOD_ID + ".json"));

@@ -12,6 +12,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.util.profiling.ProfilerFiller;
 
 import java.util.function.Consumer;
 
@@ -73,15 +74,31 @@ public class LinearQuestScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        refreshData();
-        super.render(graphics, mouseX, mouseY, partialTick);
+        ProfilerFiller profiler = minecraft.getProfiler();
+        profiler.push("vuequests_linear");
+        profiler.push("refresh");
+        try {
+            refreshData();
+            profiler.popPush("widgets");
+            super.render(graphics, mouseX, mouseY, partialTick);
+        } finally {
+            profiler.pop();
+            profiler.pop();
+        }
     }
 
     @Override
     public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        super.renderBackground(graphics, mouseX, mouseY, partialTick);
-        LinearQuestSprites.background(graphics, panelX, panelY, panelWidth, panelHeight);
-        graphics.blitSprite(LinearQuestSprites.COLUMN_DIVIDER, dividerX - 1, panelY + 7, 3, Math.max(1, panelHeight - 14));
+        ProfilerFiller profiler = minecraft.getProfiler();
+        profiler.push("vanilla_background");
+        try {
+            super.renderBackground(graphics, mouseX, mouseY, partialTick);
+            profiler.popPush("panel_background");
+            LinearQuestSprites.background(graphics, panelX, panelY, panelWidth, panelHeight);
+            graphics.blitSprite(LinearQuestSprites.COLUMN_DIVIDER, dividerX - 1, panelY + 7, 3, Math.max(1, panelHeight - 14));
+        } finally {
+            profiler.pop();
+        }
     }
 
     @Override

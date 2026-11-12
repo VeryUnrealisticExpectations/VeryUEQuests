@@ -3,6 +3,7 @@ package dev.veryue.vuequests;
 import dev.veryue.vuequests.command.QuestDebugCommand;
 import dev.veryue.vuequests.command.QuestProgressCommands;
 import dev.veryue.vuequests.command.QuestReloadCommand;
+import dev.veryue.vuequests.command.QuestWebEditorCommand;
 import dev.veryue.vuequests.data.quest.QuestReloadDelegate;
 import dev.veryue.vuequests.editor.QuestEditorServer;
 import dev.veryue.vuequests.network.ClaimQuestRewardPayload;
@@ -38,6 +39,7 @@ public class VeryUEQuestsFabric extends VeryUEMod implements ModInitializer {
             QuestProgressCommands.register(dispatcher, this::syncProgress);
             QuestDebugCommand.register(dispatcher, this::sendDebugToggle);
             QuestReloadCommand.register(dispatcher, this::reloadServerConfig);
+            QuestWebEditorCommand.register(dispatcher);
         });
         PayloadTypeRegistry.playS2C().register(QuestSyncPayload.TYPE, QuestSyncPayload.STREAM_CODEC);
         PayloadTypeRegistry.playS2C().register(QuestViewSyncPayload.TYPE, QuestViewSyncPayload.STREAM_CODEC);
@@ -95,7 +97,7 @@ public class VeryUEQuestsFabric extends VeryUEMod implements ModInitializer {
             loadServerConfig(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID + ".json"));
             start(server);
         });
-        ServerLifecycleEvents.SERVER_STARTED.register(QuestEditorServer::start);
+        //ServerLifecycleEvents.SERVER_STARTED.register(QuestEditorServer::start);
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
             stop();
             QuestEditorServer.stop();
