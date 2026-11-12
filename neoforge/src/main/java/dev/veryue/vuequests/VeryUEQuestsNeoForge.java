@@ -2,6 +2,7 @@ package dev.veryue.vuequests;
 
 import dev.veryue.vuequests.client.ClientQuestData;
 import dev.veryue.vuequests.command.QuestDebugCommand;
+import dev.veryue.vuequests.command.QuestExportCommand;
 import dev.veryue.vuequests.command.QuestProgressCommands;
 import dev.veryue.vuequests.command.QuestReloadCommand;
 import dev.veryue.vuequests.command.QuestWebEditorCommand;
@@ -72,6 +73,7 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
     private void registerCommands(RegisterCommandsEvent event) {
         QuestProgressCommands.register(event.getDispatcher(), this::syncProgress);
         QuestDebugCommand.register(event.getDispatcher(), this::sendDebugToggle);
+        QuestExportCommand.register(event.getDispatcher());
         QuestReloadCommand.register(event.getDispatcher(), this::reloadServerConfig);
         QuestWebEditorCommand.register(event.getDispatcher());
     }
@@ -79,6 +81,11 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
     @Override
     protected void syncServerConfig(ServerPlayer player) {
         PacketDistributor.sendToPlayer(player, new QuestViewSyncPayload(getServerConfig().questView()));
+    }
+
+    @Override
+    protected void syncQuests(ServerPlayer player) {
+        PacketDistributor.sendToPlayer(player, QuestSyncPayload.create(player));
     }
 
     @Override
@@ -134,6 +141,7 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
             }
         } else {
             for (ServerPlayer player : event.getPlayerList().getPlayers()) {
+                syncServerConfig(player);
                 restoreAttributeRewards(player);
                 PacketDistributor.sendToPlayer(player, QuestSyncPayload.create(player));
             }
@@ -145,7 +153,6 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
     }*/
 
     private void onServerStarting(ServerStartingEvent event) {
-        loadServerConfig(FMLPaths.CONFIGDIR.get().resolve(MOD_ID + ".json"));
         start(event.getServer());
     }
 
@@ -226,6 +233,7 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
     }
 
     private void onAddReloadListeners(AddReloadListenerEvent event) {
+        loadServerConfig(FMLPaths.CONFIGDIR.get().resolve(MOD_ID + ".json"));
         event.addListener(new QuestReloadListener());
     }
 

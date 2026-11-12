@@ -1,9 +1,13 @@
 package dev.veryue.vuequests;
 
 import dev.veryue.vuequests.config.ServerConfig;
+import dev.veryue.vuequests.config.QuestLoaderMode;
 import dev.veryue.vuequests.data.FlatFileUserLoader;
 import dev.veryue.vuequests.data.UserLoader;
 import dev.veryue.vuequests.data.quest.QuestReloadDelegate;
+import dev.veryue.vuequests.data.quest.ConfigQuestLoader;
+import dev.veryue.vuequests.data.quest.FlatFileQuestLoader;
+import dev.veryue.vuequests.data.quest.QuestLoader;
 import dev.veryue.vuequests.exceptions.PlayerDoesNotExistException;
 import dev.veryue.vuequests.models.ObjectiveContext;
 import dev.veryue.vuequests.models.PlayerUser;
@@ -54,23 +58,42 @@ public abstract class VeryUEMod {
     protected void loadServerConfig(Path file) {
         serverConfig = ServerConfig.load(file);
         serverConfigPath = file.toAbsolutePath().normalize();
+        QuestReloadDelegate.INSTANCE.setLoader(createQuestLoader(serverConfig));
     }
 
     public ServerConfig getServerConfig() {
         return serverConfig;
     }
 
+    public Path getQuestConfigDirectory() {
+        if (serverConfigPath == null) {
+            throw new IllegalStateException("The VUE Quests server config has not been loaded yet");
+        }
+        return serverConfigPath.getParent().resolve(VeryUEConstants.MOD_ID);
+    }
+
+    private QuestLoader createQuestLoader(ServerConfig config) {
+        return config.questLoader() == QuestLoaderMode.CONFIG_BASED
+                ? new ConfigQuestLoader(getQuestConfigDirectory()) : new FlatFileQuestLoader();
+    }
+
     public void reloadServerConfig(MinecraftServer server) {
         if (serverConfigPath == null) {
             throw new IllegalStateException("The VUE Quests server config has not been loaded yet");
         }
-        loadServerConfig(serverConfigPath);
+        ServerConfig loaded = ServerConfig.load(serverConfigPath);
+        QuestReloadDelegate.INSTANCE.reload(createQuestLoader(loaded), server.getResourceManager(), server.registryAccess());
+        serverConfig = loaded;
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             syncServerConfig(player);
+            restoreAttributeRewards(player);
+            syncQuests(player);
         }
     }
 
     protected abstract void syncServerConfig(ServerPlayer player);
+
+    protected abstract void syncQuests(ServerPlayer player);
 
     public void start(UserLoader userLoader) {
         Objects.requireNonNull(userLoader);

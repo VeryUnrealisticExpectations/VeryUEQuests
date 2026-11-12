@@ -19,28 +19,38 @@ public class QuestReloadDelegate {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(VeryUEConstants.MOD_ID);
 
-    private final QuestLoader loader;
+    private volatile QuestLoader loader;
     private volatile QuestData data = QuestData.EMPTY;
 
     public QuestReloadDelegate(QuestLoader loader) {
         this.loader = loader;
     }
 
+    public void setLoader(QuestLoader loader) {
+        this.loader = loader;
+    }
+
+    public void reload(QuestLoader loader, ResourceManager resourceManager, HolderLookup.Provider registryLookup) {
+        QuestData loaded = loader.loadQuests(resourceManager, registryLookup);
+        this.loader = loader;
+        publish(loaded);
+    }
+
     public CompletableFuture<Void> reload(PreparationBarrier preparationBarrier, ResourceManager resourceManager,
                                           HolderLookup.Provider registryLookup, ProfilerFiller preparationsProfiler,
                                           ProfilerFiller reloadProfiler, Executor backgroundExecutor, Executor gameExecutor) {
+        QuestLoader activeLoader = loader;
         return CompletableFuture.supplyAsync(() -> {
             preparationsProfiler.push(ID.toString());
             try {
-                return loader.loadQuests(resourceManager, registryLookup);
+                return activeLoader.loadQuests(resourceManager, registryLookup);
             } finally {
                 preparationsProfiler.pop();
             }
         }, backgroundExecutor).thenCompose(preparationBarrier::wait).thenAcceptAsync(loaded -> {
             reloadProfiler.push(ID.toString());
             try {
-                data = loaded;
-                LOGGER.info("Loaded {} quest sections and {} quests", loaded.sections().size(), loaded.quests().size());
+                publish(loaded);
             } finally {
                 reloadProfiler.pop();
             }
@@ -49,6 +59,11 @@ public class QuestReloadDelegate {
 
     public QuestData getData() {
         return data;
+    }
+
+    private void publish(QuestData loaded) {
+        data = loaded;
+        LOGGER.info("Loaded {} quest sections and {} quests", loaded.sections().size(), loaded.quests().size());
     }
 
     public void clear() {

@@ -6,7 +6,9 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.annotations.SerializedName;
+import dev.veryue.vuequests.config.QuestLoaderMode;
 import dev.veryue.vuequests.data.quest.FlatFileQuestLoader;
+import dev.veryue.vuequests.data.quest.QuestConfigStorage;
 import net.minecraft.SharedConstants;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.FileToIdConverter;
@@ -43,9 +45,16 @@ public class QuestEditorStorage {
     public static final String PACK_ID = "file/" + PACK_NAME;
     private static final Gson JSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
     private final Path root;
+    private final QuestLoaderMode mode;
 
     public QuestEditorStorage(Path datapackDirectory) {
-        root = datapackDirectory.resolve(PACK_NAME).toAbsolutePath().normalize();
+        this(datapackDirectory, QuestLoaderMode.DATAPACK_BASED);
+    }
+
+    public QuestEditorStorage(Path directory, QuestLoaderMode mode) {
+        this.mode = mode;
+        root = (mode == QuestLoaderMode.CONFIG_BASED ? directory : directory.resolve(PACK_NAME))
+                .toAbsolutePath().normalize();
     }
 
     public Document read(ResourceManager resources) {
@@ -53,13 +62,22 @@ public class QuestEditorStorage {
             Set<UUID> deleted = deletedSections();
             Map<UUID, ResourceLocation> sources = new HashMap<>();
             Map<UUID, JsonObject> definitions = new HashMap<>();
-            var files = FileToIdConverter.json(FlatFileQuestLoader.RESOURCE_DIRECTORY).listMatchingResources(resources);
-            for (var entry : files.entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()) {
-                try (Reader reader = entry.getValue().openAsReader()) {
-                    JsonObject section = JsonParser.parseReader(reader).getAsJsonObject();
+            if (mode == QuestLoaderMode.CONFIG_BASED) {
+                for (JsonObject section : new QuestConfigStorage(root).read().values()) {
                     UUID id = UUID.fromString(section.get("section_id").getAsString());
-                    if (sources.putIfAbsent(id, entry.getKey()) != null) throw new IllegalArgumentException("Duplicate section UUID " + id);
+                    ResourceLocation source = ResourceLocation.fromNamespaceAndPath("vuequests", "vuequests/sections/" + id + ".json");
+                    if (sources.putIfAbsent(id, source) != null) throw new IllegalArgumentException("Duplicate section UUID " + id);
                     definitions.put(id, section);
+                }
+            } else {
+                var files = FileToIdConverter.json(FlatFileQuestLoader.RESOURCE_DIRECTORY).listMatchingResources(resources);
+                for (var entry : files.entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()) {
+                    try (Reader reader = entry.getValue().openAsReader()) {
+                        JsonObject section = JsonParser.parseReader(reader).getAsJsonObject();
+                        UUID id = UUID.fromString(section.get("section_id").getAsString());
+                        if (sources.putIfAbsent(id, entry.getKey()) != null) throw new IllegalArgumentException("Duplicate section UUID " + id);
+                        definitions.put(id, section);
+                    }
                 }
             }
             List<JsonObject> sections = definitions.entrySet().stream().sorted(Map.Entry.comparingByKey())
@@ -74,6 +92,9 @@ public class QuestEditorStorage {
     }
 
     public Set<UUID> deletedSections() throws IOException {
+        if (mode == QuestLoaderMode.CONFIG_BASED) {
+            return Set.of();
+        }
         Path state = root.resolve("editor-state.json");
         Set<UUID> deleted = new HashSet<>();
         if (Files.isRegularFile(state)) {
@@ -83,6 +104,10 @@ public class QuestEditorStorage {
     }
 
     public void save(Document previous, List<JsonObject> sections) throws IOException {
+        if (mode == QuestLoaderMode.CONFIG_BASED) {
+            new QuestConfigStorage(root).save(sections);
+            return;
+        }
         Files.createDirectories(root);
         write(root.resolve("pack.mcmeta"), new Metadata(new Pack(SharedConstants.getCurrentVersion().getPackVersion(PackType.SERVER_DATA), "VeryUE Quests editor")));
 

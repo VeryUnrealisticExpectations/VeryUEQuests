@@ -1,0 +1,910 @@
+{
+  "section_id": "2050e2df-3fca-59c4-807f-9e98b461110c",
+  "name": "Nether",
+  "icon": "minecraft:netherrack",
+  "disabled": false,
+  "modLoaded": "",
+  "quests": [
+    {
+      "section_id": "2050e2df-3fca-59c4-807f-9e98b461110c",
+      "quest_id": "99cd99b8-101f-5176-865f-d6720d176497",
+      "position": {
+        "x": -120,
+        "y": -30
+      },
+      "display": {
+        "title": {
+          "text": "Enter the Nether",
+          "color": "#ee957d",
+          "bold": true
+        },
+        "subtitle": "",
+        "description": {
+          "text": "",
+          "color": "gray",
+          "extra": [
+            {
+              "text": "Enter the Nether to unlock this section. Its combat, exploration, and resource branches become available after entry."
+            }
+          ]
+        },
+        "icon": "minecraft:obsidian",
+        "tooltip": "Enter the Nether.",
+        "background_sprite": "vuequests:quest_backgrounds/background_icon_circle"
+      },
+      "objectives": [
+        {
+          "type": "vuequests:travel_dimension",
+          "objective_id": "27263a89-18a0-5c55-a70d-60a7d89202ea",
+          "dimension": "minecraft:the_nether"
+        }
+      ],
+      "rewards": [
+        {
+          "type": "vuequests:experience",
+          "reward_id": "fa41ea31-3dc0-51d4-9aad-1afdac171ff3",
+          "experience": 32
+        }
+      ],
+      "dependencies": []
+    },
+    {
+      "section_id": "2050e2df-3fca-59c4-807f-9e98b461110c",
+      "quest_id": "ebd9e6ae-f783-5893-9c95-253b629c76e5",
+      "position": {
+        "x": -40,
+        "y": 30
+      },
+      "display": {
+        "title": {
+          "text": "Nether biomes",
+          "color": "#ee957d",
+          "bold": true
+        },
+        "subtitle": "",
+        "description": {
+          "text": "",
+          "color": "gray",
+          "extra": [
+            {
+              "text": "Visit all "
+            },
+            {
+              "text": "five",
+              "color": "aqua"
+            },
+            {
+              "text": " Nether biomes: "
+            },
+            {
+              "text": "nether wastes",
+              "color": "gold"
+            },
+            {
+              "text": ", "
+            },
+            {
+              "text": "crimson forest",
+              "color": "gold"
+            },
+            {
+              "text": ", "
+            },
+            {
+              "text": "warped forest",
+              "color": "gold"
+            },
+            {
+              "text": ", "
+            },
+            {
+              "text": "soul sand valley",
+              "color": "gold"
+            },
+            {
+              "text": ", and "
+            },
+            {
+              "text": "basalt deltas",
+              "color": "gold"
+            },
+            {
+              "text": ". Each visit is recorded while this quest is available."
+            }
+          ]
+        },
+        "icon": "minecraft:netherrack",
+        "tooltip": "Visit all five Nether biomes.",
+        "background_sprite": "vuequests:quest_backgrounds/background_icon_circle"
+      },
+      "objectives": [
+        {
+          "type": "vuequests:travel_biome",
+          "objective_id": "506c539c-023d-58e0-a1d0-21e3b516bb51",
+          "biome": "minecraft:nether_wastes"
+        },
+        {
+          "type": "vuequests:travel_biome",
+          "objective_id": "5b7552df-fb8b-581c-a241-47c510b88643",
+          "biome": "minecraft:crimson_forest"
+        },
+        {
+          "type": "vuequests:travel_biome",
+          "objective_id": "9ab0cfb6-64dd-53b6-8f8e-ae0e3aeb74ef",
+          "biome": "minecraft:warped_forest"
+        },
+        {
+          "type": "vuequests:travel_biome",
+          "objective_id": "57933382-e759-5880-a459-c0df005cc622",
+          "biome": "minecraft:soul_sand_valley"
+        },
+        {
+          "type": "vuequests:travel_biome",
+          "objective_id": "b9d6f671-db6f-509f-bb79-2158bfc975c9",
+          "biome": "minecraft:basalt_deltas"
+        }
+      ],
+      "rewards": [
+        {
+          "type": "vuequests:item",
+          "reward_id": "c2892a17-2830-545c-8b96-572d5c0899be",
+          "item": {
+            "id": "minecraft:cooked_porkchop",
+            "count": 16
+          }
+        }
+      ],
+      "dependencies": [
+        "99cd99b8-101f-5176-865f-d6720d176497"
+      ]
+    },
+    {
+      "section_id": "2050e2df-3fca-59c4-807f-9e98b461110c",
+      "quest_id": "8d486ad4-42fd-5f2e-b2d5-22de186a25ca",
+      "position": {
+        "x": -40,
+        "y": -150
+      },
+      "display": {
+        "title": {
+          "text": "Nether fortress",
+          "color": "#ee957d",
+          "bold": true
+        },
+        "subtitle": "",
+        "description": {
+          "text": "",
+          "color": "gray",
+          "extra": [
+            {
+              "text": "Enter a "
+            },
+            {
+              "text": "Nether fortress",
+              "color": "gold"
+            },
+            {
+              "text": " and move through "
+            },
+            {
+              "text": "one",
+              "color": "aqua"
+            },
+            {
+              "text": " of its generated corridors or platforms. This opens the blaze and wither-skull branches."
+            }
+          ]
+        },
+        "icon": "minecraft:nether_bricks",
+        "tooltip": "Visit a Nether fortress.",
+        "background_sprite": "vuequests:quest_backgrounds/background_icon_circle"
+      },
+      "objectives": [
+        {
+          "type": "vuequests:travel_structure",
+          "objective_id": "1180bb14-ce4a-5353-ae47-4a70ea565542",
+          "structure": "minecraft:fortress"
+        }
+      ],
+      "rewards": [
+        {
+          "type": "vuequests:item",
+          "reward_id": "826d00e2-2958-5da1-818e-1a0bda7f5a28",
+          "item": {
+            "id": "minecraft:bread",
+            "count": 8
+          }
+        }
+      ],
+      "dependencies": [
+        "99cd99b8-101f-5176-865f-d6720d176497"
+      ]
+    },
+    {
+      "section_id": "2050e2df-3fca-59c4-807f-9e98b461110c",
+      "quest_id": "ef8293f3-b75b-529f-801a-ca431fabcc23",
+      "position": {
+        "x": 40,
+        "y": -150
+      },
+      "display": {
+        "title": {
+          "text": "Blazes",
+          "color": "#ee957d",
+          "bold": true
+        },
+        "subtitle": "",
+        "description": {
+          "text": "",
+          "color": "gray",
+          "extra": [
+            {
+              "text": "Defeat "
+            },
+            {
+              "text": "five",
+              "color": "aqua"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "blazes",
+              "color": "gold"
+            },
+            {
+              "text": " after this quest unlocks. Picking up "
+            },
+            {
+              "text": "blaze",
+              "color": "gold"
+            },
+            {
+              "text": " rods does not replace the kill requirement."
+            }
+          ]
+        },
+        "icon": "minecraft:blaze_rod",
+        "tooltip": "Defeat five blazes.",
+        "background_sprite": "vuequests:quest_backgrounds/background_icon_square"
+      },
+      "objectives": [
+        {
+          "type": "vuequests:entity",
+          "objective_id": "85d99d44-678b-55d4-9b4a-999b775e226b",
+          "entity": "minecraft:blaze",
+          "count": 5
+        }
+      ],
+      "rewards": [
+        {
+          "type": "vuequests:item",
+          "reward_id": "b8971658-c0ff-5687-b207-54ea336d644d",
+          "item": {
+            "id": "minecraft:nether_wart",
+            "count": 8
+          }
+        }
+      ],
+      "dependencies": [
+        "8d486ad4-42fd-5f2e-b2d5-22de186a25ca"
+      ]
+    },
+    {
+      "section_id": "2050e2df-3fca-59c4-807f-9e98b461110c",
+      "quest_id": "bfd2ca09-f21f-5495-bb09-aaf4ee57f077",
+      "position": {
+        "x": 120,
+        "y": -150
+      },
+      "display": {
+        "title": {
+          "text": "Brewing",
+          "color": "#ee957d",
+          "bold": true
+        },
+        "subtitle": "",
+        "description": {
+          "text": "",
+          "color": "gray",
+          "extra": [
+            {
+              "text": "Brew and retrieve a potion to earn the "
+            },
+            {
+              "text": "Local Brewery",
+              "color": "#ee957d",
+              "italic": true
+            },
+            {
+              "text": " advancement. An earlier completion counts, and possessing a brewing stand alone does not satisfy the objective."
+            }
+          ]
+        },
+        "icon": "minecraft:brewing_stand",
+        "tooltip": "Earn the Local Brewery advancement.",
+        "background_sprite": "vuequests:quest_backgrounds/background_icon_square"
+      },
+      "objectives": [
+        {
+          "type": "vuequests:advancement",
+          "objective_id": "b05dfa10-2be4-5520-895e-842c3d874a54",
+          "advancement": "minecraft:nether/brew_potion"
+        }
+      ],
+      "rewards": [
+        {
+          "type": "vuequests:item",
+          "reward_id": "4e6c2afa-e9f4-54b7-a310-f1c1acc83cdf",
+          "item": {
+            "id": "minecraft:glass_bottle",
+            "count": 8
+          }
+        }
+      ],
+      "dependencies": [
+        "ef8293f3-b75b-529f-801a-ca431fabcc23"
+      ]
+    },
+    {
+      "section_id": "2050e2df-3fca-59c4-807f-9e98b461110c",
+      "quest_id": "370e62ec-44d3-50f1-97a1-1cca9a777256",
+      "position": {
+        "x": 40,
+        "y": -90
+      },
+      "display": {
+        "title": {
+          "text": "Wither skulls",
+          "color": "#ee957d",
+          "bold": true
+        },
+        "subtitle": "",
+        "description": {
+          "text": "",
+          "color": "gray",
+          "extra": [
+            {
+              "text": "Hold "
+            },
+            {
+              "text": "three",
+              "color": "aqua"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "wither skeleton skulls",
+              "color": "gold"
+            },
+            {
+              "text": " in your inventory at once. The skulls are "
+            },
+            {
+              "text": "not consumed",
+              "color": "green"
+            },
+            {
+              "text": ". Keep them until the objective records the full set."
+            }
+          ]
+        },
+        "icon": "minecraft:wither_skeleton_skull",
+        "tooltip": "Collect three wither skeleton skulls.",
+        "background_sprite": "vuequests:quest_backgrounds/background_icon_square"
+      },
+      "objectives": [
+        {
+          "type": "vuequests:collect_item",
+          "objective_id": "5c7e87b1-34da-5d2d-adce-2f785cb077da",
+          "count": 3,
+          "item": {
+            "id": "minecraft:wither_skeleton_skull"
+          }
+        }
+      ],
+      "rewards": [
+        {
+          "type": "vuequests:experience_levels",
+          "reward_id": "995d753d-5366-5be6-8466-6939bcc88fd9",
+          "levels": 2
+        }
+      ],
+      "dependencies": [
+        "8d486ad4-42fd-5f2e-b2d5-22de186a25ca"
+      ]
+    },
+    {
+      "section_id": "2050e2df-3fca-59c4-807f-9e98b461110c",
+      "quest_id": "7016b3ae-9da8-55d0-b37a-29a61646d9a9",
+      "position": {
+        "x": -40,
+        "y": -30
+      },
+      "display": {
+        "title": {
+          "text": "Bastion remnants",
+          "color": "#ee957d",
+          "bold": true
+        },
+        "subtitle": "",
+        "description": {
+          "text": "",
+          "color": "gray",
+          "extra": [
+            {
+              "text": "Enter a "
+            },
+            {
+              "text": "bastion remnant",
+              "color": "gold"
+            },
+            {
+              "text": ". The structure visit is sufficient for this quest, and opening its chests is not required."
+            }
+          ]
+        },
+        "icon": "minecraft:polished_blackstone_bricks",
+        "tooltip": "Visit a bastion remnant.",
+        "background_sprite": "vuequests:quest_backgrounds/background_icon_circle"
+      },
+      "objectives": [
+        {
+          "type": "vuequests:travel_structure",
+          "objective_id": "604f3c28-7a11-5ac2-aec5-eddd899b2cdb",
+          "structure": "minecraft:bastion_remnant"
+        }
+      ],
+      "rewards": [
+        {
+          "type": "vuequests:loot_table",
+          "reward_id": "378137f4-d196-5b5c-bd25-56c29e841316",
+          "loot_table": "minecraft:chests/simple_dungeon"
+        }
+      ],
+      "dependencies": [
+        "99cd99b8-101f-5176-865f-d6720d176497"
+      ]
+    },
+    {
+      "section_id": "2050e2df-3fca-59c4-807f-9e98b461110c",
+      "quest_id": "9371c8a7-9301-5e56-bf95-eebf8f4bed6e",
+      "position": {
+        "x": 40,
+        "y": -30
+      },
+      "display": {
+        "title": {
+          "text": "Piglin distraction",
+          "color": "#ee957d",
+          "bold": true
+        },
+        "subtitle": "",
+        "description": {
+          "text": "",
+          "color": "gray",
+          "extra": [
+            {
+              "text": "Give an adult piglin a gold ingot while "
+            },
+            {
+              "text": "wearing no gold armor",
+              "color": "red"
+            },
+            {
+              "text": " to earn the "
+            },
+            {
+              "text": "Oh Shiny",
+              "color": "#ee957d",
+              "italic": true
+            },
+            {
+              "text": " advancement. An earlier completion of the advancement also counts."
+            }
+          ]
+        },
+        "icon": "minecraft:gold_ingot",
+        "tooltip": "Earn Oh Shiny while wearing no gold armor.",
+        "background_sprite": "vuequests:quest_backgrounds/background_icon_square"
+      },
+      "objectives": [
+        {
+          "type": "vuequests:advancement",
+          "objective_id": "2a957596-2032-53d2-a964-3da7ca690f0b",
+          "advancement": "minecraft:nether/distract_piglin"
+        }
+      ],
+      "rewards": [
+        {
+          "type": "vuequests:item",
+          "reward_id": "e63e732e-c82e-5678-a681-229e855b319f",
+          "item": {
+            "id": "minecraft:crying_obsidian",
+            "count": 2
+          }
+        }
+      ],
+      "dependencies": [
+        "7016b3ae-9da8-55d0-b37a-29a61646d9a9"
+      ]
+    },
+    {
+      "section_id": "2050e2df-3fca-59c4-807f-9e98b461110c",
+      "quest_id": "16e55e4e-0c5e-5ea3-a68f-c9e70418dccf",
+      "position": {
+        "x": -40,
+        "y": -90
+      },
+      "display": {
+        "title": {
+          "text": "Ghasts",
+          "color": "#ee957d",
+          "bold": true
+        },
+        "subtitle": "",
+        "description": {
+          "text": "",
+          "color": "gray",
+          "extra": [
+            {
+              "text": "Defeat "
+            },
+            {
+              "text": "three",
+              "color": "aqua"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "ghasts",
+              "color": "gold"
+            },
+            {
+              "text": " after this quest unlocks. Direct attacks and returned fireballs both qualify when the kill is credited to you."
+            }
+          ]
+        },
+        "icon": "minecraft:ghast_tear",
+        "tooltip": "Defeat three ghasts.",
+        "background_sprite": "vuequests:quest_backgrounds/background_icon_square"
+      },
+      "objectives": [
+        {
+          "type": "vuequests:entity",
+          "objective_id": "0fb62720-aa5e-59ef-947b-3273780c61fe",
+          "entity": "minecraft:ghast",
+          "count": 3
+        }
+      ],
+      "rewards": [
+        {
+          "type": "vuequests:item",
+          "reward_id": "f50c1980-b362-5523-939d-c0319bc0d69f",
+          "item": {
+            "id": "minecraft:arrow",
+            "count": 16
+          }
+        }
+      ],
+      "dependencies": [
+        "99cd99b8-101f-5176-865f-d6720d176497"
+      ]
+    },
+    {
+      "section_id": "2050e2df-3fca-59c4-807f-9e98b461110c",
+      "quest_id": "284101ba-b5d3-528d-91bc-9a85047c68d5",
+      "position": {
+        "x": -40,
+        "y": 150
+      },
+      "display": {
+        "title": {
+          "text": "Hoglins",
+          "color": "#ee957d",
+          "bold": true
+        },
+        "subtitle": "",
+        "description": {
+          "text": "",
+          "color": "gray",
+          "extra": [
+            {
+              "text": "Defeat "
+            },
+            {
+              "text": "five",
+              "color": "aqua"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "hoglins",
+              "color": "gold"
+            },
+            {
+              "text": " after this quest unlocks. Zoglins are a different entity type and do not count toward this total."
+            }
+          ]
+        },
+        "icon": "minecraft:porkchop",
+        "tooltip": "Defeat five hoglins.",
+        "background_sprite": "vuequests:quest_backgrounds/background_icon_square"
+      },
+      "objectives": [
+        {
+          "type": "vuequests:entity",
+          "objective_id": "341ec4c0-a32a-52f9-8770-87318fd92c52",
+          "entity": "minecraft:hoglin",
+          "count": 5
+        }
+      ],
+      "rewards": [
+        {
+          "type": "vuequests:item",
+          "reward_id": "f977ec7b-1cad-51f7-b2a4-942a30cf2920",
+          "item": {
+            "id": "minecraft:leather",
+            "count": 4
+          }
+        }
+      ],
+      "dependencies": [
+        "99cd99b8-101f-5176-865f-d6720d176497"
+      ]
+    },
+    {
+      "section_id": "2050e2df-3fca-59c4-807f-9e98b461110c",
+      "quest_id": "e24f7596-e9d2-529e-a87a-46d4268b0cfd",
+      "position": {
+        "x": -40,
+        "y": 90
+      },
+      "display": {
+        "title": {
+          "text": "Ancient debris",
+          "color": "#ee957d",
+          "bold": true
+        },
+        "subtitle": "",
+        "description": {
+          "text": "",
+          "color": "gray",
+          "extra": [
+            {
+              "text": "Hold "
+            },
+            {
+              "text": "four",
+              "color": "aqua"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "ancient debris",
+              "color": "gold"
+            },
+            {
+              "text": " in your inventory before smelting them. The objective checks the blocks themselves, so netherite scrap does not count."
+            }
+          ]
+        },
+        "icon": "minecraft:ancient_debris",
+        "tooltip": "Collect four ancient debris.",
+        "background_sprite": "vuequests:quest_backgrounds/background_icon_square"
+      },
+      "objectives": [
+        {
+          "type": "vuequests:collect_item",
+          "objective_id": "f3f35fd1-a950-5244-b80c-3e717477dad5",
+          "count": 4,
+          "item": {
+            "id": "minecraft:ancient_debris"
+          }
+        }
+      ],
+      "rewards": [
+        {
+          "type": "vuequests:experience",
+          "reward_id": "0b8d6626-2e36-545f-9a1a-088005a7d890",
+          "experience": 100
+        }
+      ],
+      "dependencies": [
+        "99cd99b8-101f-5176-865f-d6720d176497"
+      ]
+    },
+    {
+      "section_id": "2050e2df-3fca-59c4-807f-9e98b461110c",
+      "quest_id": "7abf2eca-4b96-55c0-b06c-a1d21feced7d",
+      "position": {
+        "x": 40,
+        "y": 90
+      },
+      "display": {
+        "title": {
+          "text": "Netherite ingot",
+          "color": "#ee957d",
+          "bold": true
+        },
+        "subtitle": "",
+        "description": {
+          "text": "",
+          "color": "gray",
+          "extra": [
+            {
+              "text": "Carry "
+            },
+            {
+              "text": "one",
+              "color": "aqua"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "netherite ingot",
+              "color": "gold"
+            },
+            {
+              "text": ". This checks the ingot in your inventory, rather than the act of crafting it or upgrading equipment."
+            }
+          ]
+        },
+        "icon": "minecraft:netherite_ingot",
+        "tooltip": "Collect one netherite ingot.",
+        "background_sprite": "vuequests:quest_backgrounds/background_icon_four_point_star"
+      },
+      "objectives": [
+        {
+          "type": "vuequests:collect_item",
+          "objective_id": "d20fc82c-6aeb-5ca3-a113-6e4c87bc7462",
+          "count": 1,
+          "item": {
+            "id": "minecraft:netherite_ingot"
+          }
+        }
+      ],
+      "rewards": [
+        {
+          "type": "vuequests:experience_levels",
+          "reward_id": "8d778a18-6b9c-5ae7-bdf3-6582a74d8e5f",
+          "levels": 1
+        }
+      ],
+      "dependencies": [
+        "e24f7596-e9d2-529e-a87a-46d4268b0cfd"
+      ]
+    },
+    {
+      "section_id": "2050e2df-3fca-59c4-807f-9e98b461110c",
+      "quest_id": "c981384a-fb0c-5dc1-a41a-5ea66015fa68",
+      "position": {
+        "x": 120,
+        "y": -30
+      },
+      "display": {
+        "title": {
+          "text": "Respawn anchor",
+          "color": "#ee957d",
+          "bold": true
+        },
+        "subtitle": "",
+        "description": {
+          "text": "",
+          "color": "gray",
+          "extra": [
+            {
+              "text": "Fully charge a respawn anchor with "
+            },
+            {
+              "text": "four",
+              "color": "aqua"
+            },
+            {
+              "text": " glowstone to earn "
+            },
+            {
+              "text": "Not Quite Nine Lives",
+              "color": "#ee957d",
+              "italic": true
+            },
+            {
+              "text": ". Use the Nether for this task. Activating a charged anchor outside the Nether "
+            },
+            {
+              "text": "causes an explosion",
+              "color": "red"
+            },
+            {
+              "text": "."
+            }
+          ]
+        },
+        "icon": "minecraft:respawn_anchor",
+        "tooltip": "Fully charge a respawn anchor.",
+        "background_sprite": "vuequests:quest_backgrounds/background_icon_square"
+      },
+      "objectives": [
+        {
+          "type": "vuequests:advancement",
+          "objective_id": "cce4c1fc-0147-5355-b81d-3843b22b0360",
+          "advancement": "minecraft:nether/charge_respawn_anchor"
+        }
+      ],
+      "rewards": [
+        {
+          "type": "vuequests:item",
+          "reward_id": "b67648f2-0a56-50a2-9e06-7285c24ab550",
+          "item": {
+            "id": "minecraft:glowstone",
+            "count": 4
+          }
+        }
+      ],
+      "dependencies": [
+        "9371c8a7-9301-5e56-bf95-eebf8f4bed6e"
+      ]
+    },
+    {
+      "section_id": "2050e2df-3fca-59c4-807f-9e98b461110c",
+      "quest_id": "cf032fa9-1103-5eef-9ab3-ffeb68feed12",
+      "position": {
+        "x": 40,
+        "y": 30
+      },
+      "display": {
+        "title": {
+          "text": "Strider travel",
+          "color": "#ee957d",
+          "bold": true
+        },
+        "subtitle": "",
+        "description": {
+          "text": "",
+          "color": "gray",
+          "extra": [
+            {
+              "text": "Ride a strider and use a warped fungus on a stick to boost it. This earns "
+            },
+            {
+              "text": "This Boat Has Legs",
+              "color": "#ee957d",
+              "italic": true
+            },
+            {
+              "text": ". Simply sitting on the strider does not complete the advancement."
+            }
+          ]
+        },
+        "icon": "minecraft:warped_fungus_on_a_stick",
+        "tooltip": "Ride and boost a strider.",
+        "background_sprite": "vuequests:quest_backgrounds/background_icon_square"
+      },
+      "objectives": [
+        {
+          "type": "vuequests:advancement",
+          "objective_id": "642a3056-d12d-5863-ade7-2657b09974cd",
+          "advancement": "minecraft:nether/ride_strider"
+        }
+      ],
+      "rewards": [
+        {
+          "type": "vuequests:item",
+          "reward_id": "2f55bae2-f7b9-564a-9181-8971f478caa9",
+          "item": {
+            "id": "minecraft:warped_fungus",
+            "count": 8
+          }
+        }
+      ],
+      "dependencies": [
+        "ebd9e6ae-f783-5893-9c95-253b629c76e5"
+      ]
+    }
+  ]
+}

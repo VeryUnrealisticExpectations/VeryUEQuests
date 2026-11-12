@@ -6,6 +6,7 @@ public enum CommandPermission {
     QUEST_PROGRESS("progress.quest"),
     OBJECTIVE_PROGRESS("progress.objective"),
     DEBUG("debug"),
+    EXPORT("export"),
     RELOAD("reload"),
     WEBEDITOR("webeditor");
 

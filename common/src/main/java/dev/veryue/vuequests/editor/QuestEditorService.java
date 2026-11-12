@@ -4,6 +4,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.serialization.JsonOps;
 import dev.veryue.vuequests.VeryUERegistries;
+import dev.veryue.vuequests.VeryUEMod;
+import dev.veryue.vuequests.config.QuestLoaderMode;
 import dev.veryue.vuequests.data.quest.QuestData;
 import dev.veryue.vuequests.editor.QuestEditorStorage.Document;
 import dev.veryue.vuequests.editor.api.QuestApiService;
@@ -69,9 +71,15 @@ public class QuestEditorService {
 
     public QuestApiService api() { return new QuestApiService(server, this); }
 
+    private QuestEditorStorage storage() {
+        QuestLoaderMode mode = VeryUEMod.INSTANCE.getServerConfig().questLoader();
+        return new QuestEditorStorage(mode == QuestLoaderMode.CONFIG_BASED
+                ? VeryUEMod.INSTANCE.getQuestConfigDirectory() : server.getWorldPath(LevelResource.DATAPACK_DIR), mode);
+    }
+
     public CompletableFuture<Snapshot> load() {
         return server.submit(() -> {
-            Document document = new QuestEditorStorage(server.getWorldPath(LevelResource.DATAPACK_DIR)).read(server.getResourceManager());
+            Document document = storage().read(server.getResourceManager());
             return new Snapshot(document.sections(), document.revision(), SharedConstants.getCurrentVersion().getName(),
                     QuestEditorAssets.revision(), createCatalog());
         });
@@ -119,7 +127,7 @@ public class QuestEditorService {
             return CompletableFuture.failedFuture(new ConflictException("A save is already in progress."));
         }
         return server.submit(() -> {
-            QuestEditorStorage storage = new QuestEditorStorage(server.getWorldPath(LevelResource.DATAPACK_DIR));
+            QuestEditorStorage storage = storage();
             Document previous = storage.read(server.getResourceManager());
             List<JsonObject> sections = prepare.apply(previous);
             validate(sections, server.registryAccess().createSerializationContext(JsonOps.INSTANCE), PlatformHelper.INSTANCE::isModLoaded);
@@ -128,13 +136,15 @@ public class QuestEditorService {
             } catch (IOException exception) {
                 throw new UncheckedIOException(exception);
             }
-            server.getPackRepository().reload();
             List<String> packs = new ArrayList<>(server.getPackRepository().getSelectedIds());
-            packs.remove(QuestEditorStorage.PACK_ID);
-            packs.add(QuestEditorStorage.PACK_ID);
+            if (VeryUEMod.INSTANCE.getServerConfig().questLoader() == QuestLoaderMode.DATAPACK_BASED) {
+                server.getPackRepository().reload();
+                packs.remove(QuestEditorStorage.PACK_ID);
+                packs.add(QuestEditorStorage.PACK_ID);
+            }
             return packs;
         }).thenCompose(server::reloadResources).thenCompose(ignored -> server.submit(() ->
-                new QuestEditorStorage(server.getWorldPath(LevelResource.DATAPACK_DIR)).read(server.getResourceManager()).revision()))
+                storage().read(server.getResourceManager()).revision()))
                 .whenComplete((result, failure) -> saving.set(false));
     }
 

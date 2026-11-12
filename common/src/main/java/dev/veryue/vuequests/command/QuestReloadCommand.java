@@ -21,7 +21,7 @@ public class QuestReloadCommand {
     private static final Logger LOGGER = LoggerFactory.getLogger(QuestReloadCommand.class);
     private static final DynamicCommandExceptionType RELOAD_FAILED = new DynamicCommandExceptionType(
             reason -> Component.translatableWithFallback("commands.vuequests.reload.failed",
-                    "Could not reload the VUE Quests server config: %s", reason));
+                    "Could not reload the VUE Quests config and quest definitions: %s", reason));
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher, Consumer<MinecraftServer> reload) {
         dispatcher.register(literal(MOD_ID)
@@ -32,11 +32,11 @@ public class QuestReloadCommand {
                             try {
                                 reload.accept(source.getServer());
                             } catch (RuntimeException exception) {
-                                LOGGER.error("Could not reload the VUE Quests server config", exception);
+                                LOGGER.error("Could not reload the VUE Quests config and quest definitions", exception);
                                 throw RELOAD_FAILED.create(exception.getMessage());
                             }
                             source.sendSuccess(() -> Component.translatableWithFallback("commands.vuequests.reload.success",
-                                    "Reloaded the VUE Quests server config and synchronized online players."), true);
+                                    "Reloaded the VUE Quests config and quest definitions and synchronized online players."), true);
                             return Command.SINGLE_SUCCESS;
                         })));
     }

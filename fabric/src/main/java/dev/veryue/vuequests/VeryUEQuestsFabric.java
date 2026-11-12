@@ -1,6 +1,7 @@
 package dev.veryue.vuequests;
 
 import dev.veryue.vuequests.command.QuestDebugCommand;
+import dev.veryue.vuequests.command.QuestExportCommand;
 import dev.veryue.vuequests.command.QuestProgressCommands;
 import dev.veryue.vuequests.command.QuestReloadCommand;
 import dev.veryue.vuequests.command.QuestWebEditorCommand;
@@ -38,6 +39,7 @@ public class VeryUEQuestsFabric extends VeryUEMod implements ModInitializer {
         CommandRegistrationCallback.EVENT.register((dispatcher, registries, environment) -> {
             QuestProgressCommands.register(dispatcher, this::syncProgress);
             QuestDebugCommand.register(dispatcher, this::sendDebugToggle);
+            QuestExportCommand.register(dispatcher);
             QuestReloadCommand.register(dispatcher, this::reloadServerConfig);
             QuestWebEditorCommand.register(dispatcher);
         });
@@ -86,17 +88,18 @@ public class VeryUEQuestsFabric extends VeryUEMod implements ModInitializer {
         ServerLifecycleEvents.END_DATA_PACK_RELOAD.register((server, resourceManager, success) -> {
             if (success) {
                 for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+                    syncServerConfig(player);
                     restoreAttributeRewards(player);
                     syncQuests(player);
                 }
             }
         });
         ResourceManagerHelper.get(PackType.SERVER_DATA)
-                .registerReloadListener(QuestReloadDelegate.ID, QuestReloadListener::new);
-        ServerLifecycleEvents.SERVER_STARTING.register(server -> {
-            loadServerConfig(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID + ".json"));
-            start(server);
-        });
+                .registerReloadListener(QuestReloadDelegate.ID, registries -> {
+                    loadServerConfig(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID + ".json"));
+                    return new QuestReloadListener(registries);
+                });
+        ServerLifecycleEvents.SERVER_STARTING.register(this::start);
         //ServerLifecycleEvents.SERVER_STARTED.register(QuestEditorServer::start);
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
             stop();
@@ -110,7 +113,8 @@ public class VeryUEQuestsFabric extends VeryUEMod implements ModInitializer {
         ServerPlayNetworking.send(player, new QuestViewSyncPayload(getServerConfig().questView()));
     }
 
-    private void syncQuests(ServerPlayer player) {
+    @Override
+    protected void syncQuests(ServerPlayer player) {
         if (ServerPlayNetworking.canSend(player, QuestSyncPayload.TYPE)) {
             ServerPlayNetworking.send(player, QuestSyncPayload.create(player));
         }
