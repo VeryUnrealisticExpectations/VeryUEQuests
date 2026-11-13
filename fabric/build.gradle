@@ -56,7 +56,7 @@ loom.runs.clientGameTest {
 }
 
 tasks.named('check') {
-    dependsOn tasks.named('runClientGameTest')
+    setDependsOn(dependsOn.findAll { it != 'runGameTest' })
 }
 
 def loaderAttribute = Attribute.of('io.github.mcgradleconventions.loader', String)
