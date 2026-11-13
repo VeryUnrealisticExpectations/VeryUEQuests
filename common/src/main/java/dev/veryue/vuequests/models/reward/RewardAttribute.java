@@ -11,7 +11,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.item.ItemStack;
@@ -19,7 +19,7 @@ import net.minecraft.world.item.Items;
 
 import java.util.UUID;
 
-public class RewardAttribute extends RewardType<ResourceLocation> {
+public class RewardAttribute extends RewardType<Identifier> {
 
     private static final String MODIFIER_PREFIX = "reward/";
 
@@ -30,13 +30,13 @@ public class RewardAttribute extends RewardType<ResourceLocation> {
 
     public static final MapCodec<RewardAttribute> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             UUIDUtil.STRING_CODEC.fieldOf("reward_id").forGetter(RewardAttribute::getRewardId),
-            ResourceLocation.CODEC.fieldOf("attribute").forGetter(RewardAttribute::getValue),
+            Identifier.CODEC.fieldOf("attribute").forGetter(RewardAttribute::getValue),
             AMOUNT_CODEC.fieldOf("amount").forGetter(reward -> reward.amount)
     ).apply(instance, RewardAttribute::new));
 
     private final double amount;
 
-    public RewardAttribute(UUID rewardId, ResourceLocation attribute, double amount) {
+    public RewardAttribute(UUID rewardId, Identifier attribute, double amount) {
         super(rewardId, attribute);
         this.amount = amount;
     }
@@ -48,7 +48,7 @@ public class RewardAttribute extends RewardType<ResourceLocation> {
 
     @Override
     public Component getDisplayName() {
-        var attribute = BuiltInRegistries.ATTRIBUTE.get(getValue());
+        var attribute = BuiltInRegistries.ATTRIBUTE.getValue(getValue());
         Component name = attribute == null ? Component.literal(getValue().toString()) : Component.translatable(attribute.getDescriptionId());
         return Component.translatable("screen.vuequests.reward.attribute", name, amount);
     }
@@ -58,17 +58,17 @@ public class RewardAttribute extends RewardType<ResourceLocation> {
         return RewardTypes.ATTRIBUTE;
     }
 
-    public ResourceLocation getModifierId() {
-        return ResourceLocation.fromNamespaceAndPath(VeryUEConstants.MOD_ID, MODIFIER_PREFIX + getRewardId());
+    public Identifier getModifierId() {
+        return Identifier.fromNamespaceAndPath(VeryUEConstants.MOD_ID, MODIFIER_PREFIX + getRewardId());
     }
 
-    public static boolean isRewardModifier(ResourceLocation id) {
+    public static boolean isRewardModifier(Identifier id) {
         return id.getNamespace().equals(VeryUEConstants.MOD_ID) && id.getPath().startsWith(MODIFIER_PREFIX);
     }
 
     @Override
     public boolean tryGiveReward(ServerPlayer player) {
-        var holder = BuiltInRegistries.ATTRIBUTE.getHolder(ResourceKey.create(Registries.ATTRIBUTE, getValue()));
+        var holder = BuiltInRegistries.ATTRIBUTE.get(ResourceKey.create(Registries.ATTRIBUTE, getValue()));
         if (holder.isEmpty()) {
             return false;
         }

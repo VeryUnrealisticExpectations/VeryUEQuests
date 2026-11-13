@@ -10,7 +10,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.List;
@@ -19,14 +19,14 @@ import static dev.veryue.vuequests.VeryUEConstants.MOD_ID;
 
 public record QuestSyncPayload(List<Section> sections, PlayerUser user) implements CustomPacketPayload {
 
-    public static final Type<QuestSyncPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(MOD_ID, "quest_sync"));
+    public static final Type<QuestSyncPayload> TYPE = new Type<>(Identifier.fromNamespaceAndPath(MOD_ID, "quest_sync"));
     public static final StreamCodec<RegistryFriendlyByteBuf, QuestSyncPayload> STREAM_CODEC = StreamCodec.composite(
             ByteBufCodecs.fromCodecWithRegistries(Section.CODEC.listOf()), QuestSyncPayload::sections,
             ByteBufCodecs.fromCodecWithRegistries(PlayerUser.CODEC), QuestSyncPayload::user,
             QuestSyncPayload::new);
 
     public static QuestSyncPayload create(ServerPlayer player) {
-        List<Section> sections = player.server.isSingleplayerOwner(player.getGameProfile())
+        List<Section> sections = player.level().getServer().isSingleplayerOwner(player.nameAndId())
                 ? List.of()
                 : List.copyOf(QuestReloadDelegate.INSTANCE.getData().sections().values());
         return new QuestSyncPayload(sections, snapshotUser(player));

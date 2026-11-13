@@ -1,7 +1,7 @@
 package dev.veryue.vuequests.models;
 
 import com.google.common.collect.Maps;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.stats.Stat;
@@ -15,13 +15,12 @@ public class ObjectiveContext {
 
     public static final ObjectiveContextParameter<ServerPlayer> PLAYER = ObjectiveContextParameter.<ServerPlayer>builder("player").build();
     public static final ObjectiveContextParameter<Entity> ENTITY = ObjectiveContextParameter.<Entity>builder("entity").build();
-    public static final ObjectiveContextParameter<ResourceLocation> ADVANCEMENT = ObjectiveContextParameter.<ResourceLocation>builder("advancement").build();
+    public static final ObjectiveContextParameter<Identifier> ADVANCEMENT = ObjectiveContextParameter.<Identifier>builder("advancement").build();
     public static final ObjectiveContextParameter<UUID> INTERACTION = ObjectiveContextParameter.<UUID>builder("interaction").build();
     public static final ObjectiveContextParameter<Stat<?>> STATISTIC = ObjectiveContextParameter.<Stat<?>>builder("statistic").build();
 
     private final ServerLevel level;
     private final Map<ObjectiveContextParameter<?>, Object> params;
-
 
     public ObjectiveContext(ServerLevel level, Map<ObjectiveContextParameter<?>, Object> params) {
         this.level = level;
@@ -59,12 +58,10 @@ public class ObjectiveContext {
             return this;
         }
 
-
         public ObjectiveContext build() {
             return new ObjectiveContext(level, params);
         }
 
     }
-
 
 }

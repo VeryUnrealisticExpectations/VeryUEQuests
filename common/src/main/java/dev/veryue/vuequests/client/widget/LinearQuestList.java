@@ -1,12 +1,14 @@
 package dev.veryue.vuequests.client.widget;
 
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
 import dev.veryue.vuequests.client.ClientQuestData;
 import dev.veryue.vuequests.client.util.ClientRenderUtil;
 import dev.veryue.vuequests.client.util.RenderAnimation;
 import dev.veryue.vuequests.models.quest.Quest;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
@@ -14,8 +16,9 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.locale.Language;
 import net.minecraft.util.Mth;
 import net.minecraft.util.profiling.ProfilerFiller;
+import net.minecraft.util.profiling.Profiler;
 import net.minecraft.world.item.ItemStack;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -92,8 +95,8 @@ public class LinearQuestList extends AbstractWidget {
     }
 
     @Override
-    protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        ProfilerFiller profiler = Minecraft.getInstance().getProfiler();
+    protected void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        ProfilerFiller profiler = Profiler.get();
         profiler.push("quest_list");
         try {
             renderRows(graphics, mouseX, mouseY);
@@ -102,13 +105,13 @@ public class LinearQuestList extends AbstractWidget {
         }
     }
 
-    private void renderRows(GuiGraphics graphics, int mouseX, int mouseY) {
+    private void renderRows(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         clampScroll();
         graphics.enableScissor(getX(), getY(), getRight(), getBottom());
         int top = getY() - (int) scroll;
-        graphics.drawString(font, Component.translatable("screen.vuequests.available"), getX() + 3, top + 3, 0xFFE0E0E0);
+        graphics.text(font, Component.translatable("screen.vuequests.available"), getX() + 3, top + 3, 0xFFE0E0E0);
         int completedTop = top + HEADING_HEIGHT + availableCount * ROW_HEIGHT + GROUP_GAP;
-        graphics.drawString(font, Component.translatable("screen.vuequests.completed"), getX() + 3, completedTop + 3, 0xFFA0A0A0);
+        graphics.text(font, Component.translatable("screen.vuequests.completed"), getX() + 3, completedTop + 3, 0xFFA0A0A0);
         for (int i = 0; i < entries.size(); i++) {
             int y = top + rowTop(i);
             if (y + ROW_HEIGHT <= getY() || y >= getBottom()) continue;
@@ -119,11 +122,11 @@ public class LinearQuestList extends AbstractWidget {
             ItemStack icon = icons.get(i);
             boolean completed = i >= availableCount;
             ClientRenderUtil.renderInset(graphics.pose(), animation, current || hovered, INSET, INSET_DURATION_MS, inset -> {
-                graphics.renderItem(icon, getX() + 3, y + 3);
+                graphics.item(icon, getX() + 3, y + 3);
                 if (completed) QuestWidgetSprites.blitClaimBadge(graphics, getX() + 3, y + 3, true);
                 Component styledTitle = quest.display().title().copy().withStyle(style -> style.withBold(current));
                 var title = Language.getInstance().getVisualOrder(font.substrByWidth(styledTitle, Math.max(1, width - 27 - Mth.ceil(inset))));
-                graphics.drawString(font, title, getX() + 25, y + 7,
+                graphics.text(font, title, getX() + 25, y + 7,
                         current ? 0xFFFFFFFF : completed ? 0xFF999999 : 0xFFCCCCCC);
             });
         }
@@ -131,8 +134,11 @@ public class LinearQuestList extends AbstractWidget {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (!active || !visible || button != 0 || !isMouseOver(mouseX, mouseY)) return false;
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
+        if (!active || !visible || button != InputConstants.MOUSE_BUTTON_LEFT || !isMouseOver(mouseX, mouseY)) return false;
         double y = mouseY - getY() + scroll;
         for (int i = 0; i < entries.size(); i++) {
             if (y >= rowTop(i) && y < rowTop(i) + ROW_HEIGHT) {
@@ -153,20 +159,22 @@ public class LinearQuestList extends AbstractWidget {
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    public boolean keyPressed(KeyEvent event) {
+        int keyCode = event.key();
+        int modifiers = event.modifiers();
         if (entries.isEmpty()) return false;
         int current = 0;
         for (int i = 0; i < entries.size(); i++) if (entries.get(i).questId().equals(selected)) current = i;
         int next = switch (keyCode) {
-            case GLFW.GLFW_KEY_UP -> current - 1;
-            case GLFW.GLFW_KEY_DOWN -> current + 1;
-            case GLFW.GLFW_KEY_HOME -> 0;
-            case GLFW.GLFW_KEY_END -> entries.size() - 1;
-            case GLFW.GLFW_KEY_PAGE_UP -> current - Math.max(1, height / ROW_HEIGHT);
-            case GLFW.GLFW_KEY_PAGE_DOWN -> current + Math.max(1, height / ROW_HEIGHT);
+            case InputConstants.KEY_UP -> current - 1;
+            case InputConstants.KEY_DOWN -> current + 1;
+            case InputConstants.KEY_HOME -> 0;
+            case InputConstants.KEY_END -> entries.size() - 1;
+            case InputConstants.KEY_PAGEUP -> current - Math.max(1, height / ROW_HEIGHT);
+            case InputConstants.KEY_PAGEDOWN -> current + Math.max(1, height / ROW_HEIGHT);
             default -> Integer.MIN_VALUE;
         };
-        if (next == Integer.MIN_VALUE) return super.keyPressed(keyCode, scanCode, modifiers);
+        if (next == Integer.MIN_VALUE) return super.keyPressed(event);
         select(entries.get(Mth.clamp(next, 0, entries.size() - 1)), true);
         return true;
     }

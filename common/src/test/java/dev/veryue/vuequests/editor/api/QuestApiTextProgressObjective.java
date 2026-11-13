@@ -12,7 +12,7 @@ import dev.veryue.vuequests.registry.QuestObjectiveTypes;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
@@ -23,7 +23,7 @@ public class QuestApiTextProgressObjective extends QuestObjective<String, String
             Codec.STRING.fieldOf("value").forGetter(QuestApiTextProgressObjective::getValue)
     ).apply(instance, QuestApiTextProgressObjective::new));
     public static final QuestObjectiveSerializer<String> TYPE = QuestObjectiveTypes.register(
-            ResourceLocation.parse("test:text_progress"), CODEC, Codec.STRING, null);
+            Identifier.parse("test:text_progress"), CODEC, Codec.STRING, null);
 
     public QuestApiTextProgressObjective(UUID id, String value) {
         super(id, value);

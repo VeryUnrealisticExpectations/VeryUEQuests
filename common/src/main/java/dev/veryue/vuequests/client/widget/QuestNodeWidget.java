@@ -1,12 +1,12 @@
 package dev.veryue.vuequests.client.widget;
 
-import com.mojang.blaze3d.vertex.PoseStack;
+import org.joml.Matrix3x2fStack;
 import dev.veryue.vuequests.client.ClientQuestData;
 import dev.veryue.vuequests.models.quest.Quest;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
@@ -23,7 +23,6 @@ import java.util.regex.Pattern;
 public class QuestNodeWidget extends Button {
 
     public static final int SIZE = 24;
-    private static final float LOCKED_BRIGHTNESS = 0.35F;
     private static final int LOCKED_TINT = 0x595959;
     private static final int IN_PROGRESS_TINT = 0xFFF28B;
     private static final int UNCLAIMED_TINT = 0x9AFFAC;
@@ -62,8 +61,8 @@ public class QuestNodeWidget extends Button {
         return tooltip;
     }
 
-    public void renderQuestTooltip(GuiGraphics graphics, Font font, int mouseX, int mouseY) {
-        graphics.renderTooltip(font, tooltipLines(Minecraft.getInstance()), mouseX, mouseY);
+    public void renderQuestTooltip(GuiGraphicsExtractor graphics, Font font, int mouseX, int mouseY) {
+        graphics.setTooltipForNextFrame(font, tooltipLines(Minecraft.getInstance()), mouseX, mouseY);
     }
 
     private List<FormattedCharSequence> tooltipLines(Minecraft minecraft) {
@@ -98,27 +97,26 @@ public class QuestNodeWidget extends Button {
     }
 
     @Override
-    protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        PoseStack pose = graphics.pose();
-        pose.pushPose();
+    protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        Matrix3x2fStack pose = graphics.pose();
+        pose.pushMatrix();
         try {
-            pose.translate(getX(), getY(), 0);
-            pose.scale(getWidth() / (float) SIZE, getHeight() / (float) SIZE, 1);
-            float brightness = locked ? LOCKED_BRIGHTNESS : 1;
+            pose.translate(getX(), getY());
+            pose.scale(getWidth() / (float) SIZE, getHeight() / (float) SIZE);
             boolean canClaimRewards = !quest.rewards().isEmpty() && ClientQuestData.canClaimRewards(quest);
             boolean complete = canClaimRewards || ClientQuestData.isQuestComplete(quest);
             boolean allRewardsClaimed = quest.rewards().stream().allMatch(ClientQuestData::isRewardClaimed);
             QuestWidgetSprites.blitTinted(graphics, quest.display().backgroundSprite(), 0, 0, SIZE, SIZE, backgroundTint(complete, allRewardsClaimed));
-            graphics.setColor(brightness, brightness, brightness, 1);
-            graphics.renderItem(icon, 4, 4);
+
+            graphics.item(icon, 4, 4);
             boolean showBadge = quest.rewards().isEmpty() ? complete : allRewardsClaimed || canClaimRewards;
             if (showBadge) {
-                graphics.setColor(1, 1, 1, 1);
+
                 QuestWidgetSprites.blitClaimBadge(graphics, 0, 0, allRewardsClaimed);
             }
         } finally {
-            graphics.setColor(1, 1, 1, 1);
-            pose.popPose();
+
+            pose.popMatrix();
         }
     }
 }

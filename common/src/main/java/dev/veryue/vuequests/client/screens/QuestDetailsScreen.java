@@ -1,6 +1,5 @@
 package dev.veryue.vuequests.client.screens;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import dev.veryue.vuequests.client.util.GuiSpriteRenderer;
 import dev.veryue.vuequests.client.widget.QuestDetailsPanel;
 import dev.veryue.vuequests.client.widget.QuestWidgetSprites;
@@ -8,12 +7,13 @@ import dev.veryue.vuequests.models.quest.Quest;
 import dev.veryue.vuequests.network.ClaimQuestRewardPayload;
 import dev.veryue.vuequests.network.InteractQuestObjectivePayload;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.ImageButton;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.components.WidgetSprites;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
 
 import java.util.function.Consumer;
 
@@ -43,7 +43,7 @@ public class QuestDetailsScreen extends Screen {
 
     @Override
     protected void init() {
-        details = addRenderableWidget(new QuestDetailsPanel(font, quest, this::handleComponentClicked,
+        details = addRenderableWidget(new QuestDetailsPanel(font, quest, this::handleTextClick,
                 reward -> sendToServer.accept(new ClaimQuestRewardPayload(quest.questId(), reward.getRewardId())),
                 objective -> sendToServer.accept(new InteractQuestObjectivePayload(quest.questId(), objective.getObjectiveId()))));
         Component close = Component.translatable("screen.vuequests.close");
@@ -56,7 +56,7 @@ public class QuestDetailsScreen extends Screen {
     @Override
     protected void repositionElements() {
         if (parent.width != width || parent.height != height) {
-            parent.resize(minecraft, width, height);
+            parent.resize(width, height);
         }
         panelWidth = Math.max(1, Math.min(MAX_WIDTH, width - 2 * MARGIN));
         int controlsWidth = CLOSE_SIZE + details.scrollbarWidth();
@@ -71,34 +71,33 @@ public class QuestDetailsScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        parent.render(graphics, -1, -1, partialTick);
-        graphics.pose().pushPose();
-        // Place the scrim and panel above the parent screen's rendered item icons.
-        graphics.pose().translate(0, 0, 200);
-        try {
-            super.render(graphics, mouseX, mouseY, partialTick);
-        } finally {
-            graphics.pose().popPose();
-        }
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
     }
 
     @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        parent.extractBackground(graphics, mouseX, mouseY, partialTick);
+        graphics.nextStratum();
+        parent.extractRenderState(graphics, -1, -1, partialTick);
+        graphics.nextStratum();
         graphics.fill(0, 0, width, height, 0x99000000);
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
         GuiSpriteRenderer.blit(graphics, QuestWidgetSprites.DETAILS_PANEL, panelX, panelY, panelWidth, panelHeight, 0xFFFFFFFF);
-        RenderSystem.disableBlend();
     }
 
     @Override
     public void onClose() {
-        minecraft.setScreen(parent);
+        minecraft.gui.setScreen(parent);
     }
 
     @Override
     public boolean isPauseScreen() {
         return false;
+    }
+
+    private boolean handleTextClick(Style style) {
+        if (style.getClickEvent() == null) return false;
+        defaultHandleGameClickEvent(style.getClickEvent(), minecraft, this);
+        return true;
     }
 }

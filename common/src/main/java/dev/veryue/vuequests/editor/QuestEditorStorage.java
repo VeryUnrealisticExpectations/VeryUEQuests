@@ -10,7 +10,7 @@ import dev.veryue.vuequests.config.QuestLoaderMode;
 import dev.veryue.vuequests.data.quest.FlatFileQuestLoader;
 import dev.veryue.vuequests.data.quest.QuestConfigStorage;
 import net.minecraft.SharedConstants;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.FileToIdConverter;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -35,10 +35,8 @@ import java.util.UUID;
 
 public class QuestEditorStorage {
 
-    public record Document(List<JsonObject> sections, Map<UUID, ResourceLocation> sources,
+    public record Document(List<JsonObject> sections, Map<UUID, Identifier> sources,
                            Map<UUID, JsonObject> definitions, Set<UUID> deleted, String revision) { }
-    private record Pack(@SerializedName("pack_format") int format, String description) { }
-    private record Metadata(Pack pack) { }
     private record State(@SerializedName("deleted_sections") Set<UUID> deletedSections) { }
 
     public static final String PACK_NAME = "vuequests-editor";
@@ -60,12 +58,12 @@ public class QuestEditorStorage {
     public Document read(ResourceManager resources) {
         try {
             Set<UUID> deleted = deletedSections();
-            Map<UUID, ResourceLocation> sources = new HashMap<>();
+            Map<UUID, Identifier> sources = new HashMap<>();
             Map<UUID, JsonObject> definitions = new HashMap<>();
             if (mode == QuestLoaderMode.CONFIG_BASED) {
                 for (JsonObject section : new QuestConfigStorage(root).read().values()) {
                     UUID id = UUID.fromString(section.get("section_id").getAsString());
-                    ResourceLocation source = ResourceLocation.fromNamespaceAndPath("vuequests", "vuequests/sections/" + id + ".json");
+                    Identifier source = Identifier.fromNamespaceAndPath("vuequests", "vuequests/sections/" + id + ".json");
                     if (sources.putIfAbsent(id, source) != null) throw new IllegalArgumentException("Duplicate section UUID " + id);
                     definitions.put(id, section);
                 }
@@ -109,7 +107,17 @@ public class QuestEditorStorage {
             return;
         }
         Files.createDirectories(root);
-        write(root.resolve("pack.mcmeta"), new Metadata(new Pack(SharedConstants.getCurrentVersion().getPackVersion(PackType.SERVER_DATA), "VeryUE Quests editor")));
+        var format = SharedConstants.getCurrentVersion().packVersion(PackType.SERVER_DATA);
+        JsonArray version = new JsonArray();
+        version.add(format.major());
+        version.add(format.minor());
+        JsonObject pack = new JsonObject();
+        pack.addProperty("description", "VeryUE Quests editor");
+        pack.add("min_format", version);
+        pack.add("max_format", version.deepCopy());
+        JsonObject metadata = new JsonObject();
+        metadata.add("pack", pack);
+        write(root.resolve("pack.mcmeta"), metadata);
 
         Set<UUID> present = new HashSet<>();
         Set<Path> desired = new HashSet<>();
@@ -117,8 +125,8 @@ public class QuestEditorStorage {
             JsonObject section = entry.getAsJsonObject();
             UUID id = UUID.fromString(section.get("section_id").getAsString());
             present.add(id);
-            ResourceLocation source = previous.sources().getOrDefault(id,
-                    ResourceLocation.fromNamespaceAndPath("vuequests", "vuequests/sections/editor_" + id + ".json"));
+            Identifier source = previous.sources().getOrDefault(id,
+                    Identifier.fromNamespaceAndPath("vuequests", "vuequests/sections/editor_" + id + ".json"));
             Path target = sectionPath(source);
             write(target, section);
             desired.add(target);
@@ -128,7 +136,7 @@ public class QuestEditorStorage {
         deleted.addAll(previous.sources().keySet());
         deleted.removeAll(present);
         for (UUID id : deleted) {
-            ResourceLocation source = previous.sources().get(id);
+            Identifier source = previous.sources().get(id);
             JsonObject definition = previous.definitions().get(id);
             if (source != null && definition != null) {
                 // Disabled overrides prevent a deleted bundled quest section from reappearing on reload.
@@ -153,7 +161,7 @@ public class QuestEditorStorage {
         write(root.resolve("editor-state.json"), new State(new java.util.TreeSet<>(deleted)));
     }
 
-    private Path sectionPath(ResourceLocation location) {
+    private Path sectionPath(Identifier location) {
         Path path = root.resolve("data").resolve(location.getNamespace()).resolve(location.getPath()).normalize();
         if (!path.startsWith(root.resolve("data")) || !location.getPath().startsWith("vuequests/sections/")
                 || !location.getPath().endsWith(".json")) {

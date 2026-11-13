@@ -1,9 +1,9 @@
 package dev.veryue.vuequests.models;
 
 import dev.veryue.vuequests.VeryUEConstants;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
-public record ObjectiveContextParameter<T>(ResourceLocation name) {
+public record ObjectiveContextParameter<T>(Identifier name) {
 
     public static <T> Builder<T> builder(String name) {
         return new Builder<>(name);
@@ -18,7 +18,7 @@ public record ObjectiveContextParameter<T>(ResourceLocation name) {
         }
 
         public ObjectiveContextParameter<T> build() {
-            return new ObjectiveContextParameter<>(ResourceLocation.fromNamespaceAndPath(VeryUEConstants.MOD_ID, name));
+            return new ObjectiveContextParameter<>(Identifier.fromNamespaceAndPath(VeryUEConstants.MOD_ID, name));
         }
     }
 }

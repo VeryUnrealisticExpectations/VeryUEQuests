@@ -15,7 +15,7 @@ import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.settings.KeyConflictContext;
 import net.neoforged.neoforge.client.settings.KeyModifier;
 import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 
 import static dev.veryue.vuequests.VeryUEConstants.MOD_ID;
 
@@ -24,7 +24,7 @@ public class VeryUEQuestsNeoForgeClient {
 
     private final QuestCanvasKeyMappings canvasKeys = new QuestCanvasKeyMappings(
             (name, keyCode) -> new KeyMapping(name, QuestCanvasKeyConflictContext.INSTANCE, KeyModifier.SHIFT,
-                    InputConstants.Type.KEYSYM, keyCode, QuestCanvasKeyMappings.CATEGORY),
+                    InputConstants.Type.KEYBOARD, keyCode, QuestCanvasKeyMappings.CATEGORY),
             KeyMapping::isActiveAndMatches);
 
     public VeryUEQuestsNeoForgeClient(IEventBus eventBus) {
@@ -51,7 +51,7 @@ public class VeryUEQuestsNeoForgeClient {
     private void sendToServer(CustomPacketPayload payload) {
         ClientPacketListener connection = Minecraft.getInstance().getConnection();
         if (connection != null && connection.hasChannel(payload.type())) {
-            PacketDistributor.sendToServer(payload);
+            ClientPacketDistributor.sendToServer(payload);
         }
     }
 

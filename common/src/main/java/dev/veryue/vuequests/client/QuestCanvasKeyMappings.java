@@ -1,9 +1,9 @@
 package dev.veryue.vuequests.client;
 
+import org.lwjgl.sdl.SDLScancode;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
-import net.minecraft.client.gui.screens.Screen;
-import org.lwjgl.glfw.GLFW;
+import net.minecraft.resources.Identifier;
 
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
@@ -13,7 +13,7 @@ import static dev.veryue.vuequests.VeryUEConstants.MOD_ID;
 
 public class QuestCanvasKeyMappings {
 
-    public static final String CATEGORY = "key.categories." + MOD_ID + ".quest_canvas";
+    public static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "quest_canvas"));
 
     public final KeyMapping recenter;
     public final KeyMapping zoomIn;
@@ -31,13 +31,13 @@ public class QuestCanvasKeyMappings {
 
     public QuestCanvasKeyMappings(BiFunction<String, Integer, KeyMapping> createPanMapping,
                                   BiPredicate<KeyMapping, InputConstants.Key> matches) {
-        recenter = createMapping(translationKey("recenter"), GLFW.GLFW_KEY_HOME);
-        zoomIn = createMapping(translationKey("zoom_in"), GLFW.GLFW_KEY_EQUAL);
-        zoomOut = createMapping(translationKey("zoom_out"), GLFW.GLFW_KEY_MINUS);
-        panLeft = createPanMapping.apply(translationKey("pan_left"), GLFW.GLFW_KEY_LEFT);
-        panRight = createPanMapping.apply(translationKey("pan_right"), GLFW.GLFW_KEY_RIGHT);
-        panUp = createPanMapping.apply(translationKey("pan_up"), GLFW.GLFW_KEY_UP);
-        panDown = createPanMapping.apply(translationKey("pan_down"), GLFW.GLFW_KEY_DOWN);
+        recenter = createMapping(translationKey("recenter"), InputConstants.KEY_HOME);
+        zoomIn = createMapping(translationKey("zoom_in"), InputConstants.KEY_EQUALS);
+        zoomOut = createMapping(translationKey("zoom_out"), InputConstants.KEY_MINUS);
+        panLeft = createPanMapping.apply(translationKey("pan_left"), InputConstants.KEY_LEFT);
+        panRight = createPanMapping.apply(translationKey("pan_right"), InputConstants.KEY_RIGHT);
+        panUp = createPanMapping.apply(translationKey("pan_up"), InputConstants.KEY_UP);
+        panDown = createPanMapping.apply(translationKey("pan_down"), InputConstants.KEY_DOWN);
         this.matches = matches;
     }
 
@@ -80,10 +80,10 @@ public class QuestCanvasKeyMappings {
         if (recenter.isDefault() && key.equals(recenter.getDefaultKey())) {
             return recenter;
         }
-        if (matchesDefaultZoom(zoomIn, key, GLFW.GLFW_KEY_KP_ADD)) {
+        if (matchesDefaultZoom(zoomIn, key, InputConstants.KEY_ADD)) {
             return zoomIn;
         }
-        if (matchesDefaultZoom(zoomOut, key, GLFW.GLFW_KEY_KP_SUBTRACT)) {
+        if (matchesDefaultZoom(zoomOut, key, SDLScancode.SDL_SCANCODE_KP_MINUS)) {
             return zoomOut;
         }
         return null;
@@ -91,21 +91,17 @@ public class QuestCanvasKeyMappings {
 
     private static boolean matchesDefaultZoom(KeyMapping mapping, InputConstants.Key key, int keypadKey) {
         return mapping.isDefault() && (key.equals(mapping.getDefaultKey())
-                || key.equals(InputConstants.Type.KEYSYM.getOrCreate(keypadKey)));
+                || key.equals(InputConstants.Type.KEYBOARD.getOrCreate(keypadKey)));
     }
 
     private static boolean matchesVanilla(KeyMapping mapping, InputConstants.Key key) {
-        return switch (key.getType()) {
-            case KEYSYM -> mapping.matches(key.getValue(), -1)
-                    && (!mapping.isDefault() || !isArrow(key.getValue()) || Screen.hasShiftDown());
-            case SCANCODE -> mapping.matches(InputConstants.UNKNOWN.getValue(), key.getValue());
-            case MOUSE -> mapping.matchesMouse(key.getValue());
-        };
+        return mapping.matches(key) && (!mapping.isDefault() || !isArrow(key.getValue())
+                || InputConstants.isKeyDown(InputConstants.KEY_LSHIFT) || InputConstants.isKeyDown(InputConstants.KEY_RSHIFT));
     }
 
     private static boolean isArrow(int keyCode) {
         return switch (keyCode) {
-            case GLFW.GLFW_KEY_LEFT, GLFW.GLFW_KEY_RIGHT, GLFW.GLFW_KEY_UP, GLFW.GLFW_KEY_DOWN -> true;
+            case InputConstants.KEY_LEFT, InputConstants.KEY_RIGHT, InputConstants.KEY_UP, InputConstants.KEY_DOWN -> true;
             default -> false;
         };
     }
@@ -115,6 +111,6 @@ public class QuestCanvasKeyMappings {
     }
 
     private static KeyMapping createMapping(String name, int keyCode) {
-        return new KeyMapping(name, InputConstants.Type.KEYSYM, keyCode, CATEGORY);
+        return new KeyMapping(name, InputConstants.Type.KEYBOARD, keyCode, CATEGORY);
     }
 }

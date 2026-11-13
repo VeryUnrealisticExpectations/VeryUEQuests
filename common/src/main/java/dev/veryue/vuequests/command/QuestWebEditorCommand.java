@@ -9,6 +9,7 @@ import dev.veryue.vuequests.platform.PlatformHelper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.ClickEvent;
+import java.net.URI;
 import net.minecraft.network.chat.Component;
 
 import static dev.veryue.vuequests.VeryUEConstants.MOD_ID;
@@ -44,7 +45,7 @@ public class QuestWebEditorCommand {
         Component link = Component.literal(url).withStyle(style -> style
                 .withColor(ChatFormatting.AQUA)
                 .withUnderlined(true)
-                .withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, url)));
+                .withClickEvent(new ClickEvent.OpenUrl(URI.create(url))));
         source.sendSuccess(() -> Component.translatableWithFallback(
                 running ? "commands.vuequests.webeditor.on" : "commands.vuequests.webeditor.starting",
                 running ? "The VUE Quests web editor is already on: %s" : "The VUE Quests web editor is starting: %s",

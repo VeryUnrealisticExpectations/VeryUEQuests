@@ -1,5 +1,6 @@
 package dev.veryue.vuequests.client.screens;
 
+import net.minecraft.client.renderer.RenderPipelines;
 import dev.veryue.vuequests.client.ClientQuestData;
 import dev.veryue.vuequests.client.widget.LinearQuestDetails;
 import dev.veryue.vuequests.client.widget.LinearQuestList;
@@ -8,11 +9,13 @@ import dev.veryue.vuequests.data.quest.QuestData;
 import dev.veryue.vuequests.models.PlayerUser;
 import dev.veryue.vuequests.network.ClaimQuestRewardPayload;
 import dev.veryue.vuequests.network.InteractQuestObjectivePayload;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.util.profiling.ProfilerFiller;
+import net.minecraft.util.profiling.Profiler;
 
 import java.util.function.Consumer;
 
@@ -37,7 +40,7 @@ public class LinearQuestScreen extends Screen {
     @Override
     protected void init() {
         if (details == null) {
-            details = new LinearQuestDetails(font, this::handleComponentClicked,
+            details = new LinearQuestDetails(font, this::handleTextClick,
                     reward -> sendToServer.accept(new ClaimQuestRewardPayload(details.getQuest().questId(), reward.getRewardId())),
                     objective -> sendToServer.accept(new InteractQuestObjectivePayload(details.getQuest().questId(), objective.getObjectiveId())));
             questList = new LinearQuestList(font, details::setQuest);
@@ -73,14 +76,14 @@ public class LinearQuestScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        ProfilerFiller profiler = minecraft.getProfiler();
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        ProfilerFiller profiler = Profiler.get();
         profiler.push("vuequests_linear");
         profiler.push("refresh");
         try {
             refreshData();
             profiler.popPush("widgets");
-            super.render(graphics, mouseX, mouseY, partialTick);
+            super.extractRenderState(graphics, mouseX, mouseY, partialTick);
         } finally {
             profiler.pop();
             profiler.pop();
@@ -88,14 +91,14 @@ public class LinearQuestScreen extends Screen {
     }
 
     @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        ProfilerFiller profiler = minecraft.getProfiler();
+    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        ProfilerFiller profiler = Profiler.get();
         profiler.push("vanilla_background");
         try {
-            super.renderBackground(graphics, mouseX, mouseY, partialTick);
+            super.extractBackground(graphics, mouseX, mouseY, partialTick);
             profiler.popPush("panel_background");
             LinearQuestSprites.background(graphics, panelX, panelY, panelWidth, panelHeight);
-            graphics.blitSprite(LinearQuestSprites.COLUMN_DIVIDER, dividerX - 1, panelY + 7, 3, Math.max(1, panelHeight - 14));
+            graphics.blitSprite(RenderPipelines.GUI_TEXTURED, LinearQuestSprites.COLUMN_DIVIDER, dividerX - 1, panelY + 7, 3, Math.max(1, panelHeight - 14));
         } finally {
             profiler.pop();
         }
@@ -104,5 +107,11 @@ public class LinearQuestScreen extends Screen {
     @Override
     public boolean isPauseScreen() {
         return false;
+    }
+
+    private boolean handleTextClick(Style style) {
+        if (style.getClickEvent() == null) return false;
+        defaultHandleGameClickEvent(style.getClickEvent(), minecraft, this);
+        return true;
     }
 }

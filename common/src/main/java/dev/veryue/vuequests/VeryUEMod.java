@@ -16,7 +16,7 @@ import dev.veryue.vuequests.registry.QuestObjectiveTypes;
 import dev.veryue.vuequests.models.objective.QuestObjectiveSerializer;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.stats.Stat;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
@@ -170,7 +170,7 @@ public abstract class VeryUEMod {
     protected void onEntityDeath(LivingEntity entity, DamageSource source) {
         if (source.getEntity() instanceof ServerPlayer player) {
             getUser(player.getUUID()).ifPresent(user -> {
-                ObjectiveContext context = ObjectiveContext.createContext(player.serverLevel())
+                ObjectiveContext context = ObjectiveContext.createContext(player.level())
                         .withParameter(ObjectiveContext.PLAYER, player)
                         .withParameter(ObjectiveContext.ENTITY, entity)
                         .build();
@@ -181,9 +181,9 @@ public abstract class VeryUEMod {
         }
     }
 
-    public void onAdvancementEarned(ServerPlayer player, ResourceLocation advancement) {
+    public void onAdvancementEarned(ServerPlayer player, Identifier advancement) {
         getUser(player.getUUID()).ifPresent(user -> {
-            ObjectiveContext context = ObjectiveContext.createContext(player.serverLevel())
+            ObjectiveContext context = ObjectiveContext.createContext(player.level())
                     .withParameter(ObjectiveContext.PLAYER, player)
                     .withParameter(ObjectiveContext.ADVANCEMENT, advancement)
                     .build();
@@ -213,7 +213,7 @@ public abstract class VeryUEMod {
 
     public void onStatisticChanged(ServerPlayer player, Stat<?> statistic) {
         getUser(player.getUUID()).ifPresent(user -> {
-            ObjectiveContext context = ObjectiveContext.createContext(player.serverLevel())
+            ObjectiveContext context = ObjectiveContext.createContext(player.level())
                     .withParameter(ObjectiveContext.PLAYER, player).withParameter(ObjectiveContext.STATISTIC, statistic).build();
             if (QuestReloadDelegate.INSTANCE.getData().handleQuestTriggerChanges(user, QuestObjectiveTypes.STATISTIC, context)) {
                 syncProgress(player);
@@ -232,7 +232,7 @@ public abstract class VeryUEMod {
 
     private void triggerPlayerObjectives(ServerPlayer player, QuestObjectiveSerializer<?>... types) {
         getUser(player.getUUID()).ifPresent(user -> {
-            ObjectiveContext context = ObjectiveContext.createContext(player.serverLevel()).withParameter(ObjectiveContext.PLAYER, player).build();
+            ObjectiveContext context = ObjectiveContext.createContext(player.level()).withParameter(ObjectiveContext.PLAYER, player).build();
             boolean changed = false;
             for (QuestObjectiveSerializer<?> type : types) {
                 changed |= QuestReloadDelegate.INSTANCE.getData().handleQuestTriggerChanges(user, type, context);

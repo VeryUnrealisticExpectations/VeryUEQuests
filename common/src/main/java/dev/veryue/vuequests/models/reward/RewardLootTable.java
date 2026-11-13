@@ -9,7 +9,7 @@ import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -20,18 +20,19 @@ import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import org.slf4j.Logger;
 
 import java.util.List;
+import net.minecraft.util.Prediction;
 import java.util.UUID;
 
-public class RewardLootTable extends RewardType<ResourceLocation> {
+public class RewardLootTable extends RewardType<Identifier> {
 
     private static final Logger LOGGER = LogUtils.getLogger();
 
     public static final MapCodec<RewardLootTable> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             UUIDUtil.STRING_CODEC.fieldOf("reward_id").forGetter(RewardLootTable::getRewardId),
-            ResourceLocation.CODEC.fieldOf("loot_table").forGetter(RewardLootTable::getValue)
+            Identifier.CODEC.fieldOf("loot_table").forGetter(RewardLootTable::getValue)
     ).apply(instance, RewardLootTable::new));
 
-    public RewardLootTable(UUID rewardId, ResourceLocation lootTable) {
+    public RewardLootTable(UUID rewardId, Identifier lootTable) {
         super(rewardId, lootTable);
     }
 
@@ -53,13 +54,13 @@ public class RewardLootTable extends RewardType<ResourceLocation> {
     @Override
     public boolean tryGiveReward(ServerPlayer player) {
         var key = ResourceKey.create(Registries.LOOT_TABLE, getValue());
-        LootTable table = player.server.reloadableRegistries().lookup().lookup(Registries.LOOT_TABLE)
+        LootTable table = player.level().getServer().reloadableRegistries().lookup().lookup(Registries.LOOT_TABLE)
                 .flatMap(registry -> registry.get(key)).map(Holder::value).orElse(null);
         if (table == null) {
             return false;
         }
 
-        LootParams params = new LootParams.Builder(player.serverLevel())
+        LootParams params = new LootParams.Builder(player.level())
                 .withParameter(LootContextParams.ORIGIN, player.position())
                 .withParameter(LootContextParams.THIS_ENTITY, player)
                 .withLuck(player.getLuck())
@@ -71,7 +72,7 @@ public class RewardLootTable extends RewardType<ResourceLocation> {
             LOGGER.warn("Could not roll loot table {} for quest reward {}", getValue(), getRewardId(), exception);
             return false;
         }
-        items.forEach(player.getInventory()::placeItemBackInInventory);
+        items.forEach(stack -> player.getInventory().placeItemBackInInventory(stack, Prediction.SERVER_ONLY));
         return true;
     }
 }

@@ -10,10 +10,6 @@ neoForge {
     if (at.exists()) {
         accessTransformers.from(at.absolutePath)
     }
-    parchment {
-        minecraftVersion = parchment_minecraft
-        mappingsVersion = parchment_version
-    }
     runs {
         configureEach {
             systemProperty('neoforge.enabledGameTestNamespaces', mod_id)
@@ -21,9 +17,11 @@ neoForge {
         }
         client {
             client()
+            gameDirectory = layout.projectDirectory.dir('runs/client').asFile
         }
         data {
-            data()
+            clientData()
+            gameDirectory = layout.projectDirectory.dir('runs/data').asFile
 
             // DataGen can be run by - "./gradlew :neoforge:runData" in Terminal.
             // Specify the modid for data generation, where to output the resulting resource, and where to look for existing resources.
@@ -32,6 +30,7 @@ neoForge {
         }
         server {
             server()
+            gameDirectory = layout.projectDirectory.dir('runs/server').asFile
         }
     }
     mods {
@@ -42,3 +41,17 @@ neoForge {
 }
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+def loaderAttribute = Attribute.of('io.github.mcgradleconventions.loader', String)
+['apiElements', 'runtimeElements', 'sourcesElements', 'javadocElements'].each { variant ->
+    configurations.named(variant) {
+        attributes.attribute(loaderAttribute, 'neoforge')
+    }
+}
+sourceSets.configureEach {
+    [it.compileClasspathConfigurationName, it.runtimeClasspathConfigurationName, it.getTaskName(null, 'jarJar')].each { variant ->
+        configurations.named(variant) {
+            attributes.attribute(loaderAttribute, 'neoforge')
+        }
+    }
+}

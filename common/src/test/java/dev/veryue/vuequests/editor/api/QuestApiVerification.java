@@ -1,5 +1,6 @@
 package dev.veryue.vuequests.editor.api;
 
+import net.minecraft.world.entity.EntityTypes;
 import com.google.common.collect.ImmutableMap;
 import dev.veryue.vuequests.editor.api.models.QuestApiDocument;
 import dev.veryue.vuequests.editor.api.models.requests.CreateQuestRequest;
@@ -50,16 +51,19 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.component.DataComponentInitializers;
+import net.minecraft.data.registries.VanillaRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.RegistryOps;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.decoration.ArmorStand;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.Items;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -77,6 +81,8 @@ import java.util.concurrent.Executors;
 import static dev.veryue.vuequests.editor.QuestEditorConstants.API_CONTEXTS;
 import static dev.veryue.vuequests.editor.QuestEditorConstants.READ_ROUTES;
 import static dev.veryue.vuequests.editor.QuestEditorConstants.WRITE_ROUTES;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 
 public class QuestApiVerification {
     private static int checks;
@@ -84,19 +90,22 @@ public class QuestApiVerification {
     public static void main(String[] arguments) throws Exception {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
+        var registries = VanillaRegistries.createWorldLookup();
         VeryUERegistries.init();
         check(QuestApiTestObjective.TYPE.schema() != null, "Custom schema metadata");
         check(QuestApiTestObjective.LEGACY.schema() == null, "Legacy registration compatibility");
         QuestApiTextProgressObjective.init();
         VeryUERegistries.QUEST_OBJECTIVE_TYPES.freeze();
         VeryUERegistries.REWARD_TYPES.freeze();
+        verifyBundledDefinitionsBeforeComponents(registries.createSerializationContext(JsonOps.INSTANCE));
+        BuiltInRegistries.DATA_COMPONENT_INITIALIZERS.build(registries).forEach(DataComponentInitializers.PendingComponents::apply);
         if (arguments.length == 1 && arguments[0].equals("--objective-presentation")) {
             verifyObjectivePresentation();
             verifyRewardPresentation();
             System.out.println("Objective and reward presentation verification passed: " + checks + " checks.");
             return;
         }
-        var ops = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY).createSerializationContext(JsonOps.INSTANCE);
+        var ops = registries.createSerializationContext(JsonOps.INSTANCE);
         Gson json = QuestApiJson.create(ops);
         checks += QuestObjectiveVerification.verify(json, ops);
         verifyModels(json, ops);
@@ -111,6 +120,20 @@ public class QuestApiVerification {
         System.out.println("Quest API verification passed: " + checks + " checks.");
     }
 
+    private static void verifyBundledDefinitionsBeforeComponents(RegistryOps<JsonElement> ops) throws Exception {
+        check(!Items.STONE.builtInRegistryHolder().areComponentsBound(), "Datapack fixture precedes item component binding");
+        int sections = 0;
+        int quests = 0;
+        try (var paths = Files.list(Path.of("src/main/resources/data/vuequests/vuequests/sections"))) {
+            for (Path path : paths.filter(file -> file.toString().endsWith(".json")).sorted().toList()) {
+                Section section = Section.CODEC.parse(ops, JsonParser.parseString(Files.readString(path))).getOrThrow();
+                sections++;
+                quests += section.questList().size();
+            }
+        }
+        check(sections == 3 && quests == 44, "Bundled definitions decode before item components are bound");
+    }
+
     private static void verifyModels(Gson json, RegistryOps<JsonElement> ops) throws Exception {
         UUID sectionId = UUID.randomUUID();
         UUID firstId = UUID.randomUUID();
@@ -120,7 +143,7 @@ public class QuestApiVerification {
                  "title":{"text":"Gather wood","color":"gold","bold":true,"extra":[{"translate":"test.title","fallback":"!"}]},
                  "description":["Collect ",{"text":"logs","italic":true}],"tooltip":"Plain tooltip",
                  "objectives":[{"type":"vuequests:collect_item","item":{"id":"minecraft:oak_log","count":5,
-                     "components":{"minecraft:custom_name":"{\\"text\\":\\"Quest log\\"}"}}},
+                     "components":{"minecraft:custom_name":{"text":"Quest log"}}}},
                      {"type":"test:custom","custom_value":42}],
                  "rewards":[{"type":"vuequests:experience","experience":10}]} 
                 """.formatted(sectionId, firstId);
@@ -155,7 +178,7 @@ public class QuestApiVerification {
         String customBackground = "test:quest_backgrounds/shapes/diamond";
         display.addProperty("background_sprite", customBackground);
         Quest custom = json.fromJson(questJson, Quest.class);
-        check(custom.display().backgroundSprite().equals(ResourceLocation.parse(customBackground)), "Custom background decodes as a sprite ID");
+        check(custom.display().backgroundSprite().equals(Identifier.parse(customBackground)), "Custom background decodes as a sprite ID");
         document.update(custom);
         Quest old = document.quest(firstId);
         document.update(new Quest(old.position(), old.display(), old.sectionUUID(), old.questId(), old.objectives(), old.rewards(), List.of(secondId)));
@@ -240,8 +263,10 @@ public class QuestApiVerification {
                 UUID.randomUUID(), UUID.randomUUID(), List.of(slay, collect), List.of(), List.of());
         QuestData data = new QuestData(Map.of(), Map.of(quest.questId(), quest));
         player.completeObjective(collect);
+        Entity killedEntity = mock(Entity.class);
+        doReturn(EntityTypes.ARMOR_STAND).when(killedEntity).getType();
         var death = ObjectiveContext.createContext(null)
-                .withParameter(ObjectiveContext.ENTITY, new ArmorStand(EntityType.ARMOR_STAND, null)).build();
+                .withParameter(ObjectiveContext.ENTITY, killedEntity).build();
         check(player.incrementObjectiveProgress(legacySlay, death).getCurrentProgress() == null,
                 "A death of another entity type gives no slay progress");
         for (int i = 0; i < 129; i++) {
@@ -260,7 +285,7 @@ public class QuestApiVerification {
         ObjectiveGetAdvancement objective = (ObjectiveGetAdvancement) json.fromJson("""
                 {"type":"vuequests:advancement","advancement":"minecraft:story/mine_stone"}
                 """, QuestObjective.class);
-        ResourceLocation target = ResourceLocation.parse("minecraft:story/mine_stone");
+        Identifier target = Identifier.parse("minecraft:story/mine_stone");
         var definition = QuestObjective.CODEC.encodeStart(ops, objective).getOrThrow();
         check(QuestObjective.CODEC.parse(ops, definition).getOrThrow() instanceof ObjectiveGetAdvancement restored
                         && restored.getValue().equals(target) && restored.getObjectiveId().equals(objective.getObjectiveId()),
@@ -283,7 +308,7 @@ public class QuestApiVerification {
                 "An advancement without progress shows the pending status");
 
         ObjectiveContext other = ObjectiveContext.createContext(null)
-                .withParameter(ObjectiveContext.ADVANCEMENT, ResourceLocation.parse("minecraft:story/root")).build();
+                .withParameter(ObjectiveContext.ADVANCEMENT, Identifier.parse("minecraft:story/root")).build();
         data.handleQuestTriggerChanges(player, QuestObjectiveTypes.ADVANCEMENT, other);
         var progress = player.getObjectiveProgress(objective);
         check(progress != null && !progress.isComplete(objective) && !player.hasCompletedQuest(quest),
@@ -312,7 +337,7 @@ public class QuestApiVerification {
         PlayerUser player = new PlayerUser(UUID.randomUUID());
         ObjectiveContext context = new ObjectiveContext(null, Map.of());
         ObjectiveCollectItem collect = new ObjectiveCollectItem(UUID.randomUUID(), new ItemStack(Items.OAK_LOG), 128);
-        QuestObjectiveProgress<ItemStack, Integer> collected = player.incrementObjectiveProgress(collect, context);
+        QuestObjectiveProgress<ItemStackTemplate, Integer> collected = player.incrementObjectiveProgress(collect, context);
         check(!collected.isComplete(collect) && collect.getProgressText(player).getString().equals("0/128"),
                 "An objective without progress shows zero of its target");
         collected.setCurrentProgress(127);
@@ -329,7 +354,7 @@ public class QuestApiVerification {
         expect(IllegalArgumentException.class, () -> collected.isComplete(other), "Completion rejects a different objective UUID");
         expect(IllegalArgumentException.class, () -> collected.increment(player, other, context), "Increments reject a different objective UUID");
 
-        ObjectiveSlayEntity slay = new ObjectiveSlayEntity(UUID.randomUUID(), EntityType.ZOMBIE);
+        ObjectiveSlayEntity slay = new ObjectiveSlayEntity(UUID.randomUUID(), EntityTypes.ZOMBIE);
         QuestObjectiveProgress<EntityType<?>, Integer> slain = player.incrementObjectiveProgress(slay, context);
         check(!slain.isComplete(slay), "An entity objective without progress is incomplete");
         slain.setCurrentProgress(0);
@@ -391,7 +416,7 @@ public class QuestApiVerification {
         ObjectiveCollectItem small = new ObjectiveCollectItem(UUID.randomUUID(), new ItemStack(Items.BAKED_POTATO), 10);
         player.incrementObjectiveProgress(small, context).setCurrentProgress(11);
         check(small.getProgressFraction(player) == 1, "Excess counted progress stays within the bar");
-        ObjectiveGetAdvancement advancement = new ObjectiveGetAdvancement(UUID.randomUUID(), ResourceLocation.parse("minecraft:story/mine_stone"));
+        ObjectiveGetAdvancement advancement = new ObjectiveGetAdvancement(UUID.randomUUID(), Identifier.parse("minecraft:story/mine_stone"));
         check(advancement.getProgressFraction(player) == 0, "Pending boolean objectives show an empty bar");
         player.incrementObjectiveProgress(advancement, context).setCurrentProgress(true);
         check(advancement.getProgressFraction(player) == 1, "Completed boolean objectives show a full bar");
@@ -423,7 +448,7 @@ public class QuestApiVerification {
         ObjectiveContext context = new ObjectiveContext(null, Map.of());
         ObjectiveCollectItem collect = new ObjectiveCollectItem(UUID.randomUUID(), new ItemStack(Items.OAK_LOG, 5));
         ObjectiveCollectItem zero = new ObjectiveCollectItem(UUID.randomUUID(), new ItemStack(Items.OAK_LOG, 5));
-        ObjectiveSlayEntity slay = new ObjectiveSlayEntity(UUID.randomUUID(), EntityType.ZOMBIE);
+        ObjectiveSlayEntity slay = new ObjectiveSlayEntity(UUID.randomUUID(), EntityTypes.ZOMBIE);
         QuestApiTextProgressObjective text = new QuestApiTextProgressObjective(UUID.randomUUID(), "done");
         player.incrementObjectiveProgress(collect, context).setCurrentProgress(2);
         player.incrementObjectiveProgress(zero, context).setCurrentProgress(0);
@@ -460,7 +485,7 @@ public class QuestApiVerification {
         JsonObject entries = invalidId.getAsJsonObject("quest_objective_progress");
         entries.add(UUID.randomUUID().toString(), entries.remove(collect.getObjectiveId().toString()));
         check(PlayerUser.CODEC.parse(JsonOps.INSTANCE, invalidId).error().isPresent(), "Progress map UUIDs must match the stored objective UUIDs");
-        ObjectiveSlayEntity changedType = new ObjectiveSlayEntity(collect.getObjectiveId(), EntityType.ZOMBIE);
+        ObjectiveSlayEntity changedType = new ObjectiveSlayEntity(collect.getObjectiveId(), EntityTypes.ZOMBIE);
         expect(IllegalArgumentException.class, () -> restored.incrementObjectiveProgress(changedType, context),
                 "Loaded progress rejects an objective whose registered type has changed");
         QuestObjectiveProgress<Integer, Integer> unsupported = new QuestObjectiveProgress<>(UUID.randomUUID(), QuestApiTestObjective.LEGACY, 1);
@@ -611,7 +636,7 @@ public class QuestApiVerification {
             var bundled = QuestEditorAssets.questBackgrounds();
             for (String shape : List.of("circle", "four_point_star", "rounded_square")) {
                 String spriteName = "background_icon_" + shape;
-                var spriteId = ResourceLocation.parse("vuequests:quest_backgrounds/" + spriteName);
+                var spriteId = Identifier.parse("vuequests:quest_backgrounds/" + spriteName);
                 check(bundled.contains(spriteId), "Bundled " + shape + " sprite appears in the editor catalog");
                 check(QuestEditorResources.read("assets/vuequests/" + textureDirectory + "/" + spriteName + ".png.mcmeta").join() != null,
                         "Bundled " + shape + " has a sprite sidecar");
@@ -646,7 +671,7 @@ public class QuestApiVerification {
                 check(paths.keySet().containsAll(WRITE_ROUTES) && paths.keySet().containsAll(READ_ROUTES), "Contract covers every API route");
                 check(get(client, base + "/api/create/quest").statusCode() == 405, "GET cannot mutate");
                 check(get(client, base + "/api/create/nope").statusCode() == 404, "Unknown route returns 404");
-                check(post(client, base + "/api/create/quest", "{}", "application/json", null).statusCode() == 201, "Agent POST without Origin accepted");
+                check(post(client, base + "/api/create/quest", "{}", "application/json", null).statusCode() == 201, "Client POST without Origin accepted");
                 check(post(client, base + "/api/modify/quest/text", "{}", "application/json", base).statusCode() == 200, "Same-origin POST accepted");
                 check(post(client, base + "/api/create/quest", "{}", "text/plain", null).statusCode() == 415, "JSON content type required");
                 check(post(client, base + "/api/create/quest", "{}", "application/json", "http://127.0.0.1:1").statusCode() == 403, "Different origin port rejected");

@@ -8,23 +8,30 @@ import net.minecraft.core.UUIDUtil;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.EntityEquipment;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackTemplate;
 
 import java.util.UUID;
 
-public class RewardItem extends RewardType<ItemStack> {
+public class RewardItem extends RewardType<ItemStackTemplate> {
 
     public static final MapCodec<RewardItem> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             UUIDUtil.STRING_CODEC.fieldOf("reward_id").forGetter(RewardItem::getRewardId),
-            ItemStack.CODEC.fieldOf("item").forGetter(RewardItem::getStack)
+            ItemStackTemplate.CODEC.fieldOf("item").forGetter(RewardItem::getValue)
     ).apply(instance, RewardItem::new));
 
     public RewardItem(UUID rewardId, ItemStack stack) {
+        this(rewardId, ItemStackTemplate.fromNonEmptyStack(stack));
+    }
+
+    public RewardItem(UUID rewardId, ItemStackTemplate stack) {
         super(rewardId, stack);
     }
 
     public ItemStack getStack() {
-        return getValue();
+        ItemStackTemplate template = getValue();
+        return new ItemStack(template.item(), template.count(), template.components());
     }
 
     @Override
@@ -60,7 +67,7 @@ public class RewardItem extends RewardType<ItemStack> {
         }
 
         // Share untouched stacks with the live inventory and replace only the slots that would change.
-        Inventory staged = new Inventory(inventory.player);
+        Inventory staged = new Inventory(inventory.player, new EntityEquipment());
         staged.replaceWith(inventory);
         int remaining = stack.getCount();
         while (remaining > 0) {

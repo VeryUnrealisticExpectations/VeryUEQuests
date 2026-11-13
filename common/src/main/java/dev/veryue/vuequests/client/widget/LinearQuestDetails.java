@@ -1,5 +1,9 @@
 package dev.veryue.vuequests.client.widget;
 
+import dev.veryue.vuequests.client.util.ClientTextUtil;
+import dev.veryue.vuequests.client.mixin.GuiGraphicsExtractorAccessor;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
 import dev.veryue.vuequests.client.ClientQuestData;
 import dev.veryue.vuequests.client.util.ClientRenderUtil;
 import dev.veryue.vuequests.client.util.RenderAnimation;
@@ -11,8 +15,8 @@ import dev.veryue.vuequests.models.reward.RewardType;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.AbstractScrollWidget;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.AbstractTextAreaWidget;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
@@ -21,8 +25,9 @@ import net.minecraft.network.chat.Style;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraft.util.profiling.ProfilerFiller;
+import net.minecraft.util.profiling.Profiler;
 import net.minecraft.world.item.ItemStack;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,7 +38,7 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public class LinearQuestDetails extends AbstractScrollWidget {
+public class LinearQuestDetails extends AbstractTextAreaWidget {
 
     public static final float TITLE_SCALE = 1.5F;
     private static final int GAP = 12;
@@ -73,7 +78,7 @@ public class LinearQuestDetails extends AbstractScrollWidget {
 
     public LinearQuestDetails(Font font, Predicate<Style> onTextClick, Consumer<RewardType<?>> onRewardClick,
                               Consumer<QuestObjective<?, ?>> onObjectiveClick) {
-        super(0, 0, 1, 1, Component.empty());
+        super(0, 0, 1, 1, Component.empty(), defaultSettings(22), false, false);
         this.font = font;
         this.onTextClick = onTextClick;
         this.onRewardClick = onRewardClick;
@@ -135,29 +140,29 @@ public class LinearQuestDetails extends AbstractScrollWidget {
     }
 
     @Override
-    protected void renderBackground(GuiGraphics graphics) {
+    protected void extractBackground(GuiGraphicsExtractor graphics) {
     }
 
     @Override
-    protected void renderContents(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         if (quest == null) {
             int y = top();
             for (FormattedCharSequence line : font.split(getMessage(), Math.max(1, getWidth() - totalInnerPadding()))) {
-                graphics.drawString(font, line, textX(), y, 0xFFBBBBBB);
+                graphics.text(font, line, textX(), y, 0xFFBBBBBB);
                 y += lineHeight();
             }
             return;
         }
-        graphics.pose().pushPose();
-        graphics.pose().translate(getX() + getWidth() / 2F, top(), 0);
-        graphics.pose().scale(TITLE_SCALE, TITLE_SCALE, 1);
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(getX() + getWidth() / 2F, top());
+        graphics.pose().scale(TITLE_SCALE, TITLE_SCALE);
         for (int i = 0; i < title.size(); i++) {
-            graphics.drawString(font, title.get(i), -font.width(title.get(i)) / 2, i * lineHeight(), 0xFFFFFFFF);
+            graphics.text(font, title.get(i), -font.width(title.get(i)) / 2, i * lineHeight(), 0xFFFFFFFF);
         }
-        graphics.pose().popPose();
+        graphics.pose().popMatrix();
         drawLines(graphics, description, textX(), top() + descriptionTop, 0xFFCCCCCC);
         LinearQuestSprites.heading(graphics, font, OBJECTIVES, textX(), top() + objectivesHeading, textWidth());
-        if (actions.isEmpty()) graphics.drawCenteredString(font, NONE, getX() + getWidth() / 2, top() + objectivesTop, 0xFFAAAAAA);
+        if (actions.isEmpty()) graphics.centeredText(font, NONE, getX() + getWidth() / 2, top() + objectivesTop, 0xFFAAAAAA);
         int hoveredObjective = inside(mouseX, mouseY) ? objectiveAt(mouseY) : -1;
         for (int i = 0; i < actions.size(); i++) {
             int y = top() + objectivesTop + objectiveOffsets[i];
@@ -171,15 +176,15 @@ public class LinearQuestDetails extends AbstractScrollWidget {
                 if (objective instanceof ObjectiveAcknowledge) {
                     QuestWidgetSprites.blitAcknowledgement(graphics, textX(), y,
                             ClientQuestData.getUser() != null && ClientQuestData.getUser().hasCompletedObjective(objective));
-                } else graphics.renderItem(icon, textX(), y);
+                } else graphics.item(icon, textX(), y);
                 drawLines(graphics, lines, textX() + ICON + 8, y + 3, 0xFFDDDDDD);
             });
             Component progress = objective.getProgressText(ClientQuestData.getUser());
             int progressY = progressBelow ? y + Math.max(ICON, actions.get(i).size() * lineHeight() + 3) + 2 : y + 3;
-            graphics.drawString(font, progress, textX() + textWidth() - font.width(progress), progressY, 0xFFCCCCCC);
+            graphics.text(font, progress, textX() + textWidth() - font.width(progress), progressY, 0xFFCCCCCC);
         }
         LinearQuestSprites.heading(graphics, font, REWARDS, textX(), top() + rewardsHeading, textWidth());
-        if (rewardIcons.isEmpty()) graphics.drawCenteredString(font, NONE, getX() + getWidth() / 2, top() + rewardsTop, 0xFFAAAAAA);
+        if (rewardIcons.isEmpty()) graphics.centeredText(font, NONE, getX() + getWidth() / 2, top() + rewardsTop, 0xFFAAAAAA);
         int hoveredReward = inside(mouseX, mouseY) ? rewardAt(mouseX, mouseY) : -1;
         for (int i = 0; i < rewardIcons.size(); i++) {
             int x = rewardX(i);
@@ -190,7 +195,7 @@ public class LinearQuestDetails extends AbstractScrollWidget {
             RenderAnimation animation = rewardScales.computeIfAbsent(reward.getRewardId(), id -> new RenderAnimation(1));
             ClientRenderUtil.renderScaled(graphics.pose(), animation, hoveredReward == i, REWARD_HOVER_SCALE, REWARD_SCALE_DURATION_MS,
                     x + ICON / 2F, y + ICON / 2F, () -> {
-                        graphics.renderItem(icon, x, y);
+                        graphics.item(icon, x, y);
                         if (ClientQuestData.isRewardClaimed(reward) || ClientQuestData.canClaimRewards(quest)) {
                             QuestWidgetSprites.blitClaimBadge(graphics, x, y, ClientQuestData.isRewardClaimed(reward));
                         }
@@ -199,8 +204,8 @@ public class LinearQuestDetails extends AbstractScrollWidget {
     }
 
     @Override
-    public void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        ProfilerFiller profiler = Minecraft.getInstance().getProfiler();
+    public void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        ProfilerFiller profiler = Profiler.get();
         profiler.push("quest_details");
         try {
             renderDetails(graphics, mouseX, mouseY, partialTick);
@@ -209,8 +214,8 @@ public class LinearQuestDetails extends AbstractScrollWidget {
         }
     }
 
-    private void renderDetails(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        super.renderWidget(graphics, mouseX, mouseY, partialTick);
+    private void renderDetails(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        super.extractWidgetRenderState(graphics, mouseX, mouseY, partialTick);
         if (quest == null || !inside(mouseX, mouseY)) return;
         int reward = rewardAt(mouseX, mouseY);
         if (reward >= 0) {
@@ -219,17 +224,20 @@ public class LinearQuestDetails extends AbstractScrollWidget {
                 ItemStack stack = item.getStack();
                 List<Component> lines = new ArrayList<>(Screen.getTooltipFromItem(Minecraft.getInstance(), stack));
                 lines.add(Component.translatable("screen.vuequests.reward.quantity", stack.getCount()).withStyle(ChatFormatting.GRAY));
-                graphics.renderTooltip(font, lines, stack.getTooltipImage(), mouseX, mouseY);
-            } else graphics.renderTooltip(font, value.getDisplayName(), mouseX, mouseY);
+                graphics.setTooltipForNextFrame(font, lines, stack.getTooltipImage(), mouseX, mouseY);
+            } else graphics.setTooltipForNextFrame(font, value.getDisplayName(), mouseX, mouseY);
         } else {
             Style style = styleAt(mouseX, mouseY);
-            if (style != null) graphics.renderComponentHoverEffect(font, style, mouseX, mouseY);
+            if (style != null) ((GuiGraphicsExtractorAccessor) graphics).vuequests$componentHoverEffect(font, style, mouseX, mouseY);
         }
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (quest == null || button != 0 || !inside(mouseX, mouseY)) return false;
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
+        if (quest == null || button != InputConstants.MOUSE_BUTTON_LEFT || !inside(mouseX, mouseY)) return false;
         int objective = objectiveAt(mouseY);
         if (objective >= 0) {
             playDownSound(Minecraft.getInstance().getSoundManager());
@@ -246,7 +254,7 @@ public class LinearQuestDetails extends AbstractScrollWidget {
         }
         Style style = styleAt(mouseX, mouseY);
         if (style != null && onTextClick.test(style)) return true;
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubleClick);
     }
 
     private void interact(int index) {
@@ -262,26 +270,28 @@ public class LinearQuestDetails extends AbstractScrollWidget {
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    public boolean keyPressed(KeyEvent event) {
+        int keyCode = event.key();
+        int modifiers = event.modifiers();
         if (quest == null) return false;
         switch (keyCode) {
-            case GLFW.GLFW_KEY_UP -> setScrollAmount(scrollAmount() - 22);
-            case GLFW.GLFW_KEY_DOWN -> setScrollAmount(scrollAmount() + 22);
-            case GLFW.GLFW_KEY_PAGE_UP -> setScrollAmount(scrollAmount() - getHeight());
-            case GLFW.GLFW_KEY_PAGE_DOWN -> setScrollAmount(scrollAmount() + getHeight());
-            case GLFW.GLFW_KEY_HOME -> setScrollAmount(0);
-            case GLFW.GLFW_KEY_END -> setScrollAmount(getMaxScrollAmount());
-            case GLFW.GLFW_KEY_LEFT, GLFW.GLFW_KEY_RIGHT -> {
+            case InputConstants.KEY_UP -> setScrollAmount(scrollAmount() - 22);
+            case InputConstants.KEY_DOWN -> setScrollAmount(scrollAmount() + 22);
+            case InputConstants.KEY_PAGEUP -> setScrollAmount(scrollAmount() - getHeight());
+            case InputConstants.KEY_PAGEDOWN -> setScrollAmount(scrollAmount() + getHeight());
+            case InputConstants.KEY_HOME -> setScrollAmount(0);
+            case InputConstants.KEY_END -> setScrollAmount(maxScrollAmount());
+            case InputConstants.KEY_LEFT, InputConstants.KEY_RIGHT -> {
                 int count = actions.size() + rewardIcons.size();
                 if (count == 0) return false;
-                keyboardAction = Math.floorMod(keyboardAction + (keyCode == GLFW.GLFW_KEY_RIGHT ? 1 : -1), count);
+                keyboardAction = Math.floorMod(keyboardAction + (keyCode == InputConstants.KEY_RIGHT ? 1 : -1), count);
                 int y = keyboardAction < actions.size() ? objectivesTop + objectiveOffsets[keyboardAction]
                         : rewardsTop + (keyboardAction - actions.size()) / rewardColumns * REWARD_STEP;
                 if (y < scrollAmount()) setScrollAmount(y);
                 if (y + ICON > scrollAmount() + height - totalInnerPadding()) setScrollAmount(y + ICON - height + totalInnerPadding());
             }
-            case GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER, GLFW.GLFW_KEY_SPACE -> { interact(keyboardAction); }
-            default -> { return super.keyPressed(keyCode, scanCode, modifiers); }
+            case InputConstants.KEY_RETURN, InputConstants.KEY_NUMPADENTER, InputConstants.KEY_SPACE -> { interact(keyboardAction); }
+            default -> { return super.keyPressed(event); }
         }
         return true;
     }
@@ -318,16 +328,16 @@ public class LinearQuestDetails extends AbstractScrollWidget {
         if (y < 0 || index >= description.size() || y % lineHeight() >= font.lineHeight) return null;
         double x = mouseX - textX();
         return x < 0 || x >= font.width(description.get(index)) ? null
-                : font.getSplitter().componentStyleAtWidth(description.get(index), (int) x);
+                : ClientTextUtil.styleAtWidth(font, description.get(index), (int) x);
     }
 
     private boolean inside(double x, double y) {
         return active && visible && x >= getX() + 1 && x < getRight() - 1 && y >= getY() + 1 && y < getBottom() - 1;
     }
 
-    private void drawLines(GuiGraphics graphics, List<FormattedCharSequence> lines, int x, int y, int color) {
+    private void drawLines(GuiGraphicsExtractor graphics, List<FormattedCharSequence> lines, int x, int y, int color) {
         for (FormattedCharSequence line : lines) {
-            if (withinContentAreaTopBottom(y, y + lineHeight())) graphics.drawString(font, line, x, y, color);
+            if (withinContentAreaTopBottom(y, y + lineHeight())) graphics.text(font, line, x, y, color);
             y += lineHeight();
         }
     }
@@ -337,7 +347,7 @@ public class LinearQuestDetails extends AbstractScrollWidget {
     private int textWidth() { return Math.max(1, getWidth() - totalInnerPadding()); }
     private int top() { return getY() + innerPadding(); }
     @Override protected int getInnerHeight() { return contentHeight; }
-    @Override protected boolean scrollbarVisible() { return false; }
+    @Override protected void extractScrollbar(GuiGraphicsExtractor graphics, int mouseX, int mouseY) { }
     @Override protected double scrollRate() { return 22; }
 
     @Override

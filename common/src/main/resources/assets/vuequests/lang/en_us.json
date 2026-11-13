@@ -1,7 +1,7 @@
 {
-    "key.categories.vuequests": "VUE Quests",
+    "key.category.vuequests.quests": "VUE Quests",
     "key.vuequests.open_quest_menu": "Open Quest Menu",
-    "key.categories.vuequests.quest_canvas": "VUE Quests - Quest Canvas (Quest Menu Only)",
+    "key.category.vuequests.quest_canvas": "VUE Quests - Quest Canvas (Quest Menu Only)",
     "key.vuequests.canvas.recenter": "Recenter and Reset Zoom",
     "key.vuequests.canvas.zoom_in": "Zoom In",
     "key.vuequests.canvas.zoom_out": "Zoom Out",

@@ -4,7 +4,7 @@ import dev.veryue.vuequests.models.quest.QuestDisplay;
 import dev.veryue.vuequests.platform.PlatformHelper;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.FileToIdConverter;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.PackLocationInfo;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.VanillaPackResources;
@@ -27,7 +27,7 @@ public final class QuestEditorAssets {
     public static final FileToIdConverter GUI_SPRITE_FILES = new FileToIdConverter(GUI_SPRITE_DIRECTORY, ".png");
     private static final int MAX_RESOURCE_BYTES = 8 * 1024 * 1024;
     private static List<Path> roots = List.of();
-    private static List<ResourceLocation> questBackgrounds;
+    private static List<Identifier> questBackgrounds;
     private static String revision = UUID.randomUUID().toString();
     private static final Cache<Optional<byte[]>> files = new Cache<>(MAX_RESOURCE_BYTES, 1024);
     private static final Cache<List<String>> directories = new Cache<>(2 * 1024 * 1024, 256);
@@ -38,7 +38,7 @@ public final class QuestEditorAssets {
         if (VanillaPackResources.class.getResource("/assets/.mcassetsroot") != null) {
             var vanilla = new VanillaPackResourcesBuilder().pushJarResources().build(
                     new PackLocationInfo("vanilla", Component.literal("Minecraft"), PackSource.BUILT_IN, Optional.empty()));
-            vanilla.listRawPaths(PackType.CLIENT_RESOURCES, ResourceLocation.withDefaultNamespace("models"),
+            vanilla.listRawPaths(PackType.CLIENT_RESOURCES, Identifier.withDefaultNamespace("models"),
                     path -> sources.add(path.getParent().getParent().getParent()));
         }
         setRoots(sources);
@@ -58,9 +58,9 @@ public final class QuestEditorAssets {
         revision = UUID.randomUUID().toString();
     }
 
-    public static synchronized List<ResourceLocation> questBackgrounds() throws IOException {
+    public static synchronized List<Identifier> questBackgrounds() throws IOException {
         if (questBackgrounds != null) return questBackgrounds;
-        TreeSet<ResourceLocation> backgrounds = new TreeSet<>();
+        TreeSet<Identifier> backgrounds = new TreeSet<>();
         for (String namespace : list("assets")) {
             String directoryPath = "assets/" + namespace + "/" + QUEST_BACKGROUND_TEXTURE_DIRECTORY;
             for (Path root : roots) {
@@ -70,7 +70,7 @@ public final class QuestEditorAssets {
                         (file, attributes) -> attributes.isRegularFile() && file.getFileName().toString().endsWith(".png"))) {
                     textures.forEach(file -> {
                         String relative = directory.relativize(file).toString().replace('\\', '/');
-                        ResourceLocation texture = ResourceLocation.tryBuild(namespace, QUEST_BACKGROUND_TEXTURE_DIRECTORY + "/" + relative);
+                        Identifier texture = Identifier.tryBuild(namespace, QUEST_BACKGROUND_TEXTURE_DIRECTORY + "/" + relative);
                         if (texture != null) backgrounds.add(GUI_SPRITE_FILES.fileToId(texture));
                     });
                 }

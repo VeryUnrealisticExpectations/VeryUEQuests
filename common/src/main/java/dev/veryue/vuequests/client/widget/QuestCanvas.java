@@ -1,7 +1,8 @@
 package dev.veryue.vuequests.client.widget;
 
+import net.minecraft.client.input.MouseButtonEvent;
 import com.mojang.blaze3d.platform.InputConstants;
-import com.mojang.blaze3d.vertex.PoseStack;
+import org.joml.Matrix3x2fStack;
 import dev.veryue.vuequests.client.ClientQuestData;
 import dev.veryue.vuequests.client.QuestCanvasKeyMappings;
 import dev.veryue.vuequests.models.quest.Quest;
@@ -9,17 +10,16 @@ import dev.veryue.vuequests.models.quest.Section;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.util.profiling.ProfilerFiller;
-import org.lwjgl.glfw.GLFW;
+import net.minecraft.util.profiling.Profiler;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -100,7 +100,7 @@ public class QuestCanvas extends QuestPanel {
     }
 
     @Override
-    protected void blitBackground(GuiGraphics graphics) {
+    protected void blitBackground(GuiGraphicsExtractor graphics) {
         // Each translucent sidebar region needs the world background to keep its intended shade.
         int headerBottom = Math.min(contentTop(), getBottom());
         int toggleTop = sidebarToggle.height() > 0 ? sidebarToggle.top() : getBottom();
@@ -111,7 +111,7 @@ public class QuestCanvas extends QuestPanel {
         blitBackgroundBand(graphics, getX(), toggleBottom, getBottom());
     }
 
-    private void blitBackgroundBand(GuiGraphics graphics, int left, int top, int bottom) {
+    private void blitBackgroundBand(GuiGraphicsExtractor graphics, int left, int top, int bottom) {
         if (left < getRight() && top < bottom) {
             graphics.enableScissor(left, top, getRight(), bottom);
             super.blitBackground(graphics);
@@ -120,7 +120,7 @@ public class QuestCanvas extends QuestPanel {
     }
 
     @Override
-    protected void renderHeader(GuiGraphics graphics) {
+    protected void renderHeader(GuiGraphicsExtractor graphics) {
         QuestWidgetSprites.renderHeader(graphics, font, getMessage(), getX() + headerInset, getY(), getWidth() - headerInset);
     }
 
@@ -221,25 +221,25 @@ public class QuestCanvas extends QuestPanel {
     }
 
     @Override
-    protected void renderContents(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         updatePan();
         ScreenRectangle viewport = viewport();
         QuestNodeWidget hovered = panning ? null : nodeAt(mouseX, mouseY);
         graphics.enableScissor(viewport.left(), viewport.top(), viewport.right(), viewport.bottom());
-        PoseStack pose = graphics.pose();
-        pose.pushPose();
-        ProfilerFiller profiler = Minecraft.getInstance().getProfiler();
+        Matrix3x2fStack pose = graphics.pose();
+        pose.pushMatrix();
+        ProfilerFiller profiler = Profiler.get();
         profiler.push("connections");
         try {
-            pose.translate(renderOffsetX, renderOffsetY, 0);
+            pose.translate((float) renderOffsetX, (float) renderOffsetY);
             int renderedConnections = 0;
             for (QuestDependencyLine line : dependencyLines) {
                 if (line.intersects(viewport, renderOffsetX, renderOffsetY)) {
-                    line.render(graphics);
+                    line.render(graphics, viewport);
                     renderedConnections++;
                 }
             }
-            graphics.flush();
+            graphics.nextStratum();
             profiler.incrementCounter("total_connections", dependencyLines.size());
             profiler.incrementCounter("rendered_connections", renderedConnections);
             profiler.popPush("nodes");
@@ -248,7 +248,7 @@ public class QuestCanvas extends QuestPanel {
                 if (node.getRight() + renderOffsetX > viewport.left() && node.getX() + renderOffsetX < viewport.right()
                         && node.getBottom() + renderOffsetY > viewport.top() && node.getY() + renderOffsetY < viewport.bottom()) {
                     node.setLocked(!ClientQuestData.prerequisitesMet(node.getQuest()));
-                    node.render(graphics, node == hovered ? (int) (mouseX - renderOffsetX) : -1,
+                    node.extractRenderState(graphics, node == hovered ? (int) (mouseX - renderOffsetX) : -1,
                             node == hovered ? (int) (mouseY - renderOffsetY) : -1, partialTick);
                     renderedNodes++;
                 }
@@ -257,16 +257,16 @@ public class QuestCanvas extends QuestPanel {
             profiler.incrementCounter("rendered_nodes", renderedNodes);
         } finally {
             profiler.pop();
-            pose.popPose();
+            pose.popMatrix();
         }
         if (nodes.isEmpty()) {
-            graphics.drawCenteredString(font, Component.translatable("screen.vuequests.no_quests"),
+            graphics.centeredText(font, Component.translatable("screen.vuequests.no_quests"),
                     viewport.left() + viewport.width() / 2, viewport.top() + viewport.height() / 2, 0xFFAFAFAF);
         }
         graphics.disableScissor();
         if (mouseX >= 0 && mouseY >= 0) {
             graphics.enableScissor(getX(), viewport.bottom(), getRight(), getBottom());
-            graphics.drawString(font, Component.translatable("screen.vuequests.canvas_position",
+            graphics.text(font, Component.translatable("screen.vuequests.canvas_position",
                             formatCoordinate(toCanvasX(mouseX)), formatCoordinate(toCanvasY(mouseY))),
                     getX() + 4, getBottom() - font.lineHeight - 2, 0xFFE0E0E0);
             graphics.disableScissor();
@@ -312,19 +312,22 @@ public class QuestCanvas extends QuestPanel {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
         if (!isMouseOver(mouseX, mouseY)) {
             return false;
         }
-        if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT && !panning && ClientQuestData.isDebugEnabled()
-                && Screen.hasShiftDown() && copyQuestIdAt(mouseX, mouseY)) {
+        if (button == InputConstants.MOUSE_BUTTON_RIGHT && !panning && ClientQuestData.isDebugEnabled()
+                && (InputConstants.isKeyDown(InputConstants.KEY_LSHIFT) || InputConstants.isKeyDown(InputConstants.KEY_RSHIFT)) && copyQuestIdAt(mouseX, mouseY)) {
             return true;
         }
         if (viewport().containsPoint((int) mouseX, (int) mouseY)
                 && handleShortcut(InputConstants.Type.MOUSE.getOrCreate(button))) {
             return true;
         }
-        if (button != 0) {
+        if (button != InputConstants.MOUSE_BUTTON_LEFT) {
             return false;
         }
         pressedNode = nodeAt(mouseX, mouseY);
@@ -344,13 +347,16 @@ public class QuestCanvas extends QuestPanel {
         }
         Minecraft minecraft = Minecraft.getInstance();
         minecraft.keyboardHandler.setClipboard(node.getQuest().questId().toString());
-        SystemToast.addOrUpdate(minecraft.getToasts(), QUEST_ID_COPIED, Component.translatable("screen.vuequests.debug.copied"), null);
+        SystemToast.addOrUpdate(minecraft.gui.toastManager(), QUEST_ID_COPIED, Component.translatable("screen.vuequests.debug.copied"), null);
         return true;
     }
 
     @Override
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
-        if (button == 0 && panning && isActive()) {
+    public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
+        if (button == InputConstants.MOUSE_BUTTON_LEFT && panning && isActive()) {
             if (pressedNode != null) {
                 dragX = mouseX - pressX;
                 dragY = mouseY - pressY;
@@ -367,14 +373,17 @@ public class QuestCanvas extends QuestPanel {
     }
 
     @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        if (button == 0 && panning) {
+    public boolean mouseReleased(MouseButtonEvent event) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
+        if (button == InputConstants.MOUSE_BUTTON_LEFT && panning) {
             panning = false;
             QuestNodeWidget clickedNode = pressedNode;
             pressedNode = null;
             if (clickedNode != null && clickedNode == nodeAt(mouseX, mouseY)) {
                 clickedNode.playDownSound(Minecraft.getInstance().getSoundManager());
-                clickedNode.onPress();
+                clickedNode.onPress(event);
             }
             return true;
         }

@@ -4,7 +4,7 @@ import dev.veryue.vuequests.VeryUEConstants;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.ServiceLoader;
 import java.nio.file.Path;
@@ -24,5 +24,5 @@ public interface PlatformHelper {
 
     <T> Registry<T> createRegistry(ResourceKey<Registry<T>> key);
 
-    <T> T register(Registry<T> registry, ResourceLocation id, T value);
+    <T> T register(Registry<T> registry, Identifier id, T value);
 }

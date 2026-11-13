@@ -24,7 +24,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.AddReloadListenerEvent;
+import net.neoforged.neoforge.event.AddServerReloadListenersEvent;
 import net.neoforged.neoforge.event.OnDatapackSyncEvent;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.StatAwardEvent;
@@ -204,7 +204,7 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
     private void onStatAward(StatAwardEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             // The event happens before the update, so run it later
-            player.server.tell(new TickTask(player.server.getTickCount(), () -> {
+            player.level().getServer().schedule(new TickTask(player.level().getServer().getTickCount(), () -> {
                 if (!event.isCanceled()) {
                     onStatisticChanged(player, event.getStat());
                 }
@@ -214,7 +214,7 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
 
     private void onExperiencePointsChanged(PlayerXpEvent.XpChange event) {
         if (event.getEntity() instanceof ServerPlayer player) {
-            player.server.tell(new TickTask(player.server.getTickCount(), () -> {
+            player.level().getServer().schedule(new TickTask(player.level().getServer().getTickCount(), () -> {
                 if (!event.isCanceled()) {
                     onExperienceChanged(player);
                 }
@@ -224,7 +224,7 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
 
     private void onExperienceLevelsChanged(PlayerXpEvent.LevelChange event) {
         if (event.getEntity() instanceof ServerPlayer player) {
-            player.server.tell(new TickTask(player.server.getTickCount(), () -> {
+            player.level().getServer().schedule(new TickTask(player.level().getServer().getTickCount(), () -> {
                 if (!event.isCanceled()) {
                     onExperienceChanged(player);
                 }
@@ -232,9 +232,9 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
         }
     }
 
-    private void onAddReloadListeners(AddReloadListenerEvent event) {
+    private void onAddReloadListeners(AddServerReloadListenersEvent event) {
         loadServerConfig(FMLPaths.CONFIGDIR.get().resolve(MOD_ID + ".json"));
-        event.addListener(new QuestReloadListener());
+        event.addListener(QuestReloadDelegate.ID, new QuestReloadListener());
     }
 
     private void onServerStopping(ServerStoppingEvent event) {

@@ -7,7 +7,7 @@ import dev.veryue.vuequests.network.QuestSyncPayload;
 import dev.veryue.vuequests.network.QuestViewSyncPayload;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -27,8 +27,8 @@ public class VeryUEQuestsFabricClient implements ClientModInitializer {
                 (payload, context) -> ClientQuestData.updateProgress(payload.user()));
         ClientPlayNetworking.registerGlobalReceiver(QuestDebugTogglePayload.TYPE, (payload, context) -> ClientQuestData.toggleDebug());
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> ClientQuestData.clear());
-        KeyBindingHelper.registerKeyBinding(VeryUEKeyMappings.OPEN_QUEST_MENU);
-        canvasKeys.register(KeyBindingHelper::registerKeyBinding);
+        KeyMappingHelper.registerKeyMapping(VeryUEKeyMappings.OPEN_QUEST_MENU);
+        canvasKeys.register(KeyMappingHelper::registerKeyMapping);
         ClientTickEvents.END_CLIENT_TICK.register(client -> VeryUEKeyMappings.onClientTick(client, this::sendToServer, canvasKeys));
         ClientTickEvents.END_CLIENT_TICK.register(ClientEditorResources::tick);
     }

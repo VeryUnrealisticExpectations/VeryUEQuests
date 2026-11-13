@@ -2,13 +2,12 @@
   "required": true,
   "minVersion": "0.8",
   "package": "dev.veryue.vuequests.client.mixin",
-  "compatibilityLevel": "JAVA_21",
-  "refmap": "vuequests.refmap.json",
+  "compatibilityLevel": "JAVA_25",
   "client": [
-    "BakedGlyphAccessor",
     "ClientLanguageAccessor",
     "FontManagerAccessor",
     "FontManagerMixin",
+    "GuiGraphicsExtractorAccessor",
     "MinecraftAccessor"
   ],
   "injectors": {

@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "VeryUE Quests Agent API",
+    "title": "VeryUE Quests Authoring API",
     "version": "1.0.0",
     "description": "Local questline authoring API available while a Minecraft world/server is running. Default listener: 127.0.0.1:6700 (same listener as the editor). Mutations run on the game thread and share the editor's save lock, write datapack overrides, and reload quests before returning a revision. Send application/json for POST requests. Requests are limited to 1 MiB and 64 nesting levels. Configure vuequests.api.token to require bearer authentication on API routes; without it, no authentication is required. Revisions are optional for API writes. Validation is performed before persistence; disk/reload errors can leave overrides written. Use explicit UUIDs and read back state before retrying a timed-out creation."
   },
@@ -1122,7 +1122,7 @@
             }
           }
         ],
-        "description": "Minecraft 1.21.1 native text component, validated by ComponentSerialization.CODEC. Supports literal strings, component objects and component arrays, including translations, styles, click/hover events, score, selector, keybind and NBT components."
+        "description": "Minecraft 26.3 native text component, validated by ComponentSerialization.CODEC. Supports literal strings, component objects and component arrays, including translations, styles, click/hover events, score, selector, keybind and NBT components."
       },
       "ComponentObject": {
         "type": "object",

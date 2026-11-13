@@ -8,19 +8,19 @@ import dev.veryue.vuequests.models.User;
 import dev.veryue.vuequests.registry.QuestObjectiveTypes;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
 import java.util.UUID;
 
-public class ObjectiveTravelDimension extends BooleanQuestObjective<ResourceLocation> {
+public class ObjectiveTravelDimension extends BooleanQuestObjective<Identifier> {
     public static final MapCodec<ObjectiveTravelDimension> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             UUIDUtil.STRING_CODEC.fieldOf("objective_id").forGetter(ObjectiveTravelDimension::getObjectiveId),
-            ResourceLocation.CODEC.fieldOf("dimension").forGetter(ObjectiveTravelDimension::getValue)
+            Identifier.CODEC.fieldOf("dimension").forGetter(ObjectiveTravelDimension::getValue)
     ).apply(instance, ObjectiveTravelDimension::new));
 
-    public ObjectiveTravelDimension(UUID objectiveId, ResourceLocation dimension) {
+    public ObjectiveTravelDimension(UUID objectiveId, Identifier dimension) {
         super(objectiveId, dimension);
     }
 
@@ -35,8 +35,8 @@ public class ObjectiveTravelDimension extends BooleanQuestObjective<ResourceLoca
     }
 
     @Override
-    public void incrementObjectiveProgress(User user, QuestObjectiveProgress<ResourceLocation, Boolean> progress, ObjectiveContext context) {
-        if (context.getLevel().dimension().location().equals(getValue())) {
+    public void incrementObjectiveProgress(User user, QuestObjectiveProgress<Identifier, Boolean> progress, ObjectiveContext context) {
+        if (context.getLevel().dimension().identifier().equals(getValue())) {
             progress.setCurrentProgress(true);
         }
     }

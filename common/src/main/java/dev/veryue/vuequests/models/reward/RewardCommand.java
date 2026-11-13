@@ -7,6 +7,7 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.veryue.vuequests.registry.RewardTypes;
 import net.minecraft.commands.Commands;
+import net.minecraft.server.permissions.LevelBasedPermissionSet;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -53,8 +54,8 @@ public class RewardCommand extends RewardType<String> {
         if (command.startsWith("/")) {
             command = command.substring(1);
         }
-        var source = player.createCommandSourceStack().withPermission(2);
-        Commands commands = player.server.getCommands();
+        var source = player.createCommandSourceStack().withPermission(LevelBasedPermissionSet.GAMEMASTER);
+        Commands commands = player.level().getServer().getCommands();
         var parsed = commands.getDispatcher().parse(command, source);
         if (Commands.getParseException(parsed) != null || ContextChain.tryFlatten(parsed.getContext().build(command)).isEmpty()) {
             source.sendFailure(Component.translatable("screen.vuequests.reward.command_invalid"));

@@ -41,7 +41,7 @@ import dev.veryue.vuequests.models.reward.RewardType;
 import dev.veryue.vuequests.platform.PlatformHelper;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
@@ -166,11 +166,11 @@ public class QuestApiService {
             Object response;
             switch (path) {
                 case CHECK_OBJECTIVES -> response = VeryUERegistries.QUEST_OBJECTIVE_TYPES.keySet().stream().sorted().map(id -> {
-                    var type = VeryUERegistries.QUEST_OBJECTIVE_TYPES.get(id);
+                    var type = VeryUERegistries.QUEST_OBJECTIVE_TYPES.getValue(id);
                     return describe(id, type.codec(), type.schema());
                 }).toList();
                 case CHECK_REWARDS -> response = VeryUERegistries.REWARD_TYPES.keySet().stream().sorted().map(id -> {
-                    var type = VeryUERegistries.REWARD_TYPES.get(id);
+                    var type = VeryUERegistries.REWARD_TYPES.getValue(id);
                     return describe(id, type.codec(), type.schema());
                 }).toList();
                 case CHECK_REGISTRIES -> response = List.of(
@@ -214,7 +214,7 @@ public class QuestApiService {
         return QuestResult.of(quest);
     }
 
-    private static TypeDescription describe(ResourceLocation id, MapCodec<?> codec, JsonSchema schema) {
+    private static TypeDescription describe(Identifier id, MapCodec<?> codec, JsonSchema schema) {
         List<String> fields = codec.keys(JsonOps.INSTANCE).map(JsonElement::getAsString).toList();
         boolean complete = schema != null;
         if (schema == null) {
@@ -229,7 +229,7 @@ public class QuestApiService {
 
     public static RegistrySearchResponse search(Map<String, String> parameters) {
         String registry = required(parameters, "registry");
-        Set<ResourceLocation> ids = switch (registry) {
+        Set<Identifier> ids = switch (registry) {
             case "minecraft:item" -> BuiltInRegistries.ITEM.keySet();
             case "minecraft:entity_type" -> BuiltInRegistries.ENTITY_TYPE.keySet();
             case "minecraft:data_component_type" -> BuiltInRegistries.DATA_COMPONENT_TYPE.keySet();
@@ -239,7 +239,7 @@ public class QuestApiService {
         String path = parameters.getOrDefault("path", "").toLowerCase(Locale.ROOT);
         int offset = integer(parameters, "offset", 0, 0, Integer.MAX_VALUE);
         int limit = integer(parameters, "limit", 100, 1, 500);
-        List<ResourceLocation> matches = ids.stream().filter(id -> id.getNamespace().contains(namespace) && id.getPath().contains(path)).sorted().toList();
+        List<Identifier> matches = ids.stream().filter(id -> id.getNamespace().contains(namespace) && id.getPath().contains(path)).sorted().toList();
         return new RegistrySearchResponse(registry, matches.size(), offset, limit, matches.stream().skip(offset).limit(limit)
                 .map(id -> new RegistrySearchEntry(id.toString(), id.getNamespace(), id.getPath())).toList());
     }
@@ -258,9 +258,9 @@ public class QuestApiService {
 
     private static Item item(String id, Item fallback) {
         if (id == null) return fallback;
-        ResourceLocation location = ResourceLocation.tryParse(id);
+        Identifier location = Identifier.tryParse(id);
         if (location == null || !BuiltInRegistries.ITEM.containsKey(location)) throw new IllegalArgumentException("Unknown item " + id);
-        return BuiltInRegistries.ITEM.get(location);
+        return BuiltInRegistries.ITEM.getValue(location);
     }
 
     private static Component component(Component value, String fallback) { return value == null ? Component.literal(fallback) : value; }

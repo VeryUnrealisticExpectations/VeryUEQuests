@@ -1,6 +1,5 @@
 package dev.veryue.vuequests.models.objective;
 
-import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.veryue.vuequests.models.ObjectiveContext;
@@ -14,24 +13,29 @@ import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackTemplate;
 
 import java.util.Optional;
 import java.util.UUID;
 
-public class ObjectiveCollectItem extends CountedQuestObjective<ItemStack> {
+public class ObjectiveCollectItem extends CountedQuestObjective<ItemStackTemplate> {
 
     public static final MapCodec<ObjectiveCollectItem> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             UUIDUtil.STRING_CODEC.fieldOf("objective_id").forGetter(ObjectiveCollectItem::getObjectiveId),
-            Codec.of(ItemStack.SINGLE_ITEM_CODEC, ItemStack.CODEC).fieldOf("item").forGetter(ObjectiveCollectItem::getStack),
+            ItemStackTemplate.CODEC.fieldOf("item").forGetter(ObjectiveCollectItem::getValue),
             ExtraCodecs.POSITIVE_INT.optionalFieldOf("count").forGetter(objective -> Optional.of(objective.getCount()))
-    ).apply(instance, (id, stack, count) -> new ObjectiveCollectItem(id, stack, count.orElse(stack.getCount()))));
+    ).apply(instance, (id, stack, count) -> new ObjectiveCollectItem(id, stack, count.orElse(stack.count()))));
 
     public ObjectiveCollectItem(UUID objectiveId, ItemStack stack) {
         this(objectiveId, stack, stack.getCount());
     }
 
     public ObjectiveCollectItem(UUID objectiveId, ItemStack stack, int count) {
-        super(objectiveId, stack.getCount() == 1 ? stack : stack.copyWithCount(1), count);
+        this(objectiveId, ItemStackTemplate.fromNonEmptyStack(stack), count);
+    }
+
+    public ObjectiveCollectItem(UUID objectiveId, ItemStackTemplate stack, int count) {
+        super(objectiveId, stack.withCount(1), count);
     }
 
     @Deprecated
@@ -40,7 +44,7 @@ public class ObjectiveCollectItem extends CountedQuestObjective<ItemStack> {
     }
 
     public ItemStack getStack() {
-        return getValue();
+        return getValue().create();
     }
 
     @Override
@@ -54,7 +58,7 @@ public class ObjectiveCollectItem extends CountedQuestObjective<ItemStack> {
     }
 
     @Override
-    public void incrementObjectiveProgress(User user, QuestObjectiveProgress<ItemStack, Integer> objectiveProgress, ObjectiveContext context) {
+    public void incrementObjectiveProgress(User user, QuestObjectiveProgress<ItemStackTemplate, Integer> objectiveProgress, ObjectiveContext context) {
         ServerPlayer player = context.getParamOrNull(ObjectiveContext.PLAYER);
         if (player == null) {
             return;

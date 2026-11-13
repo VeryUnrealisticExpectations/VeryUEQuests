@@ -1,5 +1,6 @@
 package dev.veryue.vuequests.editor;
 
+import net.minecraft.world.entity.EntityTypes;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.serialization.JsonOps;
@@ -22,11 +23,13 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.resources.RegistryOps;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.core.Holder;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.DefaultAttributes;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.level.storage.LevelResource;
 
@@ -80,7 +83,7 @@ public class QuestEditorService {
     public CompletableFuture<Snapshot> load() {
         return server.submit(() -> {
             Document document = storage().read(server.getResourceManager());
-            return new Snapshot(document.sections(), document.revision(), SharedConstants.getCurrentVersion().getName(),
+            return new Snapshot(document.sections(), document.revision(), SharedConstants.getCurrentVersion().name(),
                     QuestEditorAssets.revision(), createCatalog());
         });
     }
@@ -188,37 +191,37 @@ public class QuestEditorService {
 
     private Catalog createCatalog() {
         var items = BuiltInRegistries.ITEM.keySet().stream().sorted().map(id ->
-                new RegistryEntry(id.toString(), BuiltInRegistries.ITEM.get(id).getDescription().getString(), null)).toList();
+                new RegistryEntry(id.toString(), new ItemStack(BuiltInRegistries.ITEM.getValue(id)).getHoverName().getString(), null)).toList();
         var blocks = BuiltInRegistries.BLOCK.keySet().stream().sorted().map(id -> {
-            var block = BuiltInRegistries.BLOCK.get(id);
+            var block = BuiltInRegistries.BLOCK.getValue(id);
             return new RegistryEntry(id.toString(), block.getName().getString(),
                     block.asItem() == Items.AIR ? null : BuiltInRegistries.ITEM.getKey(block.asItem()).toString());
         }).toList();
         var entities = BuiltInRegistries.ENTITY_TYPE.keySet().stream().sorted().map(id -> {
-            var entity = BuiltInRegistries.ENTITY_TYPE.get(id);
-            SpawnEggItem egg = SpawnEggItem.byId(entity);
+            var entity = BuiltInRegistries.ENTITY_TYPE.getValue(id);
+            var egg = SpawnEggItem.byId(entity).map(Holder::value).orElse(null);
             return new RegistryEntry(id.toString(), entity.getDescription().getString(), egg == null ? null : BuiltInRegistries.ITEM.getKey(egg).toString());
         }).toList();
         var advancements = server.getAdvancements().getAllAdvancements().stream()
-                .map(AdvancementHolder::id).map(ResourceLocation::toString).sorted().toList();
-        var lootTables = server.reloadableRegistries().getKeys(Registries.LOOT_TABLE).stream()
-                .map(ResourceLocation::toString).sorted().toList();
-        var playerAttributes = DefaultAttributes.getSupplier(EntityType.PLAYER);
-        var attributes = BuiltInRegistries.ATTRIBUTE.holders().filter(playerAttributes::hasAttribute)
-                .map(holder -> new RegistryEntry(holder.key().location().toString(),
+                .map(AdvancementHolder::id).map(Identifier::toString).sorted().toList();
+        var lootTables = server.reloadableRegistries().lookup().lookupOrThrow(Registries.LOOT_TABLE).listElementIds().map(ResourceKey::identifier)
+                .map(Identifier::toString).sorted().toList();
+        var playerAttributes = DefaultAttributes.getSupplier(EntityTypes.PLAYER);
+        var attributes = BuiltInRegistries.ATTRIBUTE.listElements().filter(playerAttributes::hasAttribute)
+                .map(holder -> new RegistryEntry(holder.key().identifier().toString(),
                         Component.translatable(holder.value().getDescriptionId()).getString(), null))
                 .sorted(Comparator.comparing(RegistryEntry::id)).toList();
         var objectives = VeryUERegistries.QUEST_OBJECTIVE_TYPES.keySet().stream().sorted().map(id ->
-                new TypeEntry(id.toString(), VeryUERegistries.QUEST_OBJECTIVE_TYPES.get(id).codec().keys(JsonOps.INSTANCE).map(JsonElement::getAsString).toList())).toList();
+                new TypeEntry(id.toString(), VeryUERegistries.QUEST_OBJECTIVE_TYPES.getValue(id).codec().keys(JsonOps.INSTANCE).map(JsonElement::getAsString).toList())).toList();
         var rewards = VeryUERegistries.REWARD_TYPES.keySet().stream().sorted().map(id ->
-                new TypeEntry(id.toString(), VeryUERegistries.REWARD_TYPES.get(id).codec().keys(JsonOps.INSTANCE).map(JsonElement::getAsString).toList())).toList();
-        var dimensions = server.levelKeys().stream().map(key -> key.location().toString()).sorted().toList();
-        var biomes = server.registryAccess().registryOrThrow(Registries.BIOME).keySet().stream().map(ResourceLocation::toString).sorted().toList();
-        var structures = server.registryAccess().registryOrThrow(Registries.STRUCTURE).keySet().stream().map(ResourceLocation::toString).sorted().toList();
+                new TypeEntry(id.toString(), VeryUERegistries.REWARD_TYPES.getValue(id).codec().keys(JsonOps.INSTANCE).map(JsonElement::getAsString).toList())).toList();
+        var dimensions = server.levelKeys().stream().map(key -> key.identifier().toString()).sorted().toList();
+        var biomes = server.registryAccess().lookupOrThrow(Registries.BIOME).keySet().stream().map(Identifier::toString).sorted().toList();
+        var structures = server.registryAccess().lookupOrThrow(Registries.STRUCTURE).keySet().stream().map(Identifier::toString).sorted().toList();
         var statistics = BuiltInRegistries.STAT_TYPE.keySet().stream().sorted().map(id -> {
-            var type = BuiltInRegistries.STAT_TYPE.get(id);
+            var type = BuiltInRegistries.STAT_TYPE.getValue(id);
             return new StatisticTypeEntry(id.toString(), type.getDisplayName().getString(),
-                    type.getRegistry().keySet().stream().map(ResourceLocation::toString).sorted().toList());
+                    type.getRegistry().keySet().stream().map(Identifier::toString).sorted().toList());
         }).toList();
         return new Catalog(items, blocks, entities, advancements, lootTables, attributes,
                 dimensions, biomes, structures, statistics, objectives, rewards);

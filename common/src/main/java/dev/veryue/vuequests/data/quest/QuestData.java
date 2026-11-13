@@ -11,7 +11,7 @@ import dev.veryue.vuequests.models.quest.Section;
 import dev.veryue.vuequests.models.reward.RewardAttribute;
 import dev.veryue.vuequests.models.reward.RewardType;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.ArrayDeque;
@@ -59,7 +59,6 @@ public class QuestData {
         return dependents.getOrDefault(questId, List.of());
     }
 
-
     public boolean handleQuestTriggerChanges(User user, QuestObjectiveSerializer<?> objectiveType, ObjectiveContext context) {
         return handleQuestTrigger(user, objectiveType, context, null, null);
     }
@@ -106,7 +105,7 @@ public class QuestData {
         }
         for (QuestObjective<?, ?> objective : quest.objectives()) {
             if (objectiveId.equals(objective.getObjectiveId()) && objective.requiresInteraction() && !user.hasCompletedObjective(objective)) {
-                ObjectiveContext context = ObjectiveContext.createContext(player.serverLevel())
+                ObjectiveContext context = ObjectiveContext.createContext(player.level())
                         .withParameter(ObjectiveContext.PLAYER, player)
                         .withParameter(ObjectiveContext.INTERACTION, objectiveId).build();
                 return handleQuestTrigger(user, objective.getType(), context, questId, objectiveId);
@@ -157,7 +156,7 @@ public class QuestData {
     }
 
     public void restoreAttributeRewards(User user, ServerPlayer player) {
-        Map<ResourceLocation, RewardAttribute> claimed = new HashMap<>();
+        Map<Identifier, RewardAttribute> claimed = new HashMap<>();
         if (!user.getClaimedRewards().isEmpty()) {
             for (Quest quest : quests.values()) {
                 for (RewardType<?> reward : quest.rewards()) {
@@ -169,12 +168,12 @@ public class QuestData {
         }
 
         var attributes = player.getAttributes();
-        BuiltInRegistries.ATTRIBUTE.holders().filter(attributes::hasAttribute).forEach(holder -> {
+        BuiltInRegistries.ATTRIBUTE.listElements().filter(attributes::hasAttribute).forEach(holder -> {
             var instance = attributes.getInstance(holder);
             for (var modifier : instance.getModifiers()) {
                 if (RewardAttribute.isRewardModifier(modifier.id())) {
                     RewardAttribute reward = claimed.get(modifier.id());
-                    if (reward == null || !reward.getValue().equals(holder.key().location())) {
+                    if (reward == null || !reward.getValue().equals(holder.key().identifier())) {
                         instance.removeModifier(modifier.id());
                     }
                 }

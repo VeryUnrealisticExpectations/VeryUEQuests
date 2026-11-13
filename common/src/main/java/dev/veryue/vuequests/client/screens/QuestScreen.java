@@ -1,5 +1,6 @@
 package dev.veryue.vuequests.client.screens;
 
+import net.minecraft.client.input.KeyEvent;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.veryue.vuequests.client.ClientQuestData;
 import dev.veryue.vuequests.client.QuestCanvasKeyMappings;
@@ -11,13 +12,13 @@ import dev.veryue.vuequests.data.quest.QuestData;
 import dev.veryue.vuequests.models.quest.Quest;
 import dev.veryue.vuequests.models.quest.Section;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.util.profiling.ProfilerFiller;
+import net.minecraft.util.profiling.Profiler;
 
 import java.util.Comparator;
 import java.util.List;
@@ -77,7 +78,7 @@ public class QuestScreen extends Screen {
     }
 
     private void openQuest(Quest quest) {
-        minecraft.setScreen(new QuestDetailsScreen(this, quest, sendToServer));
+        minecraft.gui.setScreen(new QuestDetailsScreen(this, quest, sendToServer));
     }
 
     private void refreshData() {
@@ -105,9 +106,10 @@ public class QuestScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        return canvas.handleShortcut(InputConstants.getKey(keyCode, scanCode))
-                || super.keyPressed(keyCode, scanCode, modifiers);
+    public boolean keyPressed(KeyEvent event) {
+        int modifiers = event.modifiers();
+        return canvas.handleShortcut(InputConstants.getKey(event))
+                || super.keyPressed(event);
     }
 
     @Override
@@ -123,17 +125,14 @@ public class QuestScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        ProfilerFiller profiler = minecraft.getProfiler();
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        ProfilerFiller profiler = Profiler.get();
         profiler.push("vuequests_graph");
         profiler.push("refresh");
         try {
             refreshData();
             profiler.popPush("widgets");
-            super.render(graphics, mouseX, mouseY, partialTick);
-            if (sectionToggle.isMouseOver(mouseX, mouseY)) {
-                setTooltipForNextRenderPass(sectionToggle.getTooltip(), DefaultTooltipPositioner.INSTANCE, true);
-            }
+            super.extractRenderState(graphics, mouseX, mouseY, partialTick);
         } finally {
             profiler.pop();
             profiler.pop();
@@ -141,11 +140,11 @@ public class QuestScreen extends Screen {
     }
 
     @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        ProfilerFiller profiler = minecraft.getProfiler();
+    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        ProfilerFiller profiler = Profiler.get();
         profiler.push("vanilla_background");
         try {
-            super.renderBackground(graphics, mouseX, mouseY, partialTick);
+            super.extractBackground(graphics, mouseX, mouseY, partialTick);
         } finally {
             profiler.pop();
         }

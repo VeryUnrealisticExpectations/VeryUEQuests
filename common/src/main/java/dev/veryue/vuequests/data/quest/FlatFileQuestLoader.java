@@ -5,7 +5,7 @@ import com.google.gson.JsonParser;
 import dev.veryue.vuequests.VeryUEConstants;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.resources.FileToIdConverter;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 
@@ -20,10 +20,10 @@ public class FlatFileQuestLoader extends QuestLoader {
 
     @Override
     public QuestData loadQuests(ResourceManager resourceManager, HolderLookup.Provider registryLookup) {
-        Map<ResourceLocation, JsonElement> definitions = new LinkedHashMap<>();
+        Map<Identifier, JsonElement> definitions = new LinkedHashMap<>();
         FileToIdConverter files = FileToIdConverter.json(RESOURCE_DIRECTORY);
 
-        for (Map.Entry<ResourceLocation, Resource> entry : files.listMatchingResources(resourceManager).entrySet()) {
+        for (Map.Entry<Identifier, Resource> entry : files.listMatchingResources(resourceManager).entrySet()) {
             try (Reader reader = entry.getValue().openAsReader()) {
                 definitions.put(entry.getKey(), JsonParser.parseReader(reader));
             } catch (IOException | RuntimeException exception) {

@@ -13,8 +13,8 @@ configurations {
 
 dependencies {
     compileOnly(project(':common')) {
-        capabilities {
-            requireCapability "$group:$mod_id"
+        attributes {
+            attribute(Attribute.of('io.github.mcgradleconventions.loader', String), 'common')
         }
     }
     commonJava project(path: ':common', configuration: 'commonJava')
@@ -38,5 +38,9 @@ tasks.named('javadoc', Javadoc).configure {
 
 tasks.named('sourcesJar', Jar) {
     dependsOn(configurations.commonJava)
-    from(configurations.commonJava)
+    from(configurations.commonJava) {
+        include '**/*.java'
+    }
+    dependsOn(configurations.commonResources)
+    from(configurations.commonResources)
 }

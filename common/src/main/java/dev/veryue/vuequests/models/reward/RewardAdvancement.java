@@ -6,21 +6,21 @@ import dev.veryue.vuequests.registry.RewardTypes;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
 import java.util.UUID;
 
-public class RewardAdvancement extends RewardType<ResourceLocation> {
+public class RewardAdvancement extends RewardType<Identifier> {
 
     public static final MapCodec<RewardAdvancement> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             UUIDUtil.STRING_CODEC.fieldOf("reward_id").forGetter(RewardAdvancement::getRewardId),
-            ResourceLocation.CODEC.fieldOf("advancement").forGetter(RewardAdvancement::getValue)
+            Identifier.CODEC.fieldOf("advancement").forGetter(RewardAdvancement::getValue)
     ).apply(instance, RewardAdvancement::new));
 
-    public RewardAdvancement(UUID rewardId, ResourceLocation advancement) {
+    public RewardAdvancement(UUID rewardId, Identifier advancement) {
         super(rewardId, advancement);
     }
 
@@ -41,7 +41,7 @@ public class RewardAdvancement extends RewardType<ResourceLocation> {
 
     @Override
     public boolean tryGiveReward(ServerPlayer player) {
-        AdvancementHolder advancement = player.server.getAdvancements().get(getValue());
+        AdvancementHolder advancement = player.level().getServer().getAdvancements().get(getValue());
         if (advancement == null) {
             return false;
         }

@@ -4,25 +4,16 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.ByteBufferBuilder;
-import com.mojang.blaze3d.vertex.VertexSorting;
 import com.mojang.serialization.JsonOps;
 import dev.veryue.vuequests.exceptions.EditorResourcesUnavailableException;
 import dev.veryue.vuequests.editor.QuestEditorAssets;
 import dev.veryue.vuequests.editor.QuestEditorResources;
 import dev.veryue.vuequests.editor.QuestEditorService.ConflictException;
-import dev.veryue.vuequests.client.mixin.BakedGlyphAccessor;
-import dev.veryue.vuequests.client.mixin.FontManagerAccessor;
-import dev.veryue.vuequests.client.mixin.MinecraftAccessor;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.renderer.LightTexture;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
@@ -30,14 +21,11 @@ import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.Style;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.StringDecomposer;
-import org.joml.Matrix4f;
-import org.joml.Matrix4fStack;
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL14;
-import org.lwjgl.opengl.GL30;
-import org.lwjgl.system.MemoryStack;
 
 import java.io.IOException;
+import java.io.ByteArrayOutputStream;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
@@ -90,35 +78,40 @@ public class NativeComponentPreview {
             inFlight++;
             scheduleDrain();
         }
-            if (entry.response().isDone()) {
+        if (entry.response().isDone()) {
+            finished();
+            return;
+        }
+        try {
+            if (!QuestEditorResources.hasLocalClient() || Minecraft.getInstance().getSingleplayerServer() == null) throw new EditorResourcesUnavailableException("The local client is unavailable.");
+            String revision = QuestEditorAssets.revision();
+            if (!revision.equals(string(entry.request(), "assetRevision", ""))) throw new ConflictException("Minecraft resources changed; refresh the font catalog.");
+            JsonObject cacheRequest = entry.request().deepCopy();
+            cacheRequest.remove("requestId");
+            cacheRequest.remove("previewId");
+            String key = cacheRequest.toString();
+            boolean animated = hasObfuscated(cacheRequest.get("fragments"));
+            JsonObject cached;
+            synchronized (this) { cached = animated ? null : cache.get(key); }
+            if (cached != null) {
+                JsonObject response = cached.deepCopy();
+                copyRequestId(entry.request(), response);
+                entry.response().complete(response);
                 finished();
                 return;
             }
-            try {
-                if (!QuestEditorResources.hasLocalClient() || Minecraft.getInstance().getSingleplayerServer() == null) throw new EditorResourcesUnavailableException("The local client is unavailable.");
-                String revision = QuestEditorAssets.revision();
-                if (!revision.equals(string(entry.request(), "assetRevision", ""))) throw new ConflictException("Minecraft resources changed; refresh the font catalog.");
-                JsonObject cacheRequest = entry.request().deepCopy();
-                cacheRequest.remove("requestId");
-                cacheRequest.remove("previewId");
-                String key = cacheRequest.toString();
-                boolean animated = hasObfuscated(cacheRequest.get("fragments"));
-                JsonObject cached;
-                synchronized (this) { cached = animated ? null : cache.get(key); }
-                if (cached != null) {
-                    JsonObject response = cached.deepCopy();
-                    copyRequestId(entry.request(), response);
-                    entry.response().complete(response);
+            render(entry.request()).whenComplete((frame, failure) -> {
+                if (failure != null) {
+                    entry.response().completeExceptionally(failure);
                     finished();
                     return;
                 }
-                NativePreviewFrame frame = render(entry.request());
                 frame.response().addProperty("animated", animated);
                 CompletableFuture.runAsync(() -> {
                     try (frame) {
                         JsonObject response = frame.response();
                         unpremultiply(frame.image());
-                        response.addProperty("png", Base64.getEncoder().encodeToString(frame.image().asByteArray()));
+                        response.addProperty("png", Base64.getEncoder().encodeToString(png(frame.image())));
                         if (!revision.equals(QuestEditorAssets.revision())) throw new ConflictException("Minecraft resources changed during rendering.");
                         synchronized (this) {
                             long bytes = key.length() * 2L + response.toString().length() * 2L;
@@ -136,10 +129,11 @@ public class NativeComponentPreview {
                     } catch (Exception exception) { entry.response().completeExceptionally(exception); }
                     finally { finished(); }
                 }, Util.ioPool());
-            } catch (Exception exception) {
-                entry.response().completeExceptionally(exception);
-                finished();
-            }
+            });
+        } catch (Exception exception) {
+            entry.response().completeExceptionally(exception);
+            finished();
+        }
     }
 
     private synchronized void finished() {
@@ -147,7 +141,7 @@ public class NativeComponentPreview {
         scheduleDrain();
     }
 
-    private NativePreviewFrame render(JsonObject request) throws IOException {
+    private CompletableFuture<NativePreviewFrame> render(JsonObject request) throws IOException {
         RenderSystem.assertOnRenderThread();
         int wrapWidth = integer(request, "width", 320, 32, 1024);
         int scale = integer(request, "scale", 2, 1, 4);
@@ -165,7 +159,6 @@ public class NativeComponentPreview {
         Set<String> ids = new HashSet<>();
         Set<String> editableIds = new HashSet<>();
         float[] bearings = {0, 0, 0, 9};
-        var manager = (FontManagerAccessor) ((MinecraftAccessor) minecraft).vuequests$getFontManager();
         int characters = 0;
         for (JsonElement element : fragments) {
             JsonObject fragment = element.getAsJsonObject();
@@ -191,18 +184,15 @@ public class NativeComponentPreview {
             component.visit((style, text) -> {
                 int base = offset[0];
                 StringDecomposer.iterateFormatted(text, style, (index, resolvedStyle, codePoint) -> {
-                    int previousTexture = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
-                    try {
-                        var set = manager.vuequests$getFontSet(resolvedStyle.getFont());
-                        var glyph = (BakedGlyphAccessor) set.getGlyph(codePoint);
-                        var info = set.getGlyphInfo(codePoint, false);
-                        PreviewGlyphBounds bounds = PreviewGlyphBounds.measure(glyph.vuequests$getLeft(), glyph.vuequests$getRight(), glyph.vuequests$getUp(), glyph.vuequests$getDown(),
-                                info.getAdvance(resolvedStyle.isBold()), resolvedStyle.isBold() ? info.getBoldOffset() : 0, resolvedStyle.isItalic(), resolvedStyle.isUnderlined() || resolvedStyle.isStrikethrough());
+                    var sequence = FormattedCharSequence.codepoint(codePoint, resolvedStyle);
+                    var bounds = font.prepareText(sequence, 0, 0, 0xFFFFFFFF, false, false, 0).bounds();
+                    if (bounds != null) {
+                        float advance = font.getSplitter().stringWidth(sequence);
                         bearings[0] = Math.min(bearings[0], bounds.left());
-                        bearings[1] = Math.max(bearings[1], bounds.right());
+                        bearings[1] = Math.max(bearings[1], bounds.right() - advance);
                         bearings[2] = Math.min(bearings[2], bounds.top());
                         bearings[3] = Math.max(bearings[3], bounds.bottom());
-                    } finally { RenderSystem.bindTexture(previousTexture); }
+                    }
                     int sourceIndex = sources.size();
                     sources.add(new PreviewSourcePoint(id, base + index, base + index + Character.charCount(codePoint), !editable));
                     parts.add(FormattedText.of(new String(Character.toChars(codePoint)), resolvedStyle.withInsertion(SOURCE_TAG + sourceIndex)));
@@ -287,81 +277,16 @@ public class NativeComponentPreview {
         JsonArray warnings = new JsonArray();
         if (-bearings[0] >= leftGutter || bearings[1] >= rightGutter || -bearings[2] >= topGutter || bearings[3] - font.lineHeight >= bottomGutter) warnings.add("Some glyphs extend beyond the available preview viewport.");
         response.add("warnings", warnings);
-        return new NativePreviewFrame(response, draw(font, lines, width, height, viewportTop, scale, leftGutter, topGutter));
+        return new NativePreviewRenderer().draw(font, lines, width, height, viewportTop, scale, leftGutter, topGutter)
+                .thenApply(image -> new NativePreviewFrame(response, image));
     }
 
-    private NativeImage draw(Font font, List<FormattedCharSequence> lines, int width, int height, int top, int scale, int leftGutter, int topGutter) {
-        Matrix4f projection = new Matrix4f(RenderSystem.getProjectionMatrix());
-        VertexSorting sorting = RenderSystem.getVertexSorting();
-        Matrix4fStack modelView = RenderSystem.getModelViewStack();
-        float[] color = RenderSystem.getShaderColor().clone();
-        ShaderInstance shader = RenderSystem.getShader();
-        int shaderTexture = RenderSystem.getShaderTexture(0);
-        int framebuffer = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING);
-        int texture = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
-        boolean depth = GL11.glIsEnabled(GL11.GL_DEPTH_TEST);
-        boolean blend = GL11.glIsEnabled(GL11.GL_BLEND);
-        boolean cull = GL11.glIsEnabled(GL11.GL_CULL_FACE);
-        boolean scissor = GL11.glIsEnabled(GL11.GL_SCISSOR_TEST);
-        int sourceRgb = GL11.glGetInteger(GL14.GL_BLEND_SRC_RGB);
-        int targetRgb = GL11.glGetInteger(GL14.GL_BLEND_DST_RGB);
-        int sourceAlpha = GL11.glGetInteger(GL14.GL_BLEND_SRC_ALPHA);
-        int targetAlpha = GL11.glGetInteger(GL14.GL_BLEND_DST_ALPHA);
-        int packAlignment = GL11.glGetInteger(GL11.GL_PACK_ALIGNMENT);
-        TextureTarget target = null;
-        NativeImage image = null;
-        try (MemoryStack stack = MemoryStack.stackPush(); ByteBufferBuilder vertices = new ByteBufferBuilder(256 * 1024)) {
-            var viewport = stack.mallocInt(4);
-            var scissorBox = stack.mallocInt(4);
-            GL11.glGetIntegerv(GL11.GL_VIEWPORT, viewport);
-            GL11.glGetIntegerv(GL11.GL_SCISSOR_BOX, scissorBox);
-            modelView.pushMatrix();
-            try {
-                target = new TextureTarget(width * scale, height * scale, false, Minecraft.ON_OSX);
-                target.setClearColor(0, 0, 0, 0);
-                RenderSystem.disableScissor();
-                target.clear(Minecraft.ON_OSX);
-                target.bindWrite(true);
-                modelView.identity();
-                RenderSystem.applyModelViewMatrix();
-                RenderSystem.setProjectionMatrix(new Matrix4f().setOrtho(0, width, height, 0, -1000, 1000), VertexSorting.ORTHOGRAPHIC_Z);
-                RenderSystem.setShaderColor(1, 1, 1, 1);
-                RenderSystem.disableDepthTest();
-                RenderSystem.disableCull();
-                MultiBufferSource.BufferSource buffers = MultiBufferSource.immediate(vertices);
-                for (int line = 0; line < lines.size(); line++) {
-                    int y = line * font.lineHeight + topGutter - top;
-                    if (y + font.lineHeight + 512 < 0 || y - 512 >= height) continue;
-                    font.drawInBatch(lines.get(line), leftGutter, y, 0xFFFFFFFF, false, new Matrix4f(), buffers, Font.DisplayMode.NORMAL, 0, LightTexture.FULL_BRIGHT);
-                }
-                buffers.endBatch();
-                image = new NativeImage(width * scale, height * scale, false);
-                RenderSystem.bindTexture(target.getColorTextureId());
-                image.downloadTexture(0, false);
-                image.flipY();
-                NativeImage result = image;
-                image = null;
-                return result;
-            } finally {
-                if (target != null) target.destroyBuffers();
-                if (image != null) image.close();
-                GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer);
-                RenderSystem.viewport(viewport.get(0), viewport.get(1), viewport.get(2), viewport.get(3));
-                RenderSystem.bindTexture(texture);
-                modelView.popMatrix();
-                RenderSystem.applyModelViewMatrix();
-                RenderSystem.setProjectionMatrix(projection, sorting);
-                RenderSystem.setShaderColor(color[0], color[1], color[2], color[3]);
-                RenderSystem.setShader(() -> shader);
-                RenderSystem.setShaderTexture(0, shaderTexture);
-                GL11.glPixelStorei(GL11.GL_PACK_ALIGNMENT, packAlignment);
-                if (depth) RenderSystem.enableDepthTest(); else RenderSystem.disableDepthTest();
-                if (blend) RenderSystem.enableBlend(); else RenderSystem.disableBlend();
-                if (cull) RenderSystem.enableCull(); else RenderSystem.disableCull();
-                RenderSystem.blendFuncSeparate(sourceRgb, targetRgb, sourceAlpha, targetAlpha);
-                if (scissor) RenderSystem.enableScissor(scissorBox.get(0), scissorBox.get(1), scissorBox.get(2), scissorBox.get(3));
-                else RenderSystem.disableScissor();
-            }
+    private static byte[] png(NativeImage image) throws IOException {
+        BufferedImage bitmap = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        bitmap.setRGB(0, 0, image.getWidth(), image.getHeight(), image.getPixels(), 0, image.getWidth());
+        try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            ImageIO.write(bitmap, "png", output);
+            return output.toByteArray();
         }
     }
 
@@ -427,13 +352,13 @@ public class NativeComponentPreview {
     private static void unpremultiply(NativeImage image) {
         for (int y = 0; y < image.getHeight(); y++) {
             for (int x = 0; x < image.getWidth(); x++) {
-                int pixel = image.getPixelRGBA(x, y);
+                int pixel = image.getPixel(x, y);
                 int alpha = pixel >>> 24;
                 if (alpha == 0 || alpha == 255) continue;
                 int red = Math.min(255, (pixel & 255) * 255 / alpha);
                 int green = Math.min(255, (pixel >> 8 & 255) * 255 / alpha);
                 int blue = Math.min(255, (pixel >> 16 & 255) * 255 / alpha);
-                image.setPixelRGBA(x, y, alpha << 24 | blue << 16 | green << 8 | red);
+                image.setPixel(x, y, alpha << 24 | blue << 16 | green << 8 | red);
             }
         }
     }

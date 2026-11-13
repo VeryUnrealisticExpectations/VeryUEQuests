@@ -6,7 +6,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -31,11 +31,11 @@ public class FabricPlatformHelper implements PlatformHelper {
 
     @Override
     public <T> Registry<T> createRegistry(ResourceKey<Registry<T>> key) {
-        return FabricRegistryBuilder.createSimple(key).buildAndRegister();
+        return FabricRegistryBuilder.create(key).buildAndRegister();
     }
 
     @Override
-    public <T> T register(Registry<T> registry, ResourceLocation id, T value) {
+    public <T> T register(Registry<T> registry, Identifier id, T value) {
         return Registry.register(registry, id, value);
     }
 }

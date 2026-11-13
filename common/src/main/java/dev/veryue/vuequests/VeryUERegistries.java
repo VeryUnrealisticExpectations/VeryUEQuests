@@ -7,15 +7,15 @@ import dev.veryue.vuequests.registry.QuestObjectiveTypes;
 import dev.veryue.vuequests.registry.RewardTypes;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public class VeryUERegistries {
 
     public static final ResourceKey<Registry<RewardTypeSerializer>> REWARD_TYPE_KEY = ResourceKey.createRegistryKey(
-            ResourceLocation.fromNamespaceAndPath(VeryUEConstants.MOD_ID, "reward_type"));
+            Identifier.fromNamespaceAndPath(VeryUEConstants.MOD_ID, "reward_type"));
 
     public static final ResourceKey<Registry<QuestObjectiveSerializer<?>>> QUEST_OBJECTIVE_TYPE_KEY = ResourceKey.createRegistryKey(
-            ResourceLocation.fromNamespaceAndPath(VeryUEConstants.MOD_ID, "quest_objective_type"));
+            Identifier.fromNamespaceAndPath(VeryUEConstants.MOD_ID, "quest_objective_type"));
 
     public static final Registry<RewardTypeSerializer> REWARD_TYPES = createRegistry(REWARD_TYPE_KEY);
     public static final Registry<QuestObjectiveSerializer<?>> QUEST_OBJECTIVE_TYPES = createRegistry(QUEST_OBJECTIVE_TYPE_KEY);
@@ -24,7 +24,7 @@ public class VeryUERegistries {
         return PlatformHelper.INSTANCE.createRegistry(key);
     }
 
-    public static <T> T register(Registry<T> registry, ResourceLocation id, T value) {
+    public static <T> T register(Registry<T> registry, Identifier id, T value) {
         return PlatformHelper.INSTANCE.register(registry, id, value);
     }
 

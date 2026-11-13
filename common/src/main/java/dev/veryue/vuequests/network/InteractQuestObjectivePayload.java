@@ -6,7 +6,7 @@ import net.minecraft.core.UUIDUtil;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.UUID;
@@ -14,7 +14,7 @@ import java.util.UUID;
 import static dev.veryue.vuequests.VeryUEConstants.MOD_ID;
 
 public record InteractQuestObjectivePayload(UUID questId, UUID objectiveId) implements CustomPacketPayload {
-    public static final Type<InteractQuestObjectivePayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(MOD_ID, "interact_quest_objective"));
+    public static final Type<InteractQuestObjectivePayload> TYPE = new Type<>(Identifier.fromNamespaceAndPath(MOD_ID, "interact_quest_objective"));
     public static final StreamCodec<RegistryFriendlyByteBuf, InteractQuestObjectivePayload> STREAM_CODEC = StreamCodec.composite(
             UUIDUtil.STREAM_CODEC, InteractQuestObjectivePayload::questId,
             UUIDUtil.STREAM_CODEC, InteractQuestObjectivePayload::objectiveId,

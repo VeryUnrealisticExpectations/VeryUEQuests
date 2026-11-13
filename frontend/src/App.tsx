@@ -28,7 +28,7 @@ export default function App() {
   useEffect(() => {
     const revision = textContext.assetRevision
     if (!revision) return
-    setRendererAssets(revision, snapshot?.minecraftVersion ?? '1.21.1')
+    setRendererAssets(revision, snapshot?.minecraftVersion ?? '26.3')
   }, [textContext.assetRevision, snapshot?.minecraftVersion])
   useEffect(() => {
     const shortcut = (event: KeyboardEvent) => {

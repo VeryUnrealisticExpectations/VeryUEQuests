@@ -1,9 +1,10 @@
 package dev.veryue.vuequests.client.widget;
 
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.gui.ComponentPath;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractContainerWidget;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.narration.NarratableEntry;
@@ -11,19 +12,25 @@ import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.navigation.FocusNavigationEvent;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.profiling.ProfilerFiller;
+import net.minecraft.util.profiling.Profiler;
 
 public abstract class QuestPanel extends AbstractContainerWidget {
 
     protected final Font font;
-    private final ResourceLocation sprite;
+    private final Identifier sprite;
     private boolean panelFocused;
 
-    public QuestPanel(Font font, Component title, ResourceLocation sprite) {
+    public QuestPanel(Font font, Component title, Identifier sprite) {
         super(0, 0, 0, 0, title);
         this.font = font;
         this.sprite = sprite;
+    }
+
+    @Override
+    protected int contentHeight() {
+        return getHeight();
     }
 
     protected int contentTop() {
@@ -31,39 +38,42 @@ public abstract class QuestPanel extends AbstractContainerWidget {
     }
 
     @Override
-    protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        ProfilerFiller profiler = Minecraft.getInstance().getProfiler();
+    protected void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        ProfilerFiller profiler = Profiler.get();
         profiler.push("panel_background");
         try {
-            renderBackground(graphics);
+            extractBackground(graphics);
             profiler.popPush("panel_contents");
-            renderContents(graphics, mouseX, mouseY, partialTick);
+            extractContents(graphics, mouseX, mouseY, partialTick);
         } finally {
             profiler.pop();
         }
     }
 
-    protected void renderBackground(GuiGraphics graphics) {
+    protected void extractBackground(GuiGraphicsExtractor graphics) {
         blitBackground(graphics);
         renderHeader(graphics);
     }
 
-    protected void blitBackground(GuiGraphics graphics) {
+    protected void blitBackground(GuiGraphicsExtractor graphics) {
         QuestWidgetSprites.blit(graphics, sprite, getX(), getY(), getWidth(), getHeight());
     }
 
-    protected void renderHeader(GuiGraphics graphics) {
+    protected void renderHeader(GuiGraphicsExtractor graphics) {
         QuestWidgetSprites.renderHeader(graphics, font, getMessage(), getX(), getY(), getWidth());
     }
 
-    protected abstract void renderContents(GuiGraphics graphics, int mouseX, int mouseY, float partialTick);
+    protected abstract void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick);
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (!isMouseOver(mouseX, mouseY) || button != 0) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
+        if (!isMouseOver(mouseX, mouseY) || button != InputConstants.MOUSE_BUTTON_LEFT) {
             return false;
         }
-        if (!super.mouseClicked(mouseX, mouseY, button)) {
+        if (!super.mouseClicked(event, doubleClick)) {
             setFocused(true);
         }
         return true;

@@ -1,6 +1,10 @@
 package dev.veryue.vuequests.client.widget;
 
-import com.mojang.blaze3d.vertex.PoseStack;
+import dev.veryue.vuequests.client.util.ClientTextUtil;
+import dev.veryue.vuequests.client.mixin.GuiGraphicsExtractorAccessor;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
+import org.joml.Matrix3x2fStack;
 import dev.veryue.vuequests.client.ClientQuestData;
 import dev.veryue.vuequests.models.objective.QuestObjective;
 import dev.veryue.vuequests.models.objective.ObjectiveAcknowledge;
@@ -10,8 +14,8 @@ import dev.veryue.vuequests.models.reward.RewardType;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.AbstractScrollWidget;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.AbstractTextAreaWidget;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
@@ -20,7 +24,7 @@ import net.minecraft.network.chat.Style;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +32,7 @@ import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
 
-public class QuestDetailsPanel extends AbstractScrollWidget {
+public class QuestDetailsPanel extends AbstractTextAreaWidget {
 
     private static final int TEXT_COLOR = 0xFFE0E0E0;
     private static final int HEADING_COLOR = 0xFFFFFFFF;
@@ -59,7 +63,7 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
 
     public QuestDetailsPanel(Font font, Quest quest, Predicate<Style> onTextClick, Consumer<RewardType<?>> onRewardClick,
                              Consumer<QuestObjective<?, ?>> onObjectiveClick) {
-        super(0, 0, 0, 0, quest.display().title());
+        super(0, 0, 0, 0, quest.display().title(), defaultSettings(18), false, false);
         this.font = font;
         this.quest = quest;
         this.onTextClick = onTextClick;
@@ -88,11 +92,11 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
     }
 
     @Override
-    protected void renderBackground(GuiGraphics graphics) {
+    protected void extractBackground(GuiGraphicsExtractor graphics) {
     }
 
     @Override
-    protected void renderContents(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         drawLines(graphics, titleLines, headingCenterX(), contentTop(), true);
         drawHeading(graphics, OBJECTIVES, objectivesTop());
         drawIconGrid(graphics, objectiveIcons, objectivesTop(),
@@ -103,10 +107,10 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
         drawIconGrid(graphics, rewardIcons, rewardsTop(), index -> quest.rewards().get(index).getIconLabel(), true);
     }
 
-    private void drawIconGrid(GuiGraphics graphics, List<ItemStack> icons, int top, IntFunction<Component> labelAt,
+    private void drawIconGrid(GuiGraphicsExtractor graphics, List<ItemStack> icons, int top, IntFunction<Component> labelAt,
                               boolean showClaimBadges) {
         if (icons.isEmpty()) {
-            graphics.drawString(font, NONE, headingCenterX() - font.width(NONE) / 2, top, TEXT_COLOR, false);
+            graphics.text(font, NONE, headingCenterX() - font.width(NONE) / 2, top, TEXT_COLOR, false);
             return;
         }
         boolean canClaimRewards = showClaimBadges && ClientQuestData.canClaimRewards(quest);
@@ -124,7 +128,7 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
                     QuestWidgetSprites.blitAcknowledgement(graphics, x, y,
                             ClientQuestData.getUser() != null && ClientQuestData.getUser().hasCompletedObjective(quest.objectives().get(i)));
                 } else {
-                    graphics.renderItem(icons.get(i), x, y);
+                    graphics.item(icons.get(i), x, y);
                 }
                 if (showClaimBadges) {
                     boolean claimed = ClientQuestData.isRewardClaimed(quest.rewards().get(i));
@@ -144,8 +148,8 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
     }
 
     @Override
-    public void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        super.renderWidget(graphics, mouseX, mouseY, partialTick);
+    public void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        super.extractWidgetRenderState(graphics, mouseX, mouseY, partialTick);
         if (!insideClip(mouseX, mouseY)) {
             return;
         }
@@ -154,7 +158,7 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
                 OBJECTIVE_LABEL_WIDTH, OBJECTIVE_HEIGHT);
         if (objectiveIndex >= 0) {
             Component tooltip = objectiveTooltip(quest.objectives().get(objectiveIndex));
-            graphics.renderTooltip(font, font.split(tooltip, Math.min(170, getWidth())), mouseX, mouseY);
+            graphics.setTooltipForNextFrame(font, font.split(tooltip, Math.min(170, getWidth())), mouseX, mouseY);
             return;
         }
         int rewardIndex = iconAt(mouseX, contentY - rewardsTop(), rewardIcons.size(), iconColumns, ICON_SIZE, ICON_SIZE);
@@ -164,13 +168,16 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
         }
         Style style = styleAt(mouseX, mouseY);
         if (style != null) {
-            graphics.renderComponentHoverEffect(font, style, mouseX, mouseY);
+            ((GuiGraphicsExtractorAccessor) graphics).vuequests$componentHoverEffect(font, style, mouseX, mouseY);
         }
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (active && visible && button == 0 && insideClip(mouseX, mouseY)) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
+        if (active && visible && button == InputConstants.MOUSE_BUTTON_LEFT && insideClip(mouseX, mouseY)) {
             int objectiveIndex = iconAt(mouseX, mouseY + scrollAmount() - objectivesTop(), objectiveIcons.size(), objectiveColumns,
                     OBJECTIVE_LABEL_WIDTH, OBJECTIVE_HEIGHT);
             if (objectiveIndex >= 0) {
@@ -194,17 +201,19 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
                 return true;
             }
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubleClick);
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    public boolean keyPressed(KeyEvent event) {
+        int keyCode = event.key();
+        int modifiers = event.modifiers();
         switch (keyCode) {
-            case GLFW.GLFW_KEY_PAGE_UP -> setScrollAmount(scrollAmount() - getHeight());
-            case GLFW.GLFW_KEY_PAGE_DOWN -> setScrollAmount(scrollAmount() + getHeight());
-            case GLFW.GLFW_KEY_HOME -> setScrollAmount(0);
-            case GLFW.GLFW_KEY_END -> setScrollAmount(getMaxScrollAmount());
-            default -> { return super.keyPressed(keyCode, scanCode, modifiers); }
+            case InputConstants.KEY_PAGEUP -> setScrollAmount(scrollAmount() - getHeight());
+            case InputConstants.KEY_PAGEDOWN -> setScrollAmount(scrollAmount() + getHeight());
+            case InputConstants.KEY_HOME -> setScrollAmount(0);
+            case InputConstants.KEY_END -> setScrollAmount(maxScrollAmount());
+            default -> { return super.keyPressed(event); }
         }
         return true;
     }
@@ -226,27 +235,27 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
         int width = font.width(text);
         int left = centered ? headingCenterX() - width / 2 : textX();
         double x = mouseX - left;
-        return x >= 0 && x < width ? font.getSplitter().componentStyleAtWidth(text, (int) x) : null;
+        return x >= 0 && x < width ? ClientTextUtil.styleAtWidth(font, text, (int) x) : null;
     }
 
     private boolean insideClip(double mouseX, double mouseY) {
         return mouseX >= getX() + 1 && mouseX < getRight() - 1 && mouseY >= getY() + 1 && mouseY < getBottom() - 1;
     }
 
-    private void drawHeading(GuiGraphics graphics, Component heading, int sectionTop) {
+    private void drawHeading(GuiGraphicsExtractor graphics, Component heading, int sectionTop) {
         int left = headingCenterX() - font.width(heading) / 2;
-        graphics.drawString(font, heading, left, sectionTop - lineHeight(), HEADING_COLOR, false);
+        graphics.text(font, heading, left, sectionTop - lineHeight(), HEADING_COLOR, false);
     }
 
-    private void drawIconLabel(GuiGraphics graphics, Component label, int x, int y, int labelWidth) {
+    private void drawIconLabel(GuiGraphicsExtractor graphics, Component label, int x, int y, int labelWidth) {
         int textWidth = font.width(label);
         float scale = Math.min(0.75F, (labelWidth - 1F) / Math.max(1, textWidth));
-        PoseStack pose = graphics.pose();
-        pose.pushPose();
-        pose.translate(x + ICON_SIZE - 1, y + ICON_SIZE - 1, 200);
-        pose.scale(scale, scale, 1);
-        graphics.drawString(font, label, -textWidth, -font.lineHeight, 0xFFFFFFFF, true);
-        pose.popPose();
+        Matrix3x2fStack pose = graphics.pose();
+        pose.pushMatrix();
+        pose.translate(x + ICON_SIZE - 1, y + ICON_SIZE - 1);
+        pose.scale(scale, scale);
+        graphics.text(font, label, -textWidth, -font.lineHeight, 0xFFFFFFFF, true);
+        pose.popMatrix();
     }
 
     private Component objectiveTooltip(QuestObjective<?, ?> objective) {
@@ -254,15 +263,15 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
                 .append(objective.getProgressText(ClientQuestData.getUser()));
     }
 
-    private void renderRewardTooltip(GuiGraphics graphics, int index, int mouseX, int mouseY) {
+    private void renderRewardTooltip(GuiGraphicsExtractor graphics, int index, int mouseX, int mouseY) {
         RewardType<?> reward = quest.rewards().get(index);
         if (reward instanceof RewardItem item) {
             ItemStack stack = item.getStack();
             List<Component> lines = new ArrayList<>(Screen.getTooltipFromItem(Minecraft.getInstance(), stack));
             lines.add(Component.translatable("screen.vuequests.reward.quantity", stack.getCount()).withStyle(ChatFormatting.GRAY));
-            graphics.renderTooltip(font, lines, stack.getTooltipImage(), mouseX, mouseY);
+            graphics.setTooltipForNextFrame(font, lines, stack.getTooltipImage(), mouseX, mouseY);
         } else {
-            graphics.renderTooltip(font, font.split(reward.getDisplayName(), Math.min(170, getWidth())), mouseX, mouseY);
+            graphics.setTooltipForNextFrame(font, font.split(reward.getDisplayName(), Math.min(170, getWidth())), mouseX, mouseY);
         }
     }
 
@@ -289,11 +298,11 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
         return headingCenterX() - ((iconsInRow - 1) * (cellWidth + ICON_GAP) + cellWidth) / 2;
     }
 
-    private void drawLines(GuiGraphics graphics, List<FormattedCharSequence> lines, int anchorX, int y, boolean centered) {
+    private void drawLines(GuiGraphicsExtractor graphics, List<FormattedCharSequence> lines, int anchorX, int y, boolean centered) {
         for (FormattedCharSequence line : lines) {
             if (withinContentAreaTopBottom(y, y + font.lineHeight)) {
                 int left = centered ? anchorX - font.width(line) / 2 : anchorX;
-                graphics.drawString(font, line, left, y, TEXT_COLOR, false);
+                graphics.text(font, line, left, y, TEXT_COLOR, false);
             }
             y += lineHeight();
         }
@@ -338,8 +347,8 @@ public class QuestDetailsPanel extends AbstractScrollWidget {
     }
 
     @Override
-    protected boolean scrollbarVisible() {
-        return getMaxScrollAmount() > 0;
+    protected boolean scrollable() {
+        return maxScrollAmount() > 0;
     }
 
     @Override

@@ -2,9 +2,10 @@ package dev.veryue.vuequests.platform;
 
 import dev.veryue.vuequests.VeryUERegistries;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.server.permissions.Permissions;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModList;
@@ -35,7 +36,7 @@ public class NeoForgePlatformHelper implements PlatformHelper {
     @Override
     public List<Path> assetRoots() {
         return ModList.get().getModFiles().stream()
-                .map(info -> info.getFile().getSecureJar().getRootPath())
+                .flatMap(info -> info.getFile().getContents().getContentRoots().stream())
                 .distinct().toList();
     }
 
@@ -49,7 +50,7 @@ public class NeoForgePlatformHelper implements PlatformHelper {
         if (source.getEntity() instanceof ServerPlayer player) {
             return PermissionAPI.getPermission(player, permissionNodes.get(permission));
         }
-        return source.hasPermission(CommandPermission.DEFAULT_LEVEL);
+        return source.permissions().hasPermission(Permissions.COMMANDS_OWNER);
     }
 
     @Override
@@ -58,7 +59,7 @@ public class NeoForgePlatformHelper implements PlatformHelper {
     }
 
     @Override
-    public <T> T register(Registry<T> registry, ResourceLocation id, T value) {
+    public <T> T register(Registry<T> registry, Identifier id, T value) {
         ResourceKey<? extends Registry<T>> key = registry.key();
         pendingRegistrations.computeIfAbsent(key, registryKey -> new ArrayList<>())
                 .add(event -> event.register(key, id, () -> value));
@@ -70,7 +71,7 @@ public class NeoForgePlatformHelper implements PlatformHelper {
         eventBus.addListener(this::onRegister);
         for (CommandPermission permission : CommandPermission.values()) {
             permissionNodes.put(permission, new PermissionNode<>(MOD_ID, permission.path(), PermissionTypes.BOOLEAN,
-                    (player, playerId, context) -> player != null && player.hasPermissions(CommandPermission.DEFAULT_LEVEL)));
+                    (player, playerId, context) -> player != null && player.permissions().hasPermission(Permissions.COMMANDS_OWNER)));
         }
         NeoForge.EVENT_BUS.addListener(this::registerPermissions);
     }

@@ -11,7 +11,7 @@ import dev.veryue.vuequests.models.objective.QuestObjective;
 import dev.veryue.vuequests.models.objective.QuestObjectiveSerializer;
 import dev.veryue.vuequests.registry.QuestObjectiveTypes;
 import net.minecraft.core.UUIDUtil;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import java.util.UUID;
 
 public class QuestApiTestObjective extends QuestObjective<Integer, Integer> {
@@ -19,9 +19,9 @@ public class QuestApiTestObjective extends QuestObjective<Integer, Integer> {
             UUIDUtil.STRING_CODEC.fieldOf("objective_id").forGetter(QuestApiTestObjective::getObjectiveId),
             Codec.INT.fieldOf("custom_value").forGetter(QuestApiTestObjective::getValue)
     ).apply(instance, QuestApiTestObjective::new));
-    public static final QuestObjectiveSerializer<Integer> TYPE = QuestObjectiveTypes.register(ResourceLocation.parse("test:custom"), CODEC, Codec.INT,
+    public static final QuestObjectiveSerializer<Integer> TYPE = QuestObjectiveTypes.register(Identifier.parse("test:custom"), CODEC, Codec.INT,
             QuestApiSchemas.objective("test:custom", "custom_value", JsonSchema.type("integer")));
-    public static final QuestObjectiveSerializer<Integer> LEGACY = QuestObjectiveTypes.register(ResourceLocation.parse("test:legacy"), CODEC);
+    public static final QuestObjectiveSerializer<Integer> LEGACY = QuestObjectiveTypes.register(Identifier.parse("test:legacy"), CODEC);
 
     public QuestApiTestObjective(UUID id, int value) { super(id, value); }
 

@@ -1,14 +1,16 @@
 package dev.veryue.vuequests.client.widget;
 
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
 import dev.veryue.vuequests.models.quest.Section;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -76,9 +78,9 @@ public class QuestSectionPanel extends QuestPanel {
     }
 
     @Override
-    protected void renderBackground(GuiGraphics graphics) {
+    protected void extractBackground(GuiGraphicsExtractor graphics) {
         if (!collapsed) {
-            super.renderBackground(graphics);
+            super.extractBackground(graphics);
             return;
         }
         QuestWidgetSprites.blit(graphics, QuestWidgetSprites.SECTION_PANEL, getX(), contentTop(), getWidth(), getBottom() - contentTop());
@@ -88,16 +90,16 @@ public class QuestSectionPanel extends QuestPanel {
     }
 
     @Override
-    protected void renderContents(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         Component hoveredName = null;
         graphics.enableScissor(getX(), contentTop(), getRight(), getBottom());
         if (entries.isEmpty() && !collapsed) {
-            graphics.drawWordWrap(font, Component.translatable("screen.vuequests.no_sections"), getX() + 4, contentTop() + 2,
+            graphics.textWithWordWrap(font, Component.translatable("screen.vuequests.no_sections"), getX() + 4, contentTop() + 2,
                     Math.max(1, getWidth() - 8), 0xFFAFAFAF);
         }
         for (QuestSectionButton entry : entries) {
             if (entry.getBottom() > contentTop() && entry.getY() < getBottom()) {
-                entry.render(graphics, mouseX, mouseY >= contentTop() ? mouseY : -1, partialTick);
+                entry.extractRenderState(graphics, mouseX, mouseY >= contentTop() ? mouseY : -1, partialTick);
                 if (collapsed && entry.isHovered()) {
                     hoveredName = entry.getMessage();
                 }
@@ -108,7 +110,7 @@ public class QuestSectionPanel extends QuestPanel {
             QuestWidgetSprites.blit(graphics, QuestWidgetSprites.SCROLLBAR, getRight() - SCROLLBAR_WIDTH, thumbY(), SCROLLBAR_WIDTH, thumbHeight());
         }
         if (hoveredName != null) {
-            graphics.renderTooltip(font, Tooltip.splitTooltip(Minecraft.getInstance(), hoveredName), mouseX, mouseY);
+            graphics.setTooltipForNextFrame(font, Tooltip.splitTooltip(Minecraft.getInstance(), hoveredName), mouseX, mouseY);
         }
     }
 
@@ -126,8 +128,11 @@ public class QuestSectionPanel extends QuestPanel {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (!isMouseOver(mouseX, mouseY) || button != 0) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
+        if (!isMouseOver(mouseX, mouseY) || button != InputConstants.MOUSE_BUTTON_LEFT) {
             return false;
         }
         if (mouseY < contentTop()) {
@@ -139,25 +144,31 @@ public class QuestSectionPanel extends QuestPanel {
             scrollTo(mouseY);
             return true;
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubleClick);
     }
 
     @Override
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
-        if (button == 0 && scrolling) {
+    public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
+        if (button == InputConstants.MOUSE_BUTTON_LEFT && scrolling) {
             scrollTo(mouseY);
             return true;
         }
-        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+        return super.mouseDragged(event, dragX, dragY);
     }
 
     @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        if (button == 0 && scrolling) {
+    public boolean mouseReleased(MouseButtonEvent event) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
+        if (button == InputConstants.MOUSE_BUTTON_LEFT && scrolling) {
             scrolling = false;
             return true;
         }
-        return super.mouseReleased(mouseX, mouseY, button);
+        return super.mouseReleased(event);
     }
 
     @Override
@@ -170,24 +181,26 @@ public class QuestSectionPanel extends QuestPanel {
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    public boolean keyPressed(KeyEvent event) {
+        int keyCode = event.key();
+        int modifiers = event.modifiers();
         if (!isActive() || !isFocused() || entries.isEmpty()) {
             return false;
         }
         int index = entries.indexOf(getFocused());
         int page = Math.max(1, (getBottom() - contentTop()) / ROW_HEIGHT);
         int next = switch (keyCode) {
-            case GLFW.GLFW_KEY_HOME -> 0;
-            case GLFW.GLFW_KEY_END -> entries.size() - 1;
-            case GLFW.GLFW_KEY_PAGE_UP -> Math.max(0, index - page);
-            case GLFW.GLFW_KEY_PAGE_DOWN -> Math.min(entries.size() - 1, index + page);
+            case InputConstants.KEY_HOME -> 0;
+            case InputConstants.KEY_END -> entries.size() - 1;
+            case InputConstants.KEY_PAGEUP -> Math.max(0, index - page);
+            case InputConstants.KEY_PAGEDOWN -> Math.min(entries.size() - 1, index + page);
             default -> -1;
         };
         if (next >= 0) {
             setFocused(entries.get(next));
             return true;
         }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressed(event);
     }
 
     private int maxScroll() {

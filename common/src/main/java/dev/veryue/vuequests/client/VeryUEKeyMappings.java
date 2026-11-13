@@ -7,9 +7,9 @@ import dev.veryue.vuequests.config.QuestView;
 import net.minecraft.client.gui.screens.Screen;
 import dev.veryue.vuequests.network.QuestScreenOpenedPayload;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.resources.Identifier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.function.Consumer;
 
@@ -19,20 +19,20 @@ public class VeryUEKeyMappings {
 
     public static final KeyMapping OPEN_QUEST_MENU = new KeyMapping(
             "key." + MOD_ID + ".open_quest_menu",
-            InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_J,
-            "key.categories." + MOD_ID
+            InputConstants.Type.KEYBOARD,
+            InputConstants.KEY_J,
+            KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "quests"))
     );
 
     public static void onClientTick(Minecraft client, Consumer<CustomPacketPayload> sendToServer,
                                     QuestCanvasKeyMappings canvasKeys) {
         while (OPEN_QUEST_MENU.consumeClick()) {
             QuestView view = ClientQuestData.getQuestView();
-            if (client.player != null && client.screen == null && view != null) {
+            if (client.player != null && client.gui.screen() == null && view != null) {
                 Screen screen = view == QuestView.LIST ? new LinearQuestScreen(sendToServer)
                         : new QuestScreen(sendToServer, canvasKeys);
-                client.setScreen(screen);
-                if (client.screen == screen) {
+                client.gui.setScreen(screen);
+                if (client.gui.screen() == screen) {
                     sendToServer.accept(QuestScreenOpenedPayload.INSTANCE);
                 }
             }

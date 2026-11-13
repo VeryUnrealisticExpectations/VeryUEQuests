@@ -13,7 +13,7 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
 
 import java.io.IOException;
@@ -124,7 +124,7 @@ public class ClientEditorResources implements EditorResourceSource {
             ResourceManager resources = hostingClient().getResourceManager();
             if (!path.startsWith("assets/") || path.split("/").length < 3) return null;
             String[] pieces = path.split("/", 3);
-            var resource = resources.getResource(ResourceLocation.fromNamespaceAndPath(pieces[1], pieces[2]));
+            var resource = resources.getResource(Identifier.fromNamespaceAndPath(pieces[1], pieces[2]));
             if (resource.isEmpty()) return null;
             try (var input = resource.get().open()) {
                 byte[] bytes = input.readNBytes(8 * 1024 * 1024 + 1);
