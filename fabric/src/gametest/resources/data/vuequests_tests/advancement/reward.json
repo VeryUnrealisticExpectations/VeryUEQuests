@@ -1,0 +1,7 @@
+{
+  "criteria": {
+    "first": { "trigger": "minecraft:impossible" },
+    "second": { "trigger": "minecraft:impossible" }
+  },
+  "requirements": [["first"], ["second"]]
+}

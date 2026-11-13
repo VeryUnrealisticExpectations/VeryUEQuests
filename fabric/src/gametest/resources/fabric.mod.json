@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "vuequests_tests",
+  "version": "1.0.0",
+  "name": "VeryUE Quests Tests",
+  "environment": "*",
+  "mixins": ["vuequests.tests.mixins.json"],
+  "entrypoints": {
+    "fabric-gametest": [
+      "dev.veryue.vuequests.gametest.QuestObjectiveGameTests",
+      "dev.veryue.vuequests.gametest.QuestRewardGameTests"
+    ],
+    "fabric-client-gametest": [
+      "dev.veryue.vuequests.gametest.QuestSingleplayerGameTests",
+      "dev.veryue.vuequests.gametest.QuestDedicatedServerGameTests"
+    ]
+  },
+  "depends": {
+    "vuequests": "*",
+    "fabric-api": "*"
+  }
+}

@@ -30,6 +30,35 @@ loom {
     }
 }
 
+fabricApi {
+    configureTests {
+        createSourceSet = true
+        modId = 'vuequests_tests'
+        enableGameTests = true
+        enableClientGameTests = true
+        eula = true
+    }
+}
+
+configurations {
+    gametestCompileOnly.extendsFrom compileOnly
+}
+
+sourceSets.gametest.java.include '**/*.java'
+
+loom.runs.gameTest {
+    property 'fabric-api.gametest.report-file', layout.buildDirectory.file('reports/gametest/server.xml').get().asFile.absolutePath
+    property 'fabric-api.gametest.filter', 'vuequests_tests:*'
+}
+
+loom.runs.clientGameTest {
+    property 'vuequests.tests.reportDirectory', layout.buildDirectory.dir('reports/gametest').get().asFile.absolutePath
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('runClientGameTest')
+}
+
 def loaderAttribute = Attribute.of('io.github.mcgradleconventions.loader', String)
 ['apiElements', 'runtimeElements', 'sourcesElements', 'javadocElements', 'includeInternal', 'modCompileClasspath'].each { variant ->
     configurations.named(variant) {
