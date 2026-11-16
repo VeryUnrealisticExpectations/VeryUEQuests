@@ -1,6 +1,7 @@
 package dev.veryue.vuequests.client.widget;
 
 import org.joml.Matrix3x2fStack;
+import dev.veryue.vuequests.client.widget.controls.QuestNodeWidget;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.navigation.ScreenRectangle;

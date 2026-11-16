@@ -1,6 +1,7 @@
 package dev.veryue.vuequests.client.widget;
 
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import dev.veryue.vuequests.client.widget.controls.QuestNodeWidget;
 import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.render.TextureSetup;

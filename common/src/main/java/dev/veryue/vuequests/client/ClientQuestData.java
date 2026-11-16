@@ -25,6 +25,34 @@ public class ClientQuestData {
     @Nullable
     private static PlayerUser user;
     private static boolean debugEnabled;
+    private static boolean dataReady;
+    private static boolean dataUnavailable;
+    private static Component dataError = Component.empty();
+
+    public static boolean isDataReady() {
+        return dataReady;
+    }
+
+    public static Component getDataError() {
+        return dataError;
+    }
+
+    public static void setDataStatus(boolean ready, Component message) {
+        boolean changed = dataReady != ready || !dataError.equals(message);
+        dataReady = ready;
+        dataUnavailable = !ready;
+        dataError = message;
+        if (!ready) {
+            user = null;
+            data = QuestData.EMPTY;
+        }
+        if (changed) {
+            ClientTeamData.refresh();
+            if (!ready && Minecraft.getInstance().player != null)
+                Minecraft.getInstance().gui.hud.getChat().addClientSystemMessage(message);
+        }
+    }
+
     @Nullable
     private static QuestView questView;
 
@@ -38,6 +66,7 @@ public class ClientQuestData {
     }
 
     public static void update(List<Section> sections, PlayerUser playerUser) {
+        if (dataUnavailable) return;
         if (hasIntegratedServer()) {
             data = QuestData.EMPTY;
             updateProgress(playerUser);
@@ -57,6 +86,7 @@ public class ClientQuestData {
     }
 
     public static void updateProgress(PlayerUser playerUser) {
+        if (dataUnavailable) return;
         PlayerUser previousUser = user;
         user = playerUser;
         if (previousUser != null && previousUser.getUuid().equals(playerUser.getUuid())
@@ -121,9 +151,13 @@ public class ClientQuestData {
     }
 
     public static void clear() {
+        ClientTeamData.clear();
         data = QuestData.EMPTY;
         user = null;
         debugEnabled = false;
         questView = null;
+        dataReady = false;
+        dataUnavailable = false;
+        dataError = Component.empty();
     }
 }

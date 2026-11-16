@@ -26,6 +26,10 @@ public class VeryUEQuestsNeoForgeClient {
             (name, keyCode) -> new KeyMapping(name, QuestCanvasKeyConflictContext.INSTANCE, KeyModifier.SHIFT,
                     InputConstants.Type.KEYBOARD, keyCode, QuestCanvasKeyMappings.CATEGORY),
             KeyMapping::isActiveAndMatches);
+    private final QuestMenuKeyMappings menuKeys = new QuestMenuKeyMappings(
+            (name, keyCode) -> new KeyMapping(name, QuestMenuKeyConflictContext.INSTANCE,
+                    InputConstants.Type.KEYBOARD, keyCode, QuestMenuKeyMappings.CATEGORY),
+            KeyMapping::isActiveAndMatches);
 
     public VeryUEQuestsNeoForgeClient(IEventBus eventBus) {
         ClientEditorResources.initialize();
@@ -41,11 +45,12 @@ public class VeryUEQuestsNeoForgeClient {
             mapping.setKeyConflictContext(QuestCanvasKeyConflictContext.INSTANCE);
             event.register(mapping);
         });
+        menuKeys.register(event::register);
     }
 
     private void onClientTick(ClientTickEvent.Post event) {
         ClientEditorResources.tick(Minecraft.getInstance());
-        VeryUEKeyMappings.onClientTick(Minecraft.getInstance(), this::sendToServer, canvasKeys);
+        VeryUEKeyMappings.onClientTick(Minecraft.getInstance(), this::sendToServer, canvasKeys, menuKeys);
     }
 
     private void sendToServer(CustomPacketPayload payload) {

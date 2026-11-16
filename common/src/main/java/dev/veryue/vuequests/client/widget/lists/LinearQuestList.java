@@ -1,10 +1,11 @@
-package dev.veryue.vuequests.client.widget;
+package dev.veryue.vuequests.client.widget.lists;
 
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.input.KeyEvent;
 import dev.veryue.vuequests.client.ClientQuestData;
 import dev.veryue.vuequests.client.util.ClientRenderUtil;
 import dev.veryue.vuequests.client.util.RenderAnimation;
+import dev.veryue.vuequests.client.widget.QuestWidgetSprites;
 import dev.veryue.vuequests.models.quest.Quest;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -12,8 +13,8 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
-import net.minecraft.network.chat.Component;
 import net.minecraft.locale.Language;
+import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.util.profiling.Profiler;
@@ -123,7 +124,10 @@ public class LinearQuestList extends AbstractWidget {
             boolean completed = i >= availableCount;
             ClientRenderUtil.renderInset(graphics.pose(), animation, current || hovered, INSET, INSET_DURATION_MS, inset -> {
                 graphics.item(icon, getX() + 3, y + 3);
-                if (completed) QuestWidgetSprites.blitClaimBadge(graphics, getX() + 3, y + 3, true);
+                if (completed) {
+                    boolean allRewardsClaimed = quest.rewards().stream().allMatch(ClientQuestData::isRewardClaimed);
+                    QuestWidgetSprites.blitClaimBadge(graphics, getX() + 3, y + 3, allRewardsClaimed);
+                }
                 Component styledTitle = quest.display().title().copy().withStyle(style -> style.withBold(current));
                 var title = Language.getInstance().getVisualOrder(font.substrByWidth(styledTitle, Math.max(1, width - 27 - Mth.ceil(inset))));
                 graphics.text(font, title, getX() + 25, y + 7,

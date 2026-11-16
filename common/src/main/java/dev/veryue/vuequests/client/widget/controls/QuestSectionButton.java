@@ -1,13 +1,15 @@
-package dev.veryue.vuequests.client.widget;
+package dev.veryue.vuequests.client.widget.controls;
 
+import dev.veryue.vuequests.client.widget.QuestWidgetSprites;
+import dev.veryue.vuequests.client.widget.panels.QuestSectionPanel;
 import dev.veryue.vuequests.models.quest.Section;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
-import net.minecraft.network.chat.Component;
 import net.minecraft.locale.Language;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.function.Consumer;

@@ -6,8 +6,8 @@ import dev.veryue.vuequests.VeryUEMod;
 import dev.veryue.vuequests.client.ClientQuestData;
 import dev.veryue.vuequests.client.VeryUEKeyMappings;
 import dev.veryue.vuequests.client.screens.LinearQuestScreen;
-import dev.veryue.vuequests.client.screens.QuestScreen;
-import dev.veryue.vuequests.client.widget.QuestSectionToggle;
+import dev.veryue.vuequests.client.screens.GraphQuestScreen;
+import dev.veryue.vuequests.client.widget.controls.QuestSectionToggle;
 import dev.veryue.vuequests.config.QuestView;
 import dev.veryue.vuequests.data.quest.QuestReloadDelegate;
 import dev.veryue.vuequests.models.objective.ObjectiveAcknowledge;
@@ -371,7 +371,7 @@ public class QuestClientScenarios {
             scenario.onPlayer(player -> ServerPlayNetworking.send(player, new QuestViewSyncPayload(QuestView.GRAPH)));
             context.waitFor(client -> ClientQuestData.getQuestView() == QuestView.GRAPH);
             context.getInput().pressKey(VeryUEKeyMappings.OPEN_QUEST_MENU);
-            context.waitForScreen(QuestScreen.class);
+            context.waitForScreen(GraphQuestScreen.class);
             var toggle = context.computeOnClient(client -> client.gui.screen().children().stream()
                     .filter(QuestSectionToggle.class::isInstance).map(QuestSectionToggle.class::cast).findFirst().orElseThrow());
             var initial = context.computeOnClient(client -> toggle.getMessage().getString());

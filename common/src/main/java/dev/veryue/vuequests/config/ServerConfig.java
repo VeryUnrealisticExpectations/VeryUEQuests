@@ -12,18 +12,27 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Map;
+import java.util.Optional;
 
-public record ServerConfig(QuestView questView, QuestLoaderMode questLoader) {
+public record ServerConfig(QuestView questView, QuestLoaderMode questLoader, boolean keepTeamProgressOnLeave) {
 
-    public static final ServerConfig DEFAULT = new ServerConfig(QuestView.LIST, QuestLoaderMode.DATAPACK_BASED);
+    public static final ServerConfig DEFAULT = new ServerConfig(QuestView.LIST, QuestLoaderMode.DATAPACK_BASED, true);
     public static final Codec<ServerConfig> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             QuestView.CODEC.fieldOf("quest_view").forGetter(ServerConfig::questView),
-            QuestLoaderMode.CODEC.fieldOf("quest_loader").forGetter(ServerConfig::questLoader)
+            QuestLoaderMode.CODEC.fieldOf("quest_loader").forGetter(ServerConfig::questLoader),
+            Codec.BOOL.optionalFieldOf("keep_team_progress_on_leave")
+                    .xmap(value -> value.orElse(true), Optional::of).forGetter(ServerConfig::keepTeamProgressOnLeave)
     ).apply(instance, ServerConfig::new));
     private static final Map<String, String> COMMENTS = Map.of(
             "quest_view", "Quest menu layout for all players. Allowed values: \"list\" or \"graph\".",
             "quest_loader", "Quest source. Allowed values: \"DATAPACK_BASED\" or \"CONFIG_BASED\". "
-                    + "Modpacks should run /vuequests export, then use \"CONFIG_BASED\" to distribute quests in config/vuequests/.");
+                    + "Modpacks should run /vuequests export, then use \"CONFIG_BASED\" to distribute quests in config/vuequests/.",
+            "keep_team_progress_on_leave", "Keep shared quest and objective progress when leaving a team. "
+                    + "Personal progress and already claimed rewards are always preserved.");
+
+    public ServerConfig(QuestView questView, QuestLoaderMode questLoader) {
+        this(questView, questLoader, true);
+    }
 
     public static ServerConfig load(Path file) {
         Path path = file.toAbsolutePath().normalize();

@@ -1,10 +1,7 @@
 package dev.veryue.vuequests.client;
 
 import dev.veryue.vuequests.client.editor.ClientEditorResources;
-import dev.veryue.vuequests.network.QuestDebugTogglePayload;
-import dev.veryue.vuequests.network.QuestProgressSyncPayload;
-import dev.veryue.vuequests.network.QuestSyncPayload;
-import dev.veryue.vuequests.network.QuestViewSyncPayload;
+import dev.veryue.vuequests.network.*;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
@@ -15,10 +12,15 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 public class VeryUEQuestsFabricClient implements ClientModInitializer {
 
     private final QuestCanvasKeyMappings canvasKeys = new QuestCanvasKeyMappings();
+    private final QuestMenuKeyMappings menuKeys = new QuestMenuKeyMappings();
 
     @Override
     public void onInitializeClient() {
         ClientEditorResources.initialize();
+        ClientPlayNetworking.registerGlobalReceiver(TeamSyncPayload.TYPE, (payload, context) -> ClientTeamData.update(payload));
+        ClientPlayNetworking.registerGlobalReceiver(TeamActionResultPayload.TYPE, (payload, context) -> ClientTeamData.complete(payload));
+        ClientPlayNetworking.registerGlobalReceiver(PersonalDataStatusPayload.TYPE,
+                (payload, context) -> ClientQuestData.setDataStatus(payload.ready(), payload.message()));
         ClientPlayNetworking.registerGlobalReceiver(QuestViewSyncPayload.TYPE,
                 (payload, context) -> ClientQuestData.setQuestView(payload.view()));
         ClientPlayNetworking.registerGlobalReceiver(QuestSyncPayload.TYPE,
@@ -29,7 +31,8 @@ public class VeryUEQuestsFabricClient implements ClientModInitializer {
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> ClientQuestData.clear());
         KeyMappingHelper.registerKeyMapping(VeryUEKeyMappings.OPEN_QUEST_MENU);
         canvasKeys.register(KeyMappingHelper::registerKeyMapping);
-        ClientTickEvents.END_CLIENT_TICK.register(client -> VeryUEKeyMappings.onClientTick(client, this::sendToServer, canvasKeys));
+        menuKeys.register(KeyMappingHelper::registerKeyMapping);
+        ClientTickEvents.END_CLIENT_TICK.register(client -> VeryUEKeyMappings.onClientTick(client, this::sendToServer, canvasKeys, menuKeys));
         ClientTickEvents.END_CLIENT_TICK.register(ClientEditorResources::tick);
     }
 

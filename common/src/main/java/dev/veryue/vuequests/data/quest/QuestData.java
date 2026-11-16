@@ -100,7 +100,7 @@ public class QuestData {
 
     public boolean interactWithObjective(User user, ServerPlayer player, UUID questId, UUID objectiveId) {
         Quest quest = quests.get(questId);
-        if (quest == null || !user.getUuid().equals(player.getUUID()) || !prerequisitesMet(questId, user)) {
+        if (quest == null || !user.containsPlayer(player.getUUID()) || !prerequisitesMet(questId, user)) {
             return false;
         }
         for (QuestObjective<?, ?> objective : quest.objectives()) {
@@ -144,7 +144,8 @@ public class QuestData {
 
     public boolean tryClaimReward(User user, ServerPlayer player, UUID questId, UUID rewardId) {
         Quest quest = quests.get(questId);
-        if (quest == null || user.getClaimedRewards().contains(rewardId) || !canClaimRewards(quest, user)) {
+        if (quest == null || !user.containsPlayer(player.getUUID())
+                || user.getClaimedRewards(player.getUUID()).contains(rewardId) || !canClaimRewards(quest, user)) {
             return false;
         }
         for (RewardType<?> reward : quest.rewards()) {
@@ -157,10 +158,11 @@ public class QuestData {
 
     public void restoreAttributeRewards(User user, ServerPlayer player) {
         Map<Identifier, RewardAttribute> claimed = new HashMap<>();
-        if (!user.getClaimedRewards().isEmpty()) {
+        Set<UUID> playerRewards = user.getClaimedRewards(player.getUUID());
+        if (!playerRewards.isEmpty()) {
             for (Quest quest : quests.values()) {
                 for (RewardType<?> reward : quest.rewards()) {
-                    if (reward instanceof RewardAttribute attribute && user.getClaimedRewards().contains(attribute.getRewardId())) {
+                    if (reward instanceof RewardAttribute attribute && playerRewards.contains(attribute.getRewardId())) {
                         claimed.putIfAbsent(attribute.getModifierId(), attribute);
                     }
                 }

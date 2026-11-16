@@ -91,7 +91,7 @@ public class QuestProgressCommands {
             user.completeQuestProgress(quest);
         } else {
             user.resetQuestProgress(quest);
-            data.restoreAttributeRewards(user, player);
+            VeryUEMod.INSTANCE.restoreProgressRecipientAttributes(player);
         }
         syncProgress.accept(player);
         context.getSource().sendSuccess(() -> Component.translatable(complete

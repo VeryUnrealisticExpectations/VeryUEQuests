@@ -1,7 +1,8 @@
-package dev.veryue.vuequests.client.widget;
+package dev.veryue.vuequests.client.widget.controls;
 
 import org.joml.Matrix3x2fStack;
 import dev.veryue.vuequests.client.ClientQuestData;
+import dev.veryue.vuequests.client.widget.QuestWidgetSprites;
 import dev.veryue.vuequests.models.quest.Quest;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;

@@ -1,5 +1,6 @@
-package dev.veryue.vuequests.client.widget;
+package dev.veryue.vuequests.client.widget.controls;
 
+import dev.veryue.vuequests.client.widget.QuestWidgetSprites;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;

@@ -1,4 +1,4 @@
-package dev.veryue.vuequests.client.widget;
+package dev.veryue.vuequests.client.widget.panels;
 
 import dev.veryue.vuequests.client.util.ClientTextUtil;
 import dev.veryue.vuequests.client.mixin.GuiGraphicsExtractorAccessor;
@@ -6,8 +6,9 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.input.KeyEvent;
 import org.joml.Matrix3x2fStack;
 import dev.veryue.vuequests.client.ClientQuestData;
-import dev.veryue.vuequests.models.objective.QuestObjective;
+import dev.veryue.vuequests.client.widget.QuestWidgetSprites;
 import dev.veryue.vuequests.models.objective.ObjectiveAcknowledge;
+import dev.veryue.vuequests.models.objective.QuestObjective;
 import dev.veryue.vuequests.models.quest.Quest;
 import dev.veryue.vuequests.models.reward.RewardItem;
 import dev.veryue.vuequests.models.reward.RewardType;
@@ -77,7 +78,7 @@ public class QuestDetailsPanel extends AbstractTextAreaWidget {
         this.headingCenterOffset = headingCenterOffset;
         int textWidth = Math.max(1, width - totalInnerPadding());
         int centeredWidth = Math.max(1, textWidth - 2 * headingCenterOffset);
-        titleLines = font.split(Component.empty().withStyle(ChatFormatting.BOLD).append(getMessage()), centeredWidth);
+        titleLines = font.split(Component.empty().withStyle(style -> style.withBold(true)).append(getMessage()), centeredWidth);
         Component description = quest.display().description();
         descriptionLines = description.getString().isBlank() ? List.of() : font.split(description, textWidth);
         iconColumns = Mth.clamp((centeredWidth + ICON_GAP) / (ICON_SIZE + ICON_GAP), 1, MAX_ICON_COLUMNS);
@@ -88,7 +89,7 @@ public class QuestDetailsPanel extends AbstractTextAreaWidget {
     }
 
     private static Component heading(String key) {
-        return Component.translatable("screen.vuequests." + key).withStyle(ChatFormatting.BOLD);
+        return Component.translatable("screen.vuequests." + key).withStyle(style -> style.withBold(true));
     }
 
     @Override
