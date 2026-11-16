@@ -1,9 +1,12 @@
-package dev.veryue.vuequests.client.widget;
+package dev.veryue.vuequests.client.widget.panels;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.veryue.vuequests.client.ClientQuestData;
 import dev.veryue.vuequests.client.QuestCanvasKeyMappings;
+import dev.veryue.vuequests.client.widget.QuestDependencyLine;
+import dev.veryue.vuequests.client.widget.QuestWidgetSprites;
+import dev.veryue.vuequests.client.widget.controls.QuestNodeWidget;
 import dev.veryue.vuequests.models.quest.Quest;
 import dev.veryue.vuequests.models.quest.Section;
 import net.minecraft.client.KeyMapping;

@@ -12,7 +12,9 @@ import java.util.UUID;
 public class PlayerUser extends User {
 
     public static final Codec<PlayerUser> CODEC = RecordCodecBuilder.create(instance ->
-            User.codec(instance).apply(instance, PlayerUser::new));
+            User.progressCodec(instance)
+                    .and(User.UUID_SET_CODEC.fieldOf("claimed_rewards").forGetter(PlayerUser::getClaimedRewards))
+                    .apply(instance, (uuid, quests, objectives, progress, claims) -> new PlayerUser(uuid, quests, objectives, claims, progress)));
 
     public PlayerUser(UUID uuid) {
         super(uuid);
@@ -51,5 +53,10 @@ public class PlayerUser extends User {
     @Override
     public boolean hasCompletedObjective(QuestObjective<?, ?> objective) {
         return isObjectiveCompleted(objective.getObjectiveId());
+    }
+
+    @Override
+    public PlayerUser getClientPlayerUser(UUID uuid) {
+        return this;
     }
 }

@@ -1,24 +1,16 @@
 package dev.veryue.vuequests;
 
 import dev.veryue.vuequests.client.ClientQuestData;
-import dev.veryue.vuequests.command.QuestDebugCommand;
-import dev.veryue.vuequests.command.QuestExportCommand;
-import dev.veryue.vuequests.command.QuestProgressCommands;
-import dev.veryue.vuequests.command.QuestReloadCommand;
-import dev.veryue.vuequests.command.QuestWebEditorCommand;
+import dev.veryue.vuequests.client.ClientTeamData;
+import dev.veryue.vuequests.command.*;
 import dev.veryue.vuequests.data.quest.QuestReloadDelegate;
 import dev.veryue.vuequests.editor.QuestEditorServer;
-import dev.veryue.vuequests.network.ClaimQuestRewardPayload;
-import dev.veryue.vuequests.network.InteractQuestObjectivePayload;
-import dev.veryue.vuequests.network.QuestDebugTogglePayload;
-import dev.veryue.vuequests.network.QuestProgressSyncPayload;
-import dev.veryue.vuequests.network.QuestScreenOpenedPayload;
-import dev.veryue.vuequests.network.QuestSyncPayload;
-import dev.veryue.vuequests.network.QuestViewSyncPayload;
+import dev.veryue.vuequests.network.*;
 import dev.veryue.vuequests.platform.NeoForgePlatformHelper;
 import dev.veryue.vuequests.platform.PlatformHelper;
-import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.TickTask;
+import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
@@ -31,12 +23,11 @@ import net.neoforged.neoforge.event.StatAwardEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.player.AdvancementEvent.AdvancementProgressEvent;
 import net.neoforged.neoforge.event.entity.player.AdvancementEvent.AdvancementProgressEvent.ProgressType;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerChangedDimensionEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerRespawnEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerChangedDimensionEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerXpEvent;
-import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
@@ -84,15 +75,8 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
     }
 
     @Override
-    protected void syncQuests(ServerPlayer player) {
-        PacketDistributor.sendToPlayer(player, QuestSyncPayload.create(player));
-    }
-
-    @Override
-    protected void syncProgress(ServerPlayer player) {
-        if (player.connection.hasChannel(QuestProgressSyncPayload.TYPE)) {
-            PacketDistributor.sendToPlayer(player, QuestProgressSyncPayload.create(player));
-        }
+    protected void sendPayload(ServerPlayer player, CustomPacketPayload payload) {
+        if (player.connection.hasChannel(payload.type())) PacketDistributor.sendToPlayer(player, payload);
     }
 
     private boolean sendDebugToggle(ServerPlayer player) {
@@ -105,6 +89,33 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
 
     private void registerPayloads(RegisterPayloadHandlersEvent event) {
         event.registrar("1")
+                .playToServer(CreateTeamPayload.TYPE, CreateTeamPayload.STREAM_CODEC, (payload, context) -> {
+                    if (context.player() instanceof ServerPlayer player) handleTeamRequest(player, payload);
+                })
+                .playToServer(RenameTeamPayload.TYPE, RenameTeamPayload.STREAM_CODEC, (payload, context) -> {
+                    if (context.player() instanceof ServerPlayer player) handleTeamRequest(player, payload);
+                })
+                .playToServer(ChangeTeamSettingPayload.TYPE, ChangeTeamSettingPayload.STREAM_CODEC, (payload, context) -> {
+                    if (context.player() instanceof ServerPlayer player) handleTeamRequest(player, payload);
+                })
+                .playToServer(InviteTeamPlayerPayload.TYPE, InviteTeamPlayerPayload.STREAM_CODEC, (payload, context) -> {
+                    if (context.player() instanceof ServerPlayer player) handleTeamRequest(player, payload);
+                })
+                .playToServer(RespondTeamInvitationPayload.TYPE, RespondTeamInvitationPayload.STREAM_CODEC, (payload, context) -> {
+                    if (context.player() instanceof ServerPlayer player) handleTeamRequest(player, payload);
+                })
+                .playToServer(LeaveTeamPayload.TYPE, LeaveTeamPayload.STREAM_CODEC, (payload, context) -> {
+                    if (context.player() instanceof ServerPlayer player) handleTeamRequest(player, payload);
+                })
+                .playToServer(KickTeamMemberPayload.TYPE, KickTeamMemberPayload.STREAM_CODEC, (payload, context) -> {
+                    if (context.player() instanceof ServerPlayer player) handleTeamRequest(player, payload);
+                })
+                .playToClient(TeamSyncPayload.TYPE, TeamSyncPayload.STREAM_CODEC,
+                        (payload, context) -> ClientTeamData.update(payload))
+                .playToClient(TeamActionResultPayload.TYPE, TeamActionResultPayload.STREAM_CODEC,
+                        (payload, context) -> ClientTeamData.complete(payload))
+                .playToClient(PersonalDataStatusPayload.TYPE, PersonalDataStatusPayload.STREAM_CODEC,
+                        (payload, context) -> ClientQuestData.setDataStatus(payload.ready(), payload.message()))
                 .playToClient(QuestSyncPayload.TYPE, QuestSyncPayload.STREAM_CODEC,
                         (payload, context) -> ClientQuestData.update(payload.sections(), payload.user()))
                 .playToClient(QuestViewSyncPayload.TYPE, QuestViewSyncPayload.STREAM_CODEC,
@@ -117,7 +128,7 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
                 .playToServer(QuestScreenOpenedPayload.TYPE, QuestScreenOpenedPayload.STREAM_CODEC, (payload, context) -> {
                     if (context.player() instanceof ServerPlayer player) {
                         payload.handle(player);
-                        PacketDistributor.sendToPlayer(player, QuestSyncPayload.create(player));
+                        syncQuests(player);
                     }
                 })
                 .playToServer(InteractQuestObjectivePayload.TYPE, InteractQuestObjectivePayload.STREAM_CODEC, (payload, context) -> {
@@ -137,13 +148,13 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
         if (event.getPlayer() != null) {
             ServerPlayer player = event.getPlayer();
             if (getUser(player.getUUID()).isPresent()) {
-                PacketDistributor.sendToPlayer(player, QuestSyncPayload.create(player));
+                syncQuests(player);
             }
         } else {
             for (ServerPlayer player : event.getPlayerList().getPlayers()) {
                 syncServerConfig(player);
                 restoreAttributeRewards(player);
-                PacketDistributor.sendToPlayer(player, QuestSyncPayload.create(player));
+                syncQuests(player);
             }
         }
     }
@@ -160,7 +171,7 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
         if (event.getEntity() instanceof ServerPlayer player) {
             onPlayerLogin(player);
             syncServerConfig(player);
-            PacketDistributor.sendToPlayer(player, QuestSyncPayload.create(player));
+            syncQuests(player);
         }
     }
 

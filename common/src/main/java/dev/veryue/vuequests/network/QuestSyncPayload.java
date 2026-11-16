@@ -33,14 +33,11 @@ public record QuestSyncPayload(List<Section> sections, PlayerUser user) implemen
     }
 
     static PlayerUser snapshotUser(ServerPlayer player) {
-        User source = VeryUEMod.INSTANCE.getUser(player.getUUID()).orElseGet(() -> new PlayerUser(player.getUUID()));
-        if (!(source instanceof PlayerUser user)) {
-            throw new IllegalStateException("Quest sync currently requires a PlayerUser.");
-        }
-
+        User source = VeryUEMod.INSTANCE.getUser(player.getUUID()).orElseThrow(() -> new IllegalStateException("Personal quest data is unavailable for " + player.getUUID()));
         // Detach typed progress values before the network thread encodes the payload.
         var ops = player.registryAccess().createSerializationContext(NbtOps.INSTANCE);
-        return PlayerUser.CODEC.encodeStart(ops, user)
+        PlayerUser view = source.getClientPlayerUser(player.getUUID());
+        return PlayerUser.CODEC.encodeStart(ops, view)
                 .flatMap(encoded -> PlayerUser.CODEC.parse(ops, encoded)).getOrThrow();
     }
 

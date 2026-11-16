@@ -1,9 +1,10 @@
-package dev.veryue.vuequests.client.widget;
+package dev.veryue.vuequests.client.widget.panels;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.veryue.vuequests.client.ClientQuestData;
-import dev.veryue.vuequests.models.objective.QuestObjective;
+import dev.veryue.vuequests.client.widget.QuestWidgetSprites;
 import dev.veryue.vuequests.models.objective.ObjectiveAcknowledge;
+import dev.veryue.vuequests.models.objective.QuestObjective;
 import dev.veryue.vuequests.models.quest.Quest;
 import dev.veryue.vuequests.models.reward.RewardItem;
 import dev.veryue.vuequests.models.reward.RewardType;

@@ -467,8 +467,8 @@ public class QuestApiVerification {
         check(QuestObjectiveProgress.CODEC.encodeStart(JsonOps.INSTANCE, unsupported).error().isPresent(),
                 "Legacy registrations require a progress codec before saving a populated progress value");
 
-        FlatFileUserLoader loader = new FlatFileUserLoader(Files.createTempDirectory(Path.of("build"), "user-progress-"));
-        check(loader.saveUser(player), "Player file storage writes typed objective progress");
+        FlatFileUserLoader<PlayerUser> loader = new FlatFileUserLoader<>(Files.createTempDirectory(Path.of("build"), "user-progress-"), "users", PlayerUser.CODEC);
+        loader.saveUser(player);
         User loaded = loader.loadUser(player.getUuid());
         check(loaded.incrementObjectiveProgress(collect, context).getCurrentProgress().equals(2)
                         && loaded.incrementObjectiveProgress(text, context).getCurrentProgress().equals("pending"),

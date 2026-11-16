@@ -3,19 +3,18 @@ package dev.veryue.vuequests.client.screens;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.veryue.vuequests.client.ClientQuestData;
 import dev.veryue.vuequests.client.QuestCanvasKeyMappings;
-import dev.veryue.vuequests.client.widget.QuestCanvas;
-import dev.veryue.vuequests.client.widget.QuestSectionPanel;
-import dev.veryue.vuequests.client.widget.QuestSectionToggle;
 import dev.veryue.vuequests.client.widget.QuestWidgetSprites;
+import dev.veryue.vuequests.client.widget.controls.QuestSectionToggle;
+import dev.veryue.vuequests.client.widget.panels.QuestCanvas;
+import dev.veryue.vuequests.client.widget.panels.QuestSectionPanel;
 import dev.veryue.vuequests.data.quest.QuestData;
 import dev.veryue.vuequests.models.quest.Quest;
 import dev.veryue.vuequests.models.quest.Section;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.events.GuiEventListener;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.util.Mth;
 import net.minecraft.util.profiling.ProfilerFiller;
 
@@ -26,7 +25,7 @@ import java.util.function.Consumer;
 
 import static dev.veryue.vuequests.VeryUEConstants.MOD_ID;
 
-public class QuestScreen extends Screen {
+public class GraphQuestScreen extends QuestMenuScreen {
 
     private final Consumer<CustomPacketPayload> sendToServer;
     private final QuestCanvasKeyMappings canvasKeys;
@@ -36,14 +35,16 @@ public class QuestScreen extends Screen {
     private QuestData data;
     private UUID selectedSection;
 
-    public QuestScreen(Consumer<CustomPacketPayload> sendToServer, QuestCanvasKeyMappings canvasKeys) {
-        super(Component.translatable("screen." + MOD_ID + ".quest_menu"));
+    public GraphQuestScreen(Consumer<CustomPacketPayload> sendToServer, QuestCanvasKeyMappings canvasKeys,
+                            QuestMenuNavigation navigation) {
+        super(Component.translatable("screen." + MOD_ID + ".quest_menu"), navigation);
         this.sendToServer = sendToServer;
         this.canvasKeys = canvasKeys;
     }
 
     @Override
     protected void init() {
+        super.init();
         sectionPanel = addWidget(new QuestSectionPanel(font, this::selectSection));
         sectionPanel.setTabOrderGroup(0);
         sectionToggle = addWidget(new QuestSectionToggle(font, button -> toggleSections()));
@@ -60,12 +61,19 @@ public class QuestScreen extends Screen {
 
     @Override
     protected void repositionElements() {
+        positionHeader(0, 0, Math.max(1, width));
+        int contentY = HEADER_HEIGHT;
+        int contentHeight = Math.max(1, height - contentY);
+        panelX = 0;
+        panelY = contentY;
+        panelWidth = width;
+        panelHeight = contentHeight;
         int desiredWidth = sectionPanel.isCollapsed() ? QuestSectionPanel.COLLAPSED_WIDTH : Mth.clamp(width / 4, 100, 220);
         int sidebarWidth = Math.min(width / 2, desiredWidth);
-        sectionPanel.setRectangle(sidebarWidth, height, 0, 0);
-        canvas.setRectangle(width - sidebarWidth, height, sidebarWidth, 0);
-        int toggleHeight = Math.max(0, Math.min(height * 2 / 3, height - 2 * QuestWidgetSprites.HEADER_HEIGHT));
-        sectionToggle.setRectangle(sectionToggle.getWidth(), toggleHeight, sidebarWidth, (height - toggleHeight) / 2);
+        sectionPanel.setRectangle(sidebarWidth, contentHeight, 0, contentY);
+        canvas.setRectangle(width - sidebarWidth, contentHeight, sidebarWidth, contentY);
+        int toggleHeight = Math.max(0, Math.min(contentHeight * 2 / 3, contentHeight - 2 * QuestWidgetSprites.HEADER_HEIGHT));
+        sectionToggle.setRectangle(sectionToggle.getWidth(), toggleHeight, sidebarWidth, contentY + (contentHeight - toggleHeight) / 2);
         sectionToggle.visible = toggleHeight > 0;
         canvas.setSidebarLayout(sectionPanel.headerWidth() - sidebarWidth, sectionToggle.getRectangle());
     }
@@ -106,7 +114,8 @@ public class QuestScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        return canvas.handleShortcut(InputConstants.getKey(keyCode, scanCode))
+        return handleMenuShortcut(InputConstants.getKey(keyCode, scanCode))
+                || canvas.handleShortcut(InputConstants.getKey(keyCode, scanCode))
                 || super.keyPressed(keyCode, scanCode, modifiers);
     }
 
@@ -146,13 +155,10 @@ public class QuestScreen extends Screen {
         profiler.push("vanilla_background");
         try {
             super.renderBackground(graphics, mouseX, mouseY, partialTick);
+            profiler.popPush("header_background");
+            QuestWidgetSprites.blit(graphics, QuestWidgetSprites.CANVAS, headerX, headerY, headerWidth, HEADER_HEIGHT);
         } finally {
             profiler.pop();
         }
-    }
-
-    @Override
-    public boolean isPauseScreen() {
-        return false;
     }
 }

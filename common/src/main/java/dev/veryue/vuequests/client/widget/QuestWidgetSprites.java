@@ -16,7 +16,7 @@ public class QuestWidgetSprites {
 
     public static final int HEADER_HEIGHT = 17;
     public static final float TEXTURE_ALPHA = 0.6F;
-    public static final ResourceLocation SECTION_PANEL = sprite("section_panel");
+    public static final ResourceLocation SECTION_PANEL = sprite("graph_sidebar");
     public static final ResourceLocation CANVAS = sprite("canvas");
     public static final ResourceLocation DETAILS_PANEL = sprite("details_panel");
     public static final ResourceLocation CLOSE = sprite("close");

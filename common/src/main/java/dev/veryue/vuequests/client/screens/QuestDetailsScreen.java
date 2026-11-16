@@ -2,18 +2,18 @@ package dev.veryue.vuequests.client.screens;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import dev.veryue.vuequests.client.util.GuiSpriteRenderer;
-import dev.veryue.vuequests.client.widget.QuestDetailsPanel;
 import dev.veryue.vuequests.client.widget.QuestWidgetSprites;
+import dev.veryue.vuequests.client.widget.panels.QuestDetailsPanel;
 import dev.veryue.vuequests.models.quest.Quest;
 import dev.veryue.vuequests.network.ClaimQuestRewardPayload;
 import dev.veryue.vuequests.network.InteractQuestObjectivePayload;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.ImageButton;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.components.WidgetSprites;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 import java.util.function.Consumer;
 
@@ -24,7 +24,7 @@ public class QuestDetailsScreen extends Screen {
     private static final int PADDING = 8;
     private static final int CLOSE_SIZE = 16;
 
-    private final QuestScreen parent;
+    private final GraphQuestScreen parent;
     private final Quest quest;
     private final Consumer<CustomPacketPayload> sendToServer;
     private QuestDetailsPanel details;
@@ -34,7 +34,7 @@ public class QuestDetailsScreen extends Screen {
     private int panelWidth;
     private int panelHeight;
 
-    public QuestDetailsScreen(QuestScreen parent, Quest quest, Consumer<CustomPacketPayload> sendToServer) {
+    public QuestDetailsScreen(GraphQuestScreen parent, Quest quest, Consumer<CustomPacketPayload> sendToServer) {
         super(quest.display().title());
         this.parent = parent;
         this.quest = quest;

@@ -52,3 +52,7 @@ tasks.register('verifyQuestApi', JavaExec) {
 tasks.named('check') {
     dependsOn tasks.named('verifyQuestApi')
 }
+
+tasks.named('test') {
+    failOnNoDiscoveredTests = false
+}

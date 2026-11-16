@@ -4,68 +4,67 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
 import dev.veryue.vuequests.VeryUEConstants;
-import dev.veryue.vuequests.exceptions.PlayerDoesNotExistException;
-import dev.veryue.vuequests.models.PlayerUser;
+import dev.veryue.vuequests.exceptions.UserDoesNotExitException;
 import dev.veryue.vuequests.models.User;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.storage.LevelResource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Reader;
-import java.nio.file.AtomicMoveNotSupportedException;
-import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.*;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Supplier;
 
-public class FlatFileUserLoader extends UserLoader {
-
+public class FlatFileUserLoader<T extends User> extends UserLoader<T> {
     private static final Gson JSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final Logger LOGGER = LoggerFactory.getLogger(VeryUEConstants.MOD_ID);
+    private final Path directory;
+    private final Codec<T> codec;
+    private final Supplier<DynamicOps<JsonElement>> ops;
 
-    private final Path usersDirectory;
-
-    public FlatFileUserLoader(MinecraftServer server) {
-        this(server.getWorldPath(LevelResource.ROOT));
+    public FlatFileUserLoader(MinecraftServer server, String folderName, Codec<T> codec) {
+        this(server.getWorldPath(LevelResource.ROOT), folderName, codec,
+                () -> server.registryAccess().createSerializationContext(JsonOps.INSTANCE));
     }
 
-    public FlatFileUserLoader(Path worldDirectory) {
-        usersDirectory = worldDirectory.resolve(VeryUEConstants.MOD_ID).resolve("users");
+    public FlatFileUserLoader(Path worldDirectory, String folderName, Codec<T> codec) {
+        this(worldDirectory, folderName, codec, () -> JsonOps.INSTANCE);
+    }
+
+    public FlatFileUserLoader(Path worldDirectory, String folderName, Codec<T> codec, Supplier<DynamicOps<JsonElement>> ops) {
+        directory = worldDirectory.resolve(VeryUEConstants.MOD_ID).resolve(folderName);
+        this.codec = codec;
+        this.ops = ops;
     }
 
     @Override
-    public User loadUser(UUID uuid) throws PlayerDoesNotExistException, IllegalStateException {
+    public T loadUser(UUID uuid) throws UserDoesNotExitException {
         Path path = userPath(uuid);
         try (Reader reader = Files.newBufferedReader(path)) {
-            PlayerUser user = PlayerUser.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseReader(reader)).getOrThrow();
+            T user = codec.parse(ops.get(), JsonParser.parseReader(reader)).getOrThrow();
             if (!uuid.equals(user.getUuid())) {
-                throw new IllegalArgumentException("Expected user UUID " + uuid + ", found " + user.getUuid());
+                throw new IllegalArgumentException("Expected UUID " + uuid + ", found " + user.getUuid());
             }
             return user;
         } catch (NoSuchFileException exception) {
-            throw new PlayerDoesNotExistException(uuid, exception);
+            throw new UserDoesNotExitException(uuid, exception);
         } catch (IOException | RuntimeException exception) {
-            throw new IllegalStateException("Could not load user data from " + path, exception);
+            throw new IllegalStateException("Could not load quest data for " + uuid + " from " + path, exception);
         }
     }
 
     @Override
-    public boolean saveUser(User user) {
-        if (!(user instanceof PlayerUser player)) {
-            LOGGER.error("Player file storage does not support user type {}", user.getClass().getSimpleName());
-            return false;
-        }
-
-        Path path = userPath(player.getUuid());
+    public void saveUser(T user) {
+        Path path = userPath(user.getUuid());
         try {
-            JsonElement json = PlayerUser.CODEC.encodeStart(JsonOps.INSTANCE, player).getOrThrow();
-            Files.createDirectories(usersDirectory);
-            Path temporary = Files.createTempFile(usersDirectory, "user-", ".tmp");
+            JsonElement json = codec.encodeStart(ops.get(), user).getOrThrow();
+            Files.createDirectories(directory);
+            Path temporary = Files.createTempFile(directory, "user-", ".tmp");
             try {
                 Files.writeString(temporary, JSON.toJson(json) + "\n");
                 try {
@@ -76,14 +75,42 @@ public class FlatFileUserLoader extends UserLoader {
             } finally {
                 Files.deleteIfExists(temporary);
             }
-            return true;
         } catch (IOException | RuntimeException exception) {
-            LOGGER.error("Could not save user data to {}", path, exception);
-            return false;
+            throw new IllegalStateException("Could not save quest data for " + user.getUuid() + " to " + path, exception);
         }
     }
 
-    private Path userPath(UUID uuid) {
-        return usersDirectory.resolve(uuid.toString() + ".json");
+    @Override
+    public void deleteUser(UUID uuid) {
+        try {
+            Files.delete(userPath(uuid));
+        } catch (IOException | RuntimeException exception) {
+            throw new IllegalStateException("Could not delete quest data for " + uuid + " at " + userPath(uuid), exception);
+        }
+    }
+
+    @Override
+    public Map<UUID, T> loadAllUsers() {
+        Map<UUID, T> users = new HashMap<>();
+        try (var files = Files.newDirectoryStream(directory, "*.json")) {
+            for (Path file : files) {
+                String name = file.getFileName().toString();
+                UUID uuid = UUID.fromString(name.substring(0, name.length() - 5));
+                T user = loadUser(uuid);
+                if (users.putIfAbsent(user.getUuid(), user) != null) {
+                    throw new IllegalStateException("Duplicate quest data UUID " + uuid + " at " + file);
+                }
+            }
+        } catch (NoSuchFileException exception) {
+            return users;
+        } catch (IOException | UserDoesNotExitException | RuntimeException exception) {
+            throw new IllegalStateException("Could not enumerate quest data in " + directory, exception);
+        }
+        return users;
+    }
+
+    @Override
+    public Path userPath(UUID uuid) {
+        return directory.resolve(uuid + ".json");
     }
 }

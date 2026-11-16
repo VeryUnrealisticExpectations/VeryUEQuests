@@ -1,9 +1,10 @@
-package dev.veryue.vuequests.client.widget;
+package dev.veryue.vuequests.client.widget.panels;
 
+import dev.veryue.vuequests.client.widget.QuestWidgetSprites;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ComponentPath;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.AbstractContainerWidget;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.narration.NarratableEntry;

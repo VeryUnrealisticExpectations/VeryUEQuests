@@ -1,41 +1,37 @@
 package dev.veryue.vuequests.client.screens;
 
 import dev.veryue.vuequests.client.ClientQuestData;
-import dev.veryue.vuequests.client.widget.LinearQuestDetails;
-import dev.veryue.vuequests.client.widget.LinearQuestList;
 import dev.veryue.vuequests.client.widget.LinearQuestSprites;
+import dev.veryue.vuequests.client.widget.lists.LinearQuestList;
+import dev.veryue.vuequests.client.widget.panels.LinearQuestDetails;
 import dev.veryue.vuequests.data.quest.QuestData;
 import dev.veryue.vuequests.models.PlayerUser;
 import dev.veryue.vuequests.network.ClaimQuestRewardPayload;
 import dev.veryue.vuequests.network.InteractQuestObjectivePayload;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.util.profiling.ProfilerFiller;
 
 import java.util.function.Consumer;
 
-public class LinearQuestScreen extends Screen {
+public class LinearQuestScreen extends QuestMenuScreen {
 
     private final Consumer<CustomPacketPayload> sendToServer;
     private LinearQuestList questList;
     private LinearQuestDetails details;
     private QuestData data;
     private PlayerUser user;
-    private int panelX;
-    private int panelY;
-    private int panelWidth;
-    private int panelHeight;
     private int dividerX;
 
-    public LinearQuestScreen(Consumer<CustomPacketPayload> sendToServer) {
-        super(Component.translatable("screen.vuequests.quest_menu"));
+    public LinearQuestScreen(Consumer<CustomPacketPayload> sendToServer, QuestMenuNavigation navigation) {
+        super(Component.translatable("screen.vuequests.quest_menu"), navigation);
         this.sendToServer = sendToServer;
     }
 
     @Override
     protected void init() {
+        super.init();
         if (details == null) {
             details = new LinearQuestDetails(font, this::handleComponentClicked,
                     reward -> sendToServer.accept(new ClaimQuestRewardPayload(details.getQuest().questId(), reward.getRewardId())),
@@ -51,10 +47,7 @@ public class LinearQuestScreen extends Screen {
 
     @Override
     protected void repositionElements() {
-        panelWidth = Math.max(1, Math.min(960, width * 4 / 5));
-        panelHeight = Math.max(1, Math.min(540, height * 4 / 5));
-        panelX = (width - panelWidth) / 2;
-        panelY = (height - panelHeight) / 2;
+        super.repositionElements();
         dividerX = panelX + panelWidth / 3;
         int padding = Math.min(12, Math.max(4, panelWidth / 45));
         questList.setRectangle(Math.max(1, dividerX - panelX - 2 * padding), Math.max(1, panelHeight - 2 * padding),
@@ -99,10 +92,6 @@ public class LinearQuestScreen extends Screen {
         } finally {
             profiler.pop();
         }
-    }
-
-    @Override
-    public boolean isPauseScreen() {
-        return false;
+        LinearQuestSprites.background(graphics, headerX, headerY, headerWidth, HEADER_HEIGHT);
     }
 }

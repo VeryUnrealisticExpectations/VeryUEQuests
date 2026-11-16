@@ -1,8 +1,10 @@
-package dev.veryue.vuequests.client.widget;
+package dev.veryue.vuequests.client.widget.panels;
 
 import dev.veryue.vuequests.client.ClientQuestData;
 import dev.veryue.vuequests.client.util.ClientRenderUtil;
 import dev.veryue.vuequests.client.util.RenderAnimation;
+import dev.veryue.vuequests.client.widget.LinearQuestSprites;
+import dev.veryue.vuequests.client.widget.QuestWidgetSprites;
 import dev.veryue.vuequests.models.objective.ObjectiveAcknowledge;
 import dev.veryue.vuequests.models.objective.QuestObjective;
 import dev.veryue.vuequests.models.quest.Quest;
