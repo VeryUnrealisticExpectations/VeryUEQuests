@@ -1831,6 +1831,12 @@
           "modLoaded": {
             "type": "string"
           },
+          "priority": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0,
+            "description": "Section display order. Smaller numbers appear first; equal priorities sort by name."
+          },
           "quests": {
             "type": "array",
             "items": {

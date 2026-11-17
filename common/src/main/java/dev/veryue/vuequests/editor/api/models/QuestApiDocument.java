@@ -82,7 +82,7 @@ public class QuestApiDocument {
 
     private void replace(Section section, List<Quest> quests) {
         sections.put(section.sectionUUID(), new Section(section.sectionUUID(), section.name(), section.icon(),
-                section.disabled(), section.modLoaded(), List.copyOf(quests)));
+                section.disabled(), section.modLoaded(), section.priority(), quests));
         changed.add(section.sectionUUID());
     }
 

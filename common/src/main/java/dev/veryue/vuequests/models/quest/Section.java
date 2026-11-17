@@ -12,7 +12,7 @@ import net.minecraft.world.item.Item;
 import java.util.List;
 import java.util.UUID;
 
-public record Section(UUID sectionUUID, Component name, Item icon, boolean disabled, String modLoaded,
+public record Section(UUID sectionUUID, Component name, Item icon, boolean disabled, String modLoaded, int priority,
                       List<Quest> questList) {
 
     public static final MapCodec<String> MOD_LOADED_CODEC = Codec.STRING.optionalFieldOf("modLoaded", "");
@@ -23,9 +23,13 @@ public record Section(UUID sectionUUID, Component name, Item icon, boolean disab
             BuiltInRegistries.ITEM.byNameCodec().fieldOf("icon").forGetter(Section::icon),
             Codec.BOOL.fieldOf("disabled").forGetter(Section::disabled),
             MOD_LOADED_CODEC.forGetter(Section::modLoaded),
+            Codec.INT.optionalFieldOf("priority", 0).forGetter(Section::priority),
             Quest.CODEC.listOf().optionalFieldOf("quests", List.of()).forGetter(Section::questList)
     ).apply(instance, Section::new));
 
+    public Section(UUID sectionUUID, Component name, Item icon, boolean disabled, String modLoaded, List<Quest> questList) {
+        this(sectionUUID, name, icon, disabled, modLoaded, 0, questList);
+    }
 
     public Section(UUID sectionUUID, Component name, Item icon, List<Quest> questList) {
         this(sectionUUID, name, icon, false, questList);

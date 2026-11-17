@@ -97,6 +97,7 @@ export interface Section {
   icon: string
   disabled: boolean
   modLoaded: string
+  priority: number
   quests: Quest[]
   [key: string]: unknown
 }

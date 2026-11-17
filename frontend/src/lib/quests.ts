@@ -1,4 +1,5 @@
-import type { Position, Quest, Section, Task } from '../types.ts'
+import type { ComponentTextContext, Position, Quest, Section, Task } from '../types.ts'
+import { plainComponentText } from './components.ts'
 
 export const DEFAULT_QUEST_BACKGROUND = 'vuequests:quest_backgrounds/background_icon_square'
 
@@ -6,7 +7,26 @@ export const allQuests = (sections: Section[]) => sections.flatMap(section => se
 export const labelFor = (id: string) => id.split(':').at(-1)!.replaceAll('_', ' ').replaceAll('/', ' / ')
 
 export function newSection(): Section {
-  return { section_id: crypto.randomUUID(), name: 'New section', icon: 'minecraft:book', disabled: false, modLoaded: '', quests: [] }
+  return { section_id: crypto.randomUUID(), name: 'New section', icon: 'minecraft:book', disabled: false, modLoaded: '', priority: 0, quests: [] }
+}
+
+export function sortSections(sections: Section[], textContext: ComponentTextContext): Section[] {
+  return [...sections].sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0)
+    || plainComponentText(a.name, textContext).localeCompare(plainComponentText(b.name, textContext), undefined, { sensitivity: 'accent' })
+    || a.section_id.localeCompare(b.section_id))
+}
+
+export function moveSection(sections: Section[], id: string, targetId: string, position: 'before' | 'after', textContext: ComponentTextContext): Section[] {
+  const ordered = sortSections(sections, textContext)
+  const index = ordered.findIndex(section => section.section_id === id)
+  const anchor = ordered.findIndex(section => section.section_id === targetId)
+  if (index < 0 || anchor < 0 || id === targetId) return sections
+  const insertion = anchor + (position === 'after' ? 1 : 0)
+  const target = insertion - (index < insertion ? 1 : 0)
+  if (index === target) return sections
+  const [moved] = ordered.splice(index, 1)
+  ordered.splice(target, 0, moved)
+  return ordered.map((section, priority) => ({ ...section, priority }))
 }
 
 export function newQuest(sectionId: string, position: Position): Quest {
@@ -108,6 +128,6 @@ export function removeQuests(sections: Section[], ids: Set<string>): Section[] {
 }
 
 export function normalizeSections(sections: Section[]): Section[] {
-  return sections.map(section => ({ ...section, modLoaded: section.modLoaded ?? '', disabled: section.disabled ?? false,
+  return sections.map(section => ({ ...section, modLoaded: section.modLoaded ?? '', disabled: section.disabled ?? false, priority: section.priority ?? 0,
     quests: (section.quests ?? []).map(quest => ({ ...quest, objectives: quest.objectives ?? [], rewards: quest.rewards ?? [], dependencies: quest.dependencies ?? [] })) }))
 }
