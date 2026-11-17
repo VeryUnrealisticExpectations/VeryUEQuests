@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { itemThumbnail } from '../lib/itemRenderer.ts'
 import { ThumbnailQueueFullError } from '../lib/thumbnailScheduler.ts'
+import { SquareSpinner } from './SquareSpinner.tsx'
 
 export function ItemIcon({ id, epoch, kind = 'item' }: { id: string; epoch: number; kind?: 'item' | 'block' }) {
   const [thumbnail, setThumbnail] = useState<{ key: string; url?: string; failed?: boolean }>()
@@ -27,6 +28,6 @@ export function ItemIcon({ id, epoch, kind = 'item' }: { id: string; epoch: numb
   const current = thumbnail?.key === key ? thumbnail : undefined
   return <span ref={ref} className={`item-icon ${current?.url ? '' : 'icon-placeholder'} ${current?.failed ? 'unavailable' : ''}`}
     title={current?.failed ? `Model unavailable: ${id}` : undefined} aria-hidden="true">
-    {current?.url ? <img src={current.url} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : current?.failed ? '?' : '·'}
+    {current?.url ? <img src={current.url} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : current?.failed ? '?' : <SquareSpinner />}
   </span>
 }

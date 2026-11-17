@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react'
 import type { Position } from './types.ts'
 import { useQuestEditor } from './hooks/useQuestEditor.ts'
 import { useEditorResources } from './hooks/useEditorResources.ts'
-import { allQuests, toggleQuestDependency, removeQuests, updateQuest } from './lib/quests.ts'
+import { allQuests, toggleQuestDependency, removeQuests, updateQuest, sortSections, moveSection } from './lib/quests.ts'
 import { gameTextureUrl } from './lib/terrain.ts'
 import { rendererEpoch, setRendererAssets, subscribeRenderer } from './lib/itemRenderer.ts'
 import { EditorToolbar } from './components/EditorToolbar.tsx'
@@ -22,7 +22,7 @@ export default function App() {
   const assetEpoch = useSyncExternalStore(subscribeRenderer, rendererEpoch, rendererEpoch)
   const snapshot = editor.snapshot
   const textContext = useEditorResources(snapshot?.assetRevision ?? '', !!snapshot)
-  const sections = snapshot?.sections ?? []
+  const sections = sortSections(snapshot?.sections ?? [], textContext)
   const section = sections.find(entry => entry.section_id === selectedSection) ?? sections[0]
   const busy = editor.loading || editor.saving
   useEffect(() => {
@@ -52,7 +52,11 @@ export default function App() {
     <div className="editor-workspace">
       <SectionSidebar sections={sections} selected={section?.section_id} epoch={assetEpoch} textContext={textContext} disabled={busy || !snapshot}
         onSelect={id => { setSelectedSection(id); setSelectedQuest(undefined) }} onAdd={() => setEditing({ kind: 'section' })}
-        onEdit={id => setEditing({ kind: 'section', id })} />
+        onEdit={id => setEditing({ kind: 'section', id })}
+        onMove={(id, targetId, position) => {
+          setSelectedSection(section?.section_id)
+          editor.edit(entries => moveSection(entries, id, targetId, position, textContext))
+        }} />
       <QuestCanvas key={section?.section_id ?? 'empty'} section={section} selected={selectedQuest} epoch={assetEpoch} assetRevision={textContext.assetRevision} textContext={textContext} disabled={busy || !snapshot}
         onSelect={setSelectedQuest} onEdit={id => setEditing({ kind: 'quest', id, position: { x: 0, y: 0 } })}
         onAdd={position => setEditing({ kind: 'quest', position })}
@@ -66,7 +70,8 @@ export default function App() {
       section={sections.find(entry => entry.section_id === editing.id)} onClose={() => setEditing(undefined)}
       onApply={updated => {
         editor.edit(entries => entries.some(entry => entry.section_id === updated.section_id)
-          ? entries.map(entry => entry.section_id === updated.section_id ? updated : entry) : [...entries, updated])
+          ? entries.map(entry => entry.section_id === updated.section_id ? updated : entry)
+          : [...sortSections(entries, textContext), updated].map((entry, priority) => ({ ...entry, priority })))
         setSelectedSection(updated.section_id); setSelectedQuest(undefined); setEditing(undefined)
       }} onDelete={editing.id ? () => {
         if (!window.confirm('Delete this section and all of its quests?')) return

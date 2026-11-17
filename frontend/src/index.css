@@ -55,8 +55,13 @@ h3 { font-size: 15px; font-weight: 600; }
 .sidebar-heading { padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--border); }
 .sidebar-heading h2 span { font-size: 12px; color: var(--muted); padding-left: 4px; }
 .section-list { flex: 1; min-height: 0; overflow-y: auto; padding: 8px; }
-.section-row { display: flex; align-items: center; gap: 4px; border: 1px solid transparent; margin-bottom: 4px; }
+.section-row { position: relative; display: flex; align-items: center; gap: 4px; border: 1px solid transparent; margin-bottom: 4px; }
 .section-row.selected { background: #12170ab8; border-color: #aea784; }
+.section-row[draggable="true"], .section-row[draggable="true"] .section-select { cursor: grab; }
+.section-row.is-dragging { opacity: .45; }
+.section-row[data-drop-position]::after { content: ''; position: absolute; left: 0; right: 0; height: 2px; background: var(--gold); pointer-events: none; z-index: 1; }
+.section-row[data-drop-position="before"]::after { top: -3px; }
+.section-row[data-drop-position="after"]::after { bottom: -3px; }
 .section-select { min-width: 0; flex: 1; gap: 8px; padding: 10px 8px; white-space: normal; background: #0003; border: none; box-shadow: none; }
 .section-select > span { min-width: 0; flex: 1; }
 .section-select strong { display: block; overflow-wrap: anywhere; font-size: 13px; font-weight: 500; }
@@ -94,6 +99,16 @@ h3 { font-size: 15px; font-weight: 600; }
 .item-icon { display: block; object-fit: contain; image-rendering: pixelated; }
 .icon-placeholder { display: grid; place-items: center; color: #fff; font-size: 22px; background: #22271e44; }
 .icon-placeholder.unavailable { font-size: 16px; color: #fff; }
+.square-spinner { display: block; width: 75%; height: 75%; fill: #858585; }
+.square-spinner rect { animation: square-spinner-shade 1.2s linear infinite; }
+@keyframes square-spinner-shade {
+  0%, 100% { fill: #d0d0d0; }
+  66.667%, 83.333% { fill: #555; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .square-spinner rect { animation: none; }
+  .square-spinner rect:first-child { fill: #d0d0d0; }
+}
 .canvas-empty { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; cursor: default; width: min(85%, 400px); padding: 20px; border: 2px solid #777868; }
 .canvas-empty h3 { font-size: 20px; font-weight: 500; }
 .canvas-empty p { margin: 12px 0 16px; font-size: 13px; color: var(--muted); }
