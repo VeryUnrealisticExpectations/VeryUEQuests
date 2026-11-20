@@ -144,7 +144,7 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
                 .playToServer(QuestScreenOpenedPayload.TYPE, QuestScreenOpenedPayload.STREAM_CODEC, (payload, context) -> {
                     if (context.player() instanceof ServerPlayer player) {
                         payload.handle(player);
-                        syncQuestScreen(player, player.connection.hasChannel(QuestProgressSyncPayload.TYPE));
+                        syncQuests(player);
                     }
                 })
                 .playToServer(InteractQuestObjectivePayload.TYPE, InteractQuestObjectivePayload.STREAM_CODEC, (payload, context) -> {

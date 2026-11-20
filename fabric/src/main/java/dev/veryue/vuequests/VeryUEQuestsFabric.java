@@ -68,9 +68,8 @@ public class VeryUEQuestsFabric extends VeryUEMod implements ModInitializer {
         });
         ServerPlayNetworking.registerGlobalReceiver(QuestScreenOpenedPayload.TYPE,
                 (payload, context) -> {
-                    ServerPlayer player = context.player();
-                    payload.handle(player);
-                    syncQuestScreen(player, ServerPlayNetworking.canSend(player, QuestProgressSyncPayload.TYPE));
+                    payload.handle(context.player());
+                    syncQuests(context.player());
                 });
         ServerPlayNetworking.registerGlobalReceiver(ClaimQuestRewardPayload.TYPE, (payload, context) -> {
             ServerPlayer player = context.player();

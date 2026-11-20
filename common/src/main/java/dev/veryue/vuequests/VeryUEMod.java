@@ -86,25 +86,12 @@ public abstract class VeryUEMod {
 
     protected void syncQuests(ServerPlayer player) {
         syncTeamState(player);
-        if (getUserManager().isReady(player.getUUID())) {
-            sendPayload(player, QuestSyncPayload.create(player));
-        }
-    }
-
-    protected void syncQuestScreen(ServerPlayer player, boolean supportsProgressSync) {
-        if (supportsProgressSync) {
-            syncTeamState(player);
-            sendProgress(player);
-        } else {
-            syncQuests(player);
-        }
+        if (getUserManager().isReady(player.getUUID())) sendPayload(player, QuestSyncPayload.create(player));
     }
 
     public void syncTeamState(ServerPlayer player) {
         UserManager manager = getUserManager();
-        if (manager.hasFatalFailure()) {
-            return;
-        }
+        if (manager.hasFatalFailure()) return;
         boolean ready = manager.isReady(player.getUUID());
         sendPayload(player, new PersonalDataStatusPayload(ready, ready ? Component.empty() : manager.dataStatus(player.getUUID())));
         sendPayload(player, TeamSyncPayload.create(player));
@@ -117,9 +104,7 @@ public abstract class VeryUEMod {
             refreshUsers(affected);
             for (UUID id : affected) {
                 ServerPlayer member = player.level().getServer().getPlayerList().getPlayer(id);
-                if (member != null) {
-                    syncTeamState(member);
-                }
+                if (member != null) syncTeamState(member);
             }
             sendPayload(player, new TeamActionResultPayload(request.requestId(), true, Component.translatable("team.vuequests.action_success")));
         } catch (TeamActionException exception) {
@@ -139,9 +124,7 @@ public abstract class VeryUEMod {
     public void unloadPlayer(UUID playerId) {
         lastTravelPositions.remove(playerId);
         lastExperienceLevels.remove(playerId);
-        if (userManager != null) {
-            userManager.unloadPlayer(playerId);
-        }
+        if (userManager != null) userManager.unloadPlayer(playerId);
     }
 
     public Optional<User> getUser(UUID playerId) {
@@ -178,9 +161,7 @@ public abstract class VeryUEMod {
         getUserManager().getPlayerTeam(player.getUUID()).ifPresent(team -> {
             for (UUID id : team.getMembers().keySet()) {
                 ServerPlayer member = player.level().getServer().getPlayerList().getPlayer(id);
-                if (member != null && member != player) {
-                    syncTeamState(member);
-                }
+                if (member != null && member != player) syncTeamState(member);
             }
         });
     }
@@ -188,9 +169,7 @@ public abstract class VeryUEMod {
     public void restoreProgressRecipientAttributes(ServerPlayer player) {
         for (UUID id : getUserManager().getProgressRecipients(player.getUUID())) {
             ServerPlayer member = player.level().getServer().getPlayerList().getPlayer(id);
-            if (member != null) {
-                restoreAttributeRewards(member);
-            }
+            if (member != null) restoreAttributeRewards(member);
         }
     }
 
@@ -234,9 +213,7 @@ public abstract class VeryUEMod {
     }
 
     protected void sendProgress(ServerPlayer player) {
-        if (getUserManager().isReady(player.getUUID())) {
-            sendPayload(player, QuestProgressSyncPayload.create(player));
-        }
+        if (getUserManager().isReady(player.getUUID())) sendPayload(player, QuestProgressSyncPayload.create(player));
     }
 
     public void onPlayerMoved(ServerPlayer player) {
