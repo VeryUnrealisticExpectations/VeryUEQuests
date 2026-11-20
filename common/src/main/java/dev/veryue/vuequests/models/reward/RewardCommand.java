@@ -6,6 +6,7 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.veryue.vuequests.registry.RewardTypes;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.network.chat.Component;
@@ -53,7 +54,7 @@ public class RewardCommand extends RewardType<String> {
         if (command.startsWith("/")) {
             command = command.substring(1);
         }
-        var source = player.createCommandSourceStack().withPermission(2);
+        CommandSourceStack source = player.createCommandSourceStack().withPermission(2);
         Commands commands = player.server.getCommands();
         var parsed = commands.getDispatcher().parse(command, source);
         if (Commands.getParseException(parsed) != null || ContextChain.tryFlatten(parsed.getContext().build(command)).isEmpty()) {

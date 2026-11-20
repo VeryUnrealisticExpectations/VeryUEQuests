@@ -62,7 +62,9 @@ public class TeamMemberRow extends AbstractContainerWidget {
 
     @Override
     public void setFocused(boolean focused) {
-        if (!focused) setFocused(null);
+        if (!focused) {
+            setFocused(null);
+        }
     }
 
     @Override
@@ -96,6 +98,8 @@ public class TeamMemberRow extends AbstractContainerWidget {
     @Override
     protected void updateWidgetNarration(NarrationElementOutput output) {
         output.add(NarratedElementType.TITLE, getMessage());
-        if (getFocused() instanceof Button control) control.updateNarration(output.nest());
+        if (getFocused() instanceof Button control) {
+            control.updateNarration(output.nest());
+        }
     }
 }

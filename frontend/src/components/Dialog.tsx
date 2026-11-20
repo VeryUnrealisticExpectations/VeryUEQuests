@@ -8,10 +8,14 @@ export function Dialog({ title, titleAside, children, onClose, onEscape, size = 
   const ref = useRef<HTMLDialogElement>(null)
   const [resizeAnchor, setResizeAnchor] = useState<{ top: number; chrome: number }>()
   const anchorResize = () => {
-    if (size === 'wizard' || resizeAnchor || !ref.current) return
+    if (size === 'wizard' || resizeAnchor || !ref.current) {
+      return
+    }
     const bounds = ref.current.getBoundingClientRect()
     const body = ref.current.querySelector('.dialog-body')?.getBoundingClientRect()
-    if (body) setResizeAnchor({ top: bounds.top, chrome: bounds.height - body.height })
+    if (body) {
+      setResizeAnchor({ top: bounds.top, chrome: bounds.height - body.height })
+    }
   }
   useEffect(() => {
     const dialog = ref.current
@@ -21,9 +25,11 @@ export function Dialog({ title, titleAside, children, onClose, onEscape, size = 
   return <dialog ref={ref} className={`editor-dialog${size === 'default' ? '' : ` editor-dialog--${size}`}`} aria-label={title}
     data-resize-anchored={resizeAnchor ? '' : undefined}
     style={resizeAnchor ? { '--dialog-resize-top': `${resizeAnchor.top}px`, '--dialog-chrome': `${resizeAnchor.chrome}px` } as CSSProperties : undefined}
-    onPointerDownCapture={event => { if ((event.target as Element).closest('.component-resize-handle')) anchorResize() }}
+    onPointerDownCapture={event => { if ((event.target as Element).closest('.component-resize-handle')) { anchorResize() } }}
     onKeyDownCapture={event => {
-      if (['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key) && (event.target as Element).closest('.component-resize-handle')) anchorResize()
+      if (['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key) && (event.target as Element).closest('.component-resize-handle')) {
+        anchorResize()
+      }
     }}
     onCancel={event => { event.preventDefault(); (onEscape ?? onClose)() }}>
     <header className="dialog-header"><h2>{title}</h2>{titleAside}<button type="button" className="mc-button mc-button--icon" aria-label="Close dialog" onClick={onClose}>×</button></header>

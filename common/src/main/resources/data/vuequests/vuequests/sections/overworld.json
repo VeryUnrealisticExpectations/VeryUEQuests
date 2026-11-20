@@ -1,6 +1,8 @@
 {
   "section_id": "75faf305-8bee-496f-be2b-1bb2ffb95b39",
-  "name": "Overworld",
+  "name": {
+    "translate": "screen.vuequests.unnamed_section"
+  },
   "icon": "minecraft:grass_block",
   "disabled": false,
   "modLoaded": "",
@@ -14,20 +16,10 @@
       },
       "display": {
         "title": {
-          "text": "The Overworld",
-          "color": "#83c97a",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Enter the Overworld to unlock its equipment, food, combat, and exploration branches."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:grass_block",
         "tooltip": "Enter the Overworld.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_circle"
@@ -51,55 +43,10 @@
       },
       "display": {
         "title": {
-          "text": "Iron tools",
-          "color": "#83c97a",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Carry an "
-            },
-            {
-              "text": "unused",
-              "color": "yellow"
-            },
-            {
-              "text": " "
-            },
-            {
-              "text": "iron pickaxe",
-              "color": "gold"
-            },
-            {
-              "text": " and an "
-            },
-            {
-              "text": "unused",
-              "color": "yellow"
-            },
-            {
-              "text": " "
-            },
-            {
-              "text": "iron axe",
-              "color": "gold"
-            },
-            {
-              "text": ". Both tools are checked in your inventory and "
-            },
-            {
-              "text": "remain yours",
-              "color": "green"
-            },
-            {
-              "text": " after completion."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:iron_pickaxe",
         "tooltip": "Carry an unused iron pickaxe and iron axe.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_square"
@@ -145,27 +92,10 @@
       },
       "display": {
         "title": {
-          "text": "Stone mining",
-          "color": "#83c97a",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Mine "
-            },
-            {
-              "text": "128",
-              "color": "aqua"
-            },
-            {
-              "text": " stone blocks. This uses your existing stone-mining statistic, so earlier mining counts. Cobblestone and deepslate have separate statistics."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:stone",
         "tooltip": "Mine 128 stone blocks in total.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_square"
@@ -202,34 +132,10 @@
       },
       "display": {
         "title": {
-          "text": "Diamond pickaxe",
-          "color": "#83c97a",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Carry an "
-            },
-            {
-              "text": "unused",
-              "color": "yellow"
-            },
-            {
-              "text": " "
-            },
-            {
-              "text": "diamond pickaxe",
-              "color": "gold"
-            },
-            {
-              "text": " in your inventory. This checks possession of the tool, regardless of how you obtained it."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:diamond_pickaxe",
         "tooltip": "Carry an unused diamond pickaxe.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_four_point_star"
@@ -264,27 +170,10 @@
       },
       "display": {
         "title": {
-          "text": "Enchanting",
-          "color": "#83c97a",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Enchant "
-            },
-            {
-              "text": "one",
-              "color": "aqua"
-            },
-            {
-              "text": " item at an enchanting table. Earlier enchantments count toward this statistic. Applying an enchanted book at an anvil does not count."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:enchanting_table",
         "tooltip": "Enchant one item at an enchanting table.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_square"
@@ -321,27 +210,10 @@
       },
       "display": {
         "title": {
-          "text": "Level thirty",
-          "color": "#83c97a",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Reach experience level "
-            },
-            {
-              "text": "30",
-              "color": "aqua"
-            },
-            {
-              "text": " while this quest is available. The objective records the highest level it observes and does not consume experience."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:experience_bottle",
         "tooltip": "Reach experience level 30.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_four_point_star"
@@ -373,27 +245,10 @@
       },
       "display": {
         "title": {
-          "text": "Breeding",
-          "color": "#83c97a",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Breed animals "
-            },
-            {
-              "text": "four",
-              "color": "aqua"
-            },
-            {
-              "text": " times. Any animal species counted by the breeding statistic qualifies, including animals bred earlier in this world."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:wheat",
         "tooltip": "Breed animals four times in total.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_square"
@@ -430,27 +285,10 @@
       },
       "display": {
         "title": {
-          "text": "Fishing",
-          "color": "#83c97a",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Catch "
-            },
-            {
-              "text": "eight",
-              "color": "aqua"
-            },
-            {
-              "text": " fish with a fishing rod. Earlier catches count toward the total. Fish collected in buckets or obtained as items do not increase the fishing statistic."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:fishing_rod",
         "tooltip": "Catch eight fish with a fishing rod.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_square"
@@ -487,27 +325,10 @@
       },
       "display": {
         "title": {
-          "text": "Bread",
-          "color": "#83c97a",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Craft "
-            },
-            {
-              "text": "12",
-              "color": "aqua"
-            },
-            {
-              "text": " bread. The crafting statistic includes bread made earlier, but bread found in chests or obtained through trading does not count."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:bread",
         "tooltip": "Craft 12 bread in total.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_square"
@@ -544,63 +365,10 @@
       },
       "display": {
         "title": {
-          "text": "Food supplies",
-          "color": "#83c97a",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Submit "
-            },
-            {
-              "text": "16",
-              "color": "aqua"
-            },
-            {
-              "text": " "
-            },
-            {
-              "text": "bread",
-              "color": "gold"
-            },
-            {
-              "text": " to receive "
-            },
-            {
-              "text": "two",
-              "color": "aqua"
-            },
-            {
-              "text": " emeralds. "
-            },
-            {
-              "text": "Click the objective",
-              "color": "yellow",
-              "bold": true
-            },
-            {
-              "text": " to hand in "
-            },
-            {
-              "text": "bread",
-              "color": "gold"
-            },
-            {
-              "text": " from your inventory. "
-            },
-            {
-              "text": "Submitted bread is consumed",
-              "color": "red"
-            },
-            {
-              "text": ", and partial deliveries are retained."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:bread",
         "tooltip": "Submit 16 bread for two emeralds.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_square"
@@ -638,27 +406,10 @@
       },
       "display": {
         "title": {
-          "text": "Villager trading",
-          "color": "#83c97a",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Complete "
-            },
-            {
-              "text": "eight",
-              "color": "aqua"
-            },
-            {
-              "text": " trades with villagers. Repeated trades with the same villager count, and your existing trade statistic is included."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:emerald",
         "tooltip": "Complete eight villager trades in total.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_square"
@@ -692,41 +443,10 @@
       },
       "display": {
         "title": {
-          "text": "Overworld biomes",
-          "color": "#83c97a",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Visit "
-            },
-            {
-              "text": "plains",
-              "color": "gold"
-            },
-            {
-              "text": ", "
-            },
-            {
-              "text": "forest",
-              "color": "gold"
-            },
-            {
-              "text": ", and "
-            },
-            {
-              "text": "desert",
-              "color": "gold"
-            },
-            {
-              "text": " biomes. Each listed biome must be visited while this quest is available. Their variants are separate biomes."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:oak_sapling",
         "tooltip": "Visit plains, forest, and desert.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_circle"
@@ -771,34 +491,10 @@
       },
       "display": {
         "title": {
-          "text": "Plains village",
-          "color": "#83c97a",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Enter a "
-            },
-            {
-              "text": "plains village",
-              "color": "gold"
-            },
-            {
-              "text": " and move through "
-            },
-            {
-              "text": "one",
-              "color": "aqua"
-            },
-            {
-              "text": " of its generated buildings or paths. Villages in other biomes do not satisfy this structure requirement."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:bell",
         "tooltip": "Visit a plains village.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_circle"
@@ -833,41 +529,10 @@
       },
       "display": {
         "title": {
-          "text": "Ocean monument",
-          "color": "#83c97a",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Enter an "
-            },
-            {
-              "text": "ocean monument",
-              "color": "gold"
-            },
-            {
-              "text": " and defeat "
-            },
-            {
-              "text": "three",
-              "color": "aqua"
-            },
-            {
-              "text": " "
-            },
-            {
-              "text": "elder guardians",
-              "color": "gold"
-            },
-            {
-              "text": ". Guardian kills count after this quest unlocks. The structure visit and kills are recorded separately."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:prismarine",
         "tooltip": "Visit a monument and defeat three elder guardians.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_circle"
@@ -905,62 +570,10 @@
       },
       "display": {
         "title": {
-          "text": "Hostile mobs",
-          "color": "#83c97a",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Defeat "
-            },
-            {
-              "text": "five",
-              "color": "aqua"
-            },
-            {
-              "text": " "
-            },
-            {
-              "text": "zombies",
-              "color": "gold"
-            },
-            {
-              "text": ", "
-            },
-            {
-              "text": "five",
-              "color": "aqua"
-            },
-            {
-              "text": " "
-            },
-            {
-              "text": "skeletons",
-              "color": "gold"
-            },
-            {
-              "text": ", and "
-            },
-            {
-              "text": "five",
-              "color": "aqua"
-            },
-            {
-              "text": " "
-            },
-            {
-              "text": "spiders",
-              "color": "gold"
-            },
-            {
-              "text": ". Each counter records kills credited to you after the quest unlocks. Related mob variants have separate entity types."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:iron_sword",
         "tooltip": "Defeat five zombies, skeletons, and spiders each.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_square"
@@ -1008,41 +621,10 @@
       },
       "display": {
         "title": {
-          "text": "Pillager outpost",
-          "color": "#83c97a",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Visit a "
-            },
-            {
-              "text": "pillager outpost",
-              "color": "gold"
-            },
-            {
-              "text": " and defeat "
-            },
-            {
-              "text": "five",
-              "color": "aqua"
-            },
-            {
-              "text": " "
-            },
-            {
-              "text": "pillagers",
-              "color": "gold"
-            },
-            {
-              "text": ". The kills can occur away from the outpost, but they must be credited to you after this quest unlocks."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:crossbow",
         "tooltip": "Visit an outpost and defeat five pillagers.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_circle"
@@ -1080,41 +662,10 @@
       },
       "display": {
         "title": {
-          "text": "The Wither",
-          "color": "#83c97a",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Defeat a "
-            },
-            {
-              "text": "Wither",
-              "color": "gold"
-            },
-            {
-              "text": " after this quest unlocks. Claiming the reward adds "
-            },
-            {
-              "text": "one heart",
-              "color": "aqua"
-            },
-            {
-              "text": " to your "
-            },
-            {
-              "text": "maximum health",
-              "color": "aqua"
-            },
-            {
-              "text": ". The kill must be credited to you."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:wither_skeleton_skull",
         "tooltip": "Defeat a Wither for one additional maximum-health heart.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_four_point_star"
@@ -1148,28 +699,10 @@
       },
       "display": {
         "title": {
-          "text": "A beacon",
-          "color": "#83c97a",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Activate a beacon on a valid pyramid to earn the "
-            },
-            {
-              "text": "Bring Home the Beacon",
-              "color": "#83c97a",
-              "italic": true
-            },
-            {
-              "text": " advancement. An earlier completion of that advancement also satisfies this quest."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:beacon",
         "tooltip": "Activate a beacon on a valid pyramid.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_four_point_star"
@@ -1204,27 +737,10 @@
       },
       "display": {
         "title": {
-          "text": "Stronghold",
-          "color": "#83c97a",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Enter a "
-            },
-            {
-              "text": "stronghold",
-              "color": "gold"
-            },
-            {
-              "text": ". The objective records a visit to its generated rooms or corridors. Entering the End is handled independently in the End section."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:ender_eye",
         "tooltip": "Visit a stronghold.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_circle"
@@ -1259,44 +775,10 @@
       },
       "display": {
         "title": {
-          "text": "World origin",
-          "color": "#83c97a",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Reach "
-            },
-            {
-              "text": "X=0",
-              "color": "aqua",
-              "bold": true
-            },
-            {
-              "text": " and "
-            },
-            {
-              "text": "Z=0",
-              "color": "aqua",
-              "bold": true
-            },
-            {
-              "text": " in the Overworld. "
-            },
-            {
-              "text": "Any height counts",
-              "color": "aqua",
-              "bold": true
-            },
-            {
-              "text": ". This location is the world origin, which can differ from the world spawn point."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:compass",
         "tooltip": "Reach Overworld X=0 and Z=0 at any height.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_circle"

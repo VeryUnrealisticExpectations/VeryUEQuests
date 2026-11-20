@@ -7,8 +7,8 @@ import { ComponentText } from './ComponentText.tsx'
 import { ItemIcon } from './ItemIcon.tsx'
 import { QuestBackgroundSprite } from './QuestBackgroundSprite.tsx'
 
-export function QuestDetailsStage({ draft, inputs, textContext, epoch, activeTrigger, onOpen, onDisplay, onPosition }:
-  { draft: Quest; inputs: InputDrafts; textContext: ComponentTextContext; epoch: number; activeTrigger?: string;
+export function QuestDetailsStage({ draft, inputs, textContext, epoch, activeTrigger, sharedSettings, onOpen, onDisplay, onPosition }:
+  { draft: Quest; inputs: InputDrafts; textContext: ComponentTextContext; epoch: number; activeTrigger?: string; sharedSettings: boolean;
     onOpen: (field: QuestTextField | 'icon' | 'background') => void; onDisplay: (change: Partial<Quest['display']>) => void;
     onPosition: (axis: 'x' | 'y', value: string) => void }) {
   return <>
@@ -26,31 +26,34 @@ export function QuestDetailsStage({ draft, inputs, textContext, epoch, activeTri
         </button>
       </div>
     })}
-    <div className="wizard-appearance">
-      <button type="button" id="quest-icon" className="mc-button wizard-appearance-button" aria-controls="quest-wizard-panel"
-        aria-expanded={activeTrigger === 'quest-icon'} onClick={() => onOpen('icon')}>
-        <ItemIcon id={draft.display.icon} epoch={epoch} /> <span>Quest icon</span> <span aria-hidden="true">›</span>
-      </button>
-      <button type="button" id="quest-background" className="mc-button wizard-appearance-button" aria-controls="quest-wizard-panel"
-        aria-expanded={activeTrigger === 'quest-background'} onClick={() => onOpen('background')}>
-        <QuestBackgroundSprite id={draft.display.background_sprite ?? DEFAULT_QUEST_BACKGROUND} revision={textContext.assetRevision} />
-        <span>Quest background</span> <span aria-hidden="true">›</span>
-      </button>
-    </div>
-    <label className="field">Tooltip<input value={draft.display.tooltip} onChange={event => onDisplay({ tooltip: event.target.value })} /></label>
-    <fieldset className="wizard-position">
-      <legend>Position</legend>
+    <fieldset className="locale-shared-fields">
+      {sharedSettings && <legend>Shared settings</legend>}
       <div className="wizard-appearance">
-        {(['x', 'y'] as const).map(axis => {
-          const id = 'quest-' + axis
-          const value = inputs[id] ?? String(draft.position[axis])
-          return <label key={axis} className="field">{axis.toUpperCase()}
-            <input id={id} type="text" inputMode="decimal" value={value}
-              aria-invalid={integerInput(value, -2_147_483_648, 2_147_483_647) === undefined}
-              onChange={event => onPosition(axis, event.target.value)} />
-          </label>
-        })}
+        <button type="button" id="quest-icon" className="mc-button wizard-appearance-button" aria-controls="quest-wizard-panel"
+          aria-expanded={activeTrigger === 'quest-icon'} onClick={() => onOpen('icon')}>
+          <ItemIcon id={draft.display.icon} epoch={epoch} /> <span>Quest icon</span> <span aria-hidden="true">›</span>
+        </button>
+        <button type="button" id="quest-background" className="mc-button wizard-appearance-button" aria-controls="quest-wizard-panel"
+          aria-expanded={activeTrigger === 'quest-background'} onClick={() => onOpen('background')}>
+          <QuestBackgroundSprite id={draft.display.background_sprite ?? DEFAULT_QUEST_BACKGROUND} revision={textContext.assetRevision} />
+          <span>Quest background</span> <span aria-hidden="true">›</span>
+        </button>
       </div>
+      <label className="field">Tooltip<input value={draft.display.tooltip} onChange={event => onDisplay({ tooltip: event.target.value })} /></label>
+      <fieldset className="wizard-position">
+        <legend>Position</legend>
+        <div className="wizard-appearance">
+          {(['x', 'y'] as const).map(axis => {
+            const id = 'quest-' + axis
+            const value = inputs[id] ?? String(draft.position[axis])
+            return <label key={axis} className="field">{axis.toUpperCase()}
+              <input id={id} type="text" inputMode="decimal" value={value}
+                aria-invalid={integerInput(value, -2_147_483_648, 2_147_483_647) === undefined}
+                onChange={event => onPosition(axis, event.target.value)} />
+            </label>
+          })}
+        </div>
+      </fieldset>
     </fieldset>
   </>
 }

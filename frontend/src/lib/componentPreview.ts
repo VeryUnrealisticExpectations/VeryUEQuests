@@ -4,19 +4,25 @@ import { COMPONENT_COLORS, hasObfuscatedComponent, isChatComponent, plainCompone
 async function api(path: string, body: unknown, signal?: AbortSignal): Promise<unknown> {
   const response = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal })
   const result: unknown = await response.json()
-  if (!response.ok) throw new Error(result && typeof result === 'object' && 'error' in result ? String(result.error) : `Minecraft request failed (${response.status}).`)
+  if (!response.ok) {
+    throw new Error(result && typeof result === 'object' && 'error' in result ? String(result.error) : `Minecraft request failed (${response.status}).`)
+  }
   return result
 }
 
 export async function validateComponent(component: ChatComponent, signal?: AbortSignal): Promise<void> {
-  if (!isChatComponent(component)) throw new Error('Enter a Minecraft text component: a string, component object, or nonempty component array.')
+  if (!isChatComponent(component)) {
+    throw new Error('Enter a Minecraft text component: a string, component object, or nonempty component array.')
+  }
   await api('/api/editor/components/validate', { component }, signal)
 }
 
 export async function nativeComponentPreview(request: ComponentPreviewRequest, signal?: AbortSignal): Promise<ComponentPreviewResponse> {
   const result = await api('/api/editor/components/preview', request, signal) as ComponentPreviewResponse
   if (!result || result.requestId !== request.requestId || result.assetRevision !== request.assetRevision || !Array.isArray(result.fragments)
-      || typeof result.png !== 'string' || !Number.isFinite(result.width) || !Number.isFinite(result.height)) throw new Error('Minecraft returned an incomplete text preview.')
+      || typeof result.png !== 'string' || !Number.isFinite(result.width) || !Number.isFinite(result.height)) {
+    throw new Error('Minecraft returned an incomplete text preview.')
+  }
   return result
 }
 
@@ -36,23 +42,33 @@ export function decodeComponentPreview(png: string): Promise<HTMLImageElement> {
   const image = new Image()
   image.src = `data:image/png;base64,${png}`
   const entry = { image: image.decode().then(() => {
-    if (!image.complete || !image.naturalWidth) throw new Error('The text preview image is empty.')
+    if (!image.complete || !image.naturalWidth) {
+      throw new Error('The text preview image is empty.')
+    }
     entry.bytes = image.naturalWidth * image.naturalHeight * 4
     trimDecodedPreviews()
     return image
   }), bytes: 0 }
   decodedPreviews.set(png, entry); trimDecodedPreviews()
-  entry.image.catch(() => { if (decodedPreviews.get(png) === entry) decodedPreviews.delete(png) })
+  entry.image.catch(() => { if (decodedPreviews.get(png) === entry) { decodedPreviews.delete(png) } })
   return entry.image
 }
 
 export function paintComponentPreview(target: HTMLCanvasElement, image: HTMLImageElement, width: number, height: number, scale: number,
   imageWidth: number, imageHeight: number, behind?: (graphics: CanvasRenderingContext2D) => void, above?: (graphics: CanvasRenderingContext2D) => void): boolean {
-  if (!image.complete || !image.naturalWidth) return false
-  if (target.width !== width * scale) target.width = width * scale
-  if (target.height !== height * scale) target.height = height * scale
+  if (!image.complete || !image.naturalWidth) {
+    return false
+  }
+  if (target.width !== width * scale) {
+    target.width = width * scale
+  }
+  if (target.height !== height * scale) {
+    target.height = height * scale
+  }
   const graphics = target.getContext('2d')
-  if (!graphics) return false
+  if (!graphics) {
+    return false
+  }
   graphics.setTransform(scale, 0, 0, scale, 0, 0); graphics.imageSmoothingEnabled = false
   graphics.clearRect(0, 0, width, height)
   behind?.(graphics)
@@ -93,9 +109,13 @@ export function approximateComponentPreview(request: ComponentPreviewRequest, co
       draws.push({ text: object.obfuscated ? '▧' : char, x, y, width, font, color: COMPONENT_COLORS[object.color ?? 'white'] ?? object.color ?? '#ffffff',
         underline: !!object.underlined, strike: !!object.strikethrough })
       x += width; widest = Math.max(widest, x); offset += char.length
-      if (!atomic) info.carets.push({ offset, x, y, line: Math.round(y / lineHeight) })
+      if (!atomic) {
+        info.carets.push({ offset, x, y, line: Math.round(y / lineHeight) })
+      }
     }
-    if (atomic) info.carets.push({ offset: 1, x, y, line: Math.round(y / lineHeight) })
+    if (atomic) {
+      info.carets.push({ offset: 1, x, y, line: Math.round(y / lineHeight) })
+    }
     fragments.push(info)
   }
   const totalHeight = y + lineHeight
@@ -105,11 +125,17 @@ export function approximateComponentPreview(request: ComponentPreviewRequest, co
   const graphics = canvas.getContext('2d')!
   graphics.scale(request.scale, request.scale); graphics.textBaseline = 'top'
   for (const draw of draws) {
-    if (draw.y + lineHeight < request.viewportTop || draw.y > request.viewportTop + height) continue
+    if (draw.y + lineHeight < request.viewportTop || draw.y > request.viewportTop + height) {
+      continue
+    }
     graphics.font = draw.font; graphics.fillStyle = draw.color
     graphics.fillText(draw.text, draw.x, draw.y - request.viewportTop)
-    if (draw.underline) graphics.fillRect(draw.x, draw.y - request.viewportTop + 9, draw.width, 1)
-    if (draw.strike) graphics.fillRect(draw.x, draw.y - request.viewportTop + 4, draw.width, 1)
+    if (draw.underline) {
+      graphics.fillRect(draw.x, draw.y - request.viewportTop + 9, draw.width, 1)
+    }
+    if (draw.strike) {
+      graphics.fillRect(draw.x, draw.y - request.viewportTop + 4, draw.width, 1)
+    }
   }
   return { assetRevision: request.assetRevision, requestId: request.requestId, width, height, totalHeight, viewportTop: request.viewportTop, lineHeight,
     png: canvas.toDataURL('image/png').split(',')[1], fragments, warnings: [] }
@@ -124,7 +150,8 @@ function dispatchLabel() {
 
 export function componentLabelPreview(request: ComponentPreviewRequest): Promise<ComponentPreviewResponse> {
   const animated = request.fragments.some(fragment => hasObfuscatedComponent(fragment.component))
-  const key = JSON.stringify([request.assetRevision, request.width, request.scale, request.fragments.map(fragment => [fragment.component, fragment.literal])])
+  const key = JSON.stringify([request.assetRevision, request.locale, request.width, request.scale, request.viewportTop, request.viewportHeight,
+    request.fragments.map(fragment => [fragment.component, fragment.literal])])
   const cached = animated ? undefined : labelCache.get(key)
   if (cached) { labelCache.delete(key); labelCache.set(key, cached); return cached }
   const promise = new Promise<ComponentPreviewResponse>((resolve, reject) => {
@@ -137,8 +164,10 @@ export function componentLabelPreview(request: ComponentPreviewRequest): Promise
     })
     dispatchLabel()
   })
-  if (!animated) labelCache.set(key, promise)
+  if (!animated) {
+    labelCache.set(key, promise)
+  }
   while (labelCache.size > 128) labelCache.delete(labelCache.keys().next().value!)
-  promise.catch(() => { if (labelCache.get(key) === promise) labelCache.delete(key) })
+  promise.catch(() => { if (labelCache.get(key) === promise) { labelCache.delete(key) } })
   return promise
 }

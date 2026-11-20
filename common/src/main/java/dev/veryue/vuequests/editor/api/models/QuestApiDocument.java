@@ -36,16 +36,24 @@ public class QuestApiDocument {
     public List<Section> sections() { return List.copyOf(sections.values()); }
 
     public Section section(UUID id) {
-        if (id == null) throw new IllegalArgumentException("Supply sectionId.");
+        if (id == null) {
+            throw new IllegalArgumentException("Supply sectionId.");
+        }
         Section section = sections.get(id);
-        if (section == null) throw new QuestApiException(originals.containsKey(id) ? 409 : 404,
-                "Section " + id + " is unavailable or does not exist.");
-        if (section.disabled()) throw new QuestApiException(409, "Section " + id + " is disabled.");
+        if (section == null) {
+            throw new QuestApiException(originals.containsKey(id) ? 409 : 404,
+                    "Section " + id + " is unavailable or does not exist.");
+        }
+        if (section.disabled()) {
+            throw new QuestApiException(409, "Section " + id + " is disabled.");
+        }
         return section;
     }
 
     public Quest quest(UUID id) {
-        if (id == null) throw new IllegalArgumentException("Supply questId.");
+        if (id == null) {
+            throw new IllegalArgumentException("Supply questId.");
+        }
         for (Section section : sections.values()) {
             for (Quest quest : section.questList()) {
                 if (quest.questId().equals(id)) {

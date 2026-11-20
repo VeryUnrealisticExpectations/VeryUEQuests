@@ -20,7 +20,9 @@ public class QuestMenuPage {
     }
 
     public QuestMenuScreen getScreen(QuestMenuNavigation navigation) {
-        if (screen == null) screen = screenFactory.apply(navigation);
+        if (screen == null) {
+            screen = screenFactory.apply(navigation);
+        }
         return screen;
     }
 }

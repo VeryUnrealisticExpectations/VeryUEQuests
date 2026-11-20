@@ -1,6 +1,8 @@
 {
   "section_id": "9d8b052e-ebde-5623-be7a-9802bd0da22b",
-  "name": "End",
+  "name": {
+    "translate": "screen.vuequests.unnamed_section"
+  },
   "icon": "minecraft:end_stone",
   "disabled": false,
   "modLoaded": "",
@@ -14,20 +16,10 @@
       },
       "display": {
         "title": {
-          "text": "Enter the End",
-          "color": "#c4a0ef",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Enter the End to unlock this section. The dragon's-breath objective is available before the dragon is defeated."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:end_stone",
         "tooltip": "Enter the End.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_circle"
@@ -57,28 +49,10 @@
       },
       "display": {
         "title": {
-          "text": "Dragon's breath",
-          "color": "#c4a0ef",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Collect dragon's breath in a glass bottle to earn "
-            },
-            {
-              "text": "You Need a Mint",
-              "color": "#c4a0ef",
-              "italic": true
-            },
-            {
-              "text": ". This can be done during the first dragon fight. Earlier completion of the advancement also counts."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:dragon_breath",
         "tooltip": "Collect dragon's breath in a bottle.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_square"
@@ -113,28 +87,10 @@
       },
       "display": {
         "title": {
-          "text": "Ender dragon",
-          "color": "#c4a0ef",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Defeat the Ender dragon to earn "
-            },
-            {
-              "text": "Free the End",
-              "color": "#c4a0ef",
-              "italic": true
-            },
-            {
-              "text": ". This objective checks your own advancement, so being present for another player's kill is not sufficient."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:dragon_head",
         "tooltip": "Earn Free the End.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_four_point_star"
@@ -166,28 +122,10 @@
       },
       "display": {
         "title": {
-          "text": "End gateway",
-          "color": "#c4a0ef",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Travel through an End gateway to earn "
-            },
-            {
-              "text": "Remote Getaway",
-              "color": "#c4a0ef",
-              "italic": true
-            },
-            {
-              "text": ". Bridging to the outer islands without using a gateway does not satisfy this advancement."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:ender_pearl",
         "tooltip": "Travel through an End gateway.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_square"
@@ -222,27 +160,10 @@
       },
       "display": {
         "title": {
-          "text": "End highlands",
-          "color": "#c4a0ef",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Visit the "
-            },
-            {
-              "text": "End highlands",
-              "color": "gold"
-            },
-            {
-              "text": " biome on the outer islands. End midlands, small End islands, and End barrens are separate biomes."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:chorus_flower",
         "tooltip": "Visit the End highlands biome.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_circle"
@@ -277,41 +198,10 @@
       },
       "display": {
         "title": {
-          "text": "Chorus fruit",
-          "color": "#c4a0ef",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Hold "
-            },
-            {
-              "text": "16",
-              "color": "aqua"
-            },
-            {
-              "text": " "
-            },
-            {
-              "text": "chorus fruit",
-              "color": "gold"
-            },
-            {
-              "text": " in your inventory. Popped "
-            },
-            {
-              "text": "chorus fruit",
-              "color": "gold"
-            },
-            {
-              "text": " is a different item. The fruit remains available to eat or process after completion."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:chorus_fruit",
         "tooltip": "Collect 16 chorus fruit.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_square"
@@ -346,27 +236,10 @@
       },
       "display": {
         "title": {
-          "text": "End city",
-          "color": "#c4a0ef",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Enter an "
-            },
-            {
-              "text": "End city",
-              "color": "gold"
-            },
-            {
-              "text": ". A ship is not required for the structure visit, although finding an elytra may require searching further cities."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:purpur_block",
         "tooltip": "Visit an End city.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_circle"
@@ -398,34 +271,10 @@
       },
       "display": {
         "title": {
-          "text": "Shulkers",
-          "color": "#c4a0ef",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Defeat "
-            },
-            {
-              "text": "four",
-              "color": "aqua"
-            },
-            {
-              "text": " "
-            },
-            {
-              "text": "shulkers",
-              "color": "gold"
-            },
-            {
-              "text": " after this quest unlocks. Shells obtained from other players or found as items do not replace the kill requirement."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:iron_sword",
         "tooltip": "Defeat four shulkers.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_square"
@@ -461,41 +310,10 @@
       },
       "display": {
         "title": {
-          "text": "Shulker shells",
-          "color": "#c4a0ef",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Hold "
-            },
-            {
-              "text": "two",
-              "color": "aqua"
-            },
-            {
-              "text": " "
-            },
-            {
-              "text": "shulker shells",
-              "color": "gold"
-            },
-            {
-              "text": " in your inventory before crafting a shulker box. The shells are "
-            },
-            {
-              "text": "not consumed",
-              "color": "green"
-            },
-            {
-              "text": " by this objective."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:shulker_shell",
         "tooltip": "Collect two shulker shells.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_square"
@@ -533,48 +351,10 @@
       },
       "display": {
         "title": {
-          "text": "Elytra",
-          "color": "#c4a0ef",
-          "bold": true
+          "translate": "screen.vuequests.unnamed_quest"
         },
         "subtitle": "",
-        "description": {
-          "text": "",
-          "color": "gray",
-          "extra": [
-            {
-              "text": "Carry an "
-            },
-            {
-              "text": "undamaged",
-              "color": "yellow"
-            },
-            {
-              "text": " "
-            },
-            {
-              "text": "elytra",
-              "color": "gold"
-            },
-            {
-              "text": " in your inventory. Record the objective before using it. The reward supplies "
-            },
-            {
-              "text": "16",
-              "color": "aqua"
-            },
-            {
-              "text": " flight-duration-"
-            },
-            {
-              "text": "1",
-              "color": "aqua"
-            },
-            {
-              "text": " rockets without firework explosions."
-            }
-          ]
-        },
+        "description": "",
         "icon": "minecraft:elytra",
         "tooltip": "Collect an undamaged elytra.",
         "background_sprite": "vuequests:quest_backgrounds/background_icon_four_point_star"

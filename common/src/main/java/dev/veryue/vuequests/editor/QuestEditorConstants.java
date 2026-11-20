@@ -39,6 +39,7 @@ public class QuestEditorConstants {
 
     public static final String EDITOR = "/editor";
     public static final String EDITOR_RESOURCES = EDITOR + "/resources";
+    public static final String EDITOR_LANGUAGES = EDITOR + "/languages";
     public static final String EDITOR_COMPONENTS = EDITOR + "/components/";
     public static final String EDITOR_COMPONENT_PREVIEW = EDITOR_COMPONENTS + "preview";
     public static final String EDITOR_COMPONENT_VALIDATE = EDITOR_COMPONENTS + "validate";

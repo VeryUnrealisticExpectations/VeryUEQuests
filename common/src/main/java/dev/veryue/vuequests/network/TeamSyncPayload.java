@@ -47,7 +47,9 @@ public record TeamSyncPayload(Optional<ClientTeam> team,
             source = recipient.server.getProfileCache().get(memberId).orElse(null);
         }
         GameProfile result = new GameProfile(memberId, online == null ? member.lastKnownName() : online.getGameProfile().getName());
-        if (source != null) result.getProperties().putAll(source.getProperties());
+        if (source != null) {
+            result.getProperties().putAll(source.getProperties());
+        }
         return result;
     }
 

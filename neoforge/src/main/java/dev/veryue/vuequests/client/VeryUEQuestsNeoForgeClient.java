@@ -2,15 +2,19 @@ package dev.veryue.vuequests.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.veryue.vuequests.client.editor.ClientEditorResources;
+import dev.veryue.vuequests.client.lang.ClientQuestLanguages;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.settings.KeyConflictContext;
 import net.neoforged.neoforge.client.settings.KeyModifier;
@@ -32,10 +36,17 @@ public class VeryUEQuestsNeoForgeClient {
             KeyMapping::isActiveAndMatches);
 
     public VeryUEQuestsNeoForgeClient(IEventBus eventBus) {
+        ClientQuestLanguages.initialize(FMLPaths.CONFIGDIR.get());
         ClientEditorResources.initialize();
+        eventBus.addListener(this::registerReloadListeners);
         eventBus.addListener(this::registerKeyMappings);
         NeoForge.EVENT_BUS.addListener(this::onClientTick);
         NeoForge.EVENT_BUS.addListener(this::onLoggingOut);
+    }
+
+    private void registerReloadListeners(RegisterClientReloadListenersEvent event) {
+        ResourceManagerReloadListener listener = resources -> ClientQuestData.refreshTranslations();
+        event.registerReloadListener(listener);
     }
 
     private void registerKeyMappings(RegisterKeyMappingsEvent event) {

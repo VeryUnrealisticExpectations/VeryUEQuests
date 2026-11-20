@@ -12,17 +12,25 @@ export function ItemIcon({ id, epoch, kind = 'item' }: { id: string; epoch: numb
     let requested = false
     let retry: ReturnType<typeof setTimeout> | undefined
     const request = () => {
-      if (requested) return
+      if (requested) {
+        return
+      }
       requested = true
-      itemThumbnail(id, kind, controller.signal).then(url => { if (!controller.signal.aborted) setThumbnail({ key, url }) })
+      itemThumbnail(id, kind, controller.signal).then(url => { if (!controller.signal.aborted) { setThumbnail({ key, url }) } })
         .catch(error => {
-          if (controller.signal.aborted) return
+          if (controller.signal.aborted) {
+            return
+          }
           if (error instanceof ThumbnailQueueFullError) { requested = false; retry = setTimeout(request, 100) }
-          else setThumbnail({ key, failed: true })
+          else {
+            setThumbnail({ key, failed: true })
+          }
         })
     }
     const observer = new IntersectionObserver(entries => { if (entries.some(entry => entry.isIntersecting)) { request(); observer.disconnect() } }, { rootMargin: '64px' })
-    if (ref.current) observer.observe(ref.current)
+    if (ref.current) {
+      observer.observe(ref.current)
+    }
     return () => { controller.abort(); observer.disconnect(); clearTimeout(retry) }
   }, [id, kind, key])
   const current = thumbnail?.key === key ? thumbnail : undefined

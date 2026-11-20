@@ -15,9 +15,9 @@ interface PrerequisiteProps {
   epoch: number
 }
 
-export function QuestReviewStage({ draft, sections, textContext, epoch, rows, catalog, issues, active, dependencyError, onNavigate,
+export function QuestReviewStage({ draft, sections, textContext, epoch, rows, catalog, issues, active, dependencyError, onNavigate, sharedSettings,
   onIssue, onOpen, onRemove }: PrerequisiteProps & {
-  rows: TaskRows; catalog: Catalog; issues: QuestIssue[]; active: boolean; dependencyError: string;
+  rows: TaskRows; catalog: Catalog; issues: QuestIssue[]; active: boolean; dependencyError: string; sharedSettings: boolean;
   onNavigate: (stage: QuestStage) => void; onIssue: (issue: QuestIssue) => void;
   onOpen: () => void; onRemove: (id: string) => void;
 }) {
@@ -56,6 +56,7 @@ export function QuestReviewStage({ draft, sections, textContext, epoch, rows, ca
     })}
     <section className="wizard-review-section">
       <h4>Prerequisites</h4>
+      {sharedSettings && <p className="locale-shared-label">Shared by all languages</p>}
       {!draft.dependencies.length && <p className="wizard-helper">No prerequisites selected.</p>}
       {!!draft.dependencies.length && <ul className="wizard-prerequisite-chips">
         {draft.dependencies.map((id, index) => {

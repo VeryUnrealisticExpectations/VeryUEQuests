@@ -8,7 +8,9 @@ export function StoneBackdrop({ assetRevision, size, pan, zoom }:
   const [texture, setTexture] = useState<{ revision: string; image: HTMLCanvasElement }>()
   const pattern = useRef<{ image: HTMLCanvasElement; value: CanvasPattern | null }>(undefined)
   useEffect(() => {
-    if (!assetRevision) return
+    if (!assetRevision) {
+      return
+    }
     const image = new Image()
     image.onload = () => {
       const tile = document.createElement('canvas')
@@ -24,11 +26,17 @@ export function StoneBackdrop({ assetRevision, size, pan, zoom }:
   }, [assetRevision])
   useLayoutEffect(() => {
     const element = canvas.current!, context = element.getContext('2d')
-    if (!context || !size.x || !size.y) return
+    if (!context || !size.x || !size.y) {
+      return
+    }
     const ratio = window.devicePixelRatio || 1
     const width = Math.ceil(size.x * ratio), height = Math.ceil(size.y * ratio)
-    if (element.width !== width) element.width = width
-    if (element.height !== height) element.height = height
+    if (element.width !== width) {
+      element.width = width
+    }
+    if (element.height !== height) {
+      element.height = height
+    }
     context.setTransform(ratio, 0, 0, ratio, 0, 0)
     context.imageSmoothingEnabled = false
     context.fillStyle = '#36383a'
@@ -36,7 +44,9 @@ export function StoneBackdrop({ assetRevision, size, pan, zoom }:
     const origin = { x: size.x / 2 + pan.x, y: size.y / 2 + pan.y }
     const left = -origin.x / zoom, top = -origin.y / zoom
     if (texture?.revision === assetRevision) {
-      if (pattern.current?.image !== texture.image) pattern.current = { image: texture.image, value: context.createPattern(texture.image, 'repeat') }
+      if (pattern.current?.image !== texture.image) {
+        pattern.current = { image: texture.image, value: context.createPattern(texture.image, 'repeat') }
+      }
       if (pattern.current.value) {
         context.save()
         context.translate(origin.x, origin.y)

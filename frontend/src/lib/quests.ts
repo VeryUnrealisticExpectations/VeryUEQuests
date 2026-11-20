@@ -20,10 +20,14 @@ export function moveSection(sections: Section[], id: string, targetId: string, p
   const ordered = sortSections(sections, textContext)
   const index = ordered.findIndex(section => section.section_id === id)
   const anchor = ordered.findIndex(section => section.section_id === targetId)
-  if (index < 0 || anchor < 0 || id === targetId) return sections
+  if (index < 0 || anchor < 0 || id === targetId) {
+    return sections
+  }
   const insertion = anchor + (position === 'after' ? 1 : 0)
   const target = insertion - (index < insertion ? 1 : 0)
-  if (index === target) return sections
+  if (index === target) {
+    return sections
+  }
   const [moved] = ordered.splice(index, 1)
   ordered.splice(target, 0, moved)
   return ordered.map((section, priority) => ({ ...section, priority }))
@@ -39,38 +43,76 @@ export function newQuest(sectionId: string, position: Position): Quest {
 
 export function newTask(kind: 'objective' | 'reward', type: string, id: string = crypto.randomUUID()): Task {
   const identity = kind === 'objective' ? { objective_id: id } : { reward_id: id }
-  if (type === 'vuequests:collect_item' || type === 'vuequests:submit_item') return { ...identity, type, item: { id: 'minecraft:cobblestone' }, count: 1 }
-  if (type === 'vuequests:entity') return { ...identity, type, entity: 'minecraft:zombie', count: 1 }
-  if (type === 'vuequests:advancement') return { ...identity, type, advancement: '' }
-  if (type === 'vuequests:item') return { ...identity, type, item: { id: 'minecraft:diamond', count: 1 } }
-  if (type === 'vuequests:experience') return { ...identity, type, experience: 1 }
-  if (type === 'vuequests:experience_levels') return { ...identity, type, levels: 1 }
-  if (type === 'vuequests:loot_table') return { ...identity, type, loot_table: '' }
-  if (type === 'vuequests:command') return { ...identity, type, command: '' }
-  if (type === 'vuequests:attribute') return { ...identity, type, attribute: '', amount: 1 }
-  if (type === 'vuequests:travel_dimension') return { ...identity, type, dimension: '' }
-  if (type === 'vuequests:travel_biome') return { ...identity, type, biome: '' }
-  if (type === 'vuequests:travel_structure') return { ...identity, type, structure: '' }
-  if (type === 'vuequests:travel_coordinates') return { ...identity, type, dimension: 'minecraft:overworld', min_x: 0, min_y: 0, min_z: 0, max_x: 0, max_y: 0, max_z: 0 }
-  if (type === 'vuequests:statistic') return { ...identity, type, stat_type: 'minecraft:custom', statistic: '', count: 1 }
+  if (type === 'vuequests:collect_item' || type === 'vuequests:submit_item') {
+    return { ...identity, type, item: { id: 'minecraft:cobblestone' }, count: 1 }
+  }
+  if (type === 'vuequests:entity') {
+    return { ...identity, type, entity: 'minecraft:zombie', count: 1 }
+  }
+  if (type === 'vuequests:advancement') {
+    return { ...identity, type, advancement: '' }
+  }
+  if (type === 'vuequests:item') {
+    return { ...identity, type, item: { id: 'minecraft:diamond', count: 1 } }
+  }
+  if (type === 'vuequests:experience') {
+    return { ...identity, type, experience: 1 }
+  }
+  if (type === 'vuequests:experience_levels') {
+    return { ...identity, type, levels: 1 }
+  }
+  if (type === 'vuequests:loot_table') {
+    return { ...identity, type, loot_table: '' }
+  }
+  if (type === 'vuequests:command') {
+    return { ...identity, type, command: '' }
+  }
+  if (type === 'vuequests:attribute') {
+    return { ...identity, type, attribute: '', amount: 1 }
+  }
+  if (type === 'vuequests:travel_dimension') {
+    return { ...identity, type, dimension: '' }
+  }
+  if (type === 'vuequests:travel_biome') {
+    return { ...identity, type, biome: '' }
+  }
+  if (type === 'vuequests:travel_structure') {
+    return { ...identity, type, structure: '' }
+  }
+  if (type === 'vuequests:travel_coordinates') {
+    return { ...identity, type, dimension: 'minecraft:overworld', min_x: 0, min_y: 0, min_z: 0, max_x: 0, max_y: 0, max_z: 0 }
+  }
+  if (type === 'vuequests:statistic') {
+    return { ...identity, type, stat_type: 'minecraft:custom', statistic: '', count: 1 }
+  }
   return { ...identity, type }
 }
 
 export function dependencyProblem(sections: Section[]): string | null {
   const quests = allQuests(sections)
   const index = new Map(quests.map(quest => [quest.quest_id, quest]))
-  if (index.size !== quests.length) return 'Quest IDs must be unique.'
+  if (index.size !== quests.length) {
+    return 'Quest IDs must be unique.'
+  }
   const complete = new Set<string>()
   const visiting = new Set<string>()
   function visit(id: string): string | null {
-    if (visiting.has(id)) return 'This dependency would create a cycle.'
-    if (complete.has(id)) return null
+    if (visiting.has(id)) {
+      return 'This dependency would create a cycle.'
+    }
+    if (complete.has(id)) {
+      return null
+    }
     const quest = index.get(id)
-    if (!quest) return 'A prerequisite quest is missing.'
+    if (!quest) {
+      return 'A prerequisite quest is missing.'
+    }
     visiting.add(id)
     for (const dependency of quest.dependencies) {
       const problem = visit(dependency)
-      if (problem) return problem
+      if (problem) {
+        return problem
+      }
     }
     visiting.delete(id)
     complete.add(id)
@@ -78,7 +120,9 @@ export function dependencyProblem(sections: Section[]): string | null {
   }
   for (const quest of quests) {
     const problem = visit(quest.quest_id)
-    if (problem) return problem
+    if (problem) {
+      return problem
+    }
   }
   return null
 }
@@ -88,32 +132,52 @@ export function updateQuest(sections: Section[], id: string, update: (quest: Que
 }
 
 export function connectQuests(sections: Section[], prerequisite: string, dependent: string): Section[] {
-  if (prerequisite === dependent) throw new Error('A quest cannot depend on itself.')
-  if (!allQuests(sections).some(quest => quest.quest_id === prerequisite)) throw new Error('The prerequisite quest is missing.')
-  if (!allQuests(sections).some(quest => quest.quest_id === dependent)) throw new Error('The dependent quest is missing.')
+  if (prerequisite === dependent) {
+    throw new Error('A quest cannot depend on itself.')
+  }
+  if (!allQuests(sections).some(quest => quest.quest_id === prerequisite)) {
+    throw new Error('The prerequisite quest is missing.')
+  }
+  if (!allQuests(sections).some(quest => quest.quest_id === dependent)) {
+    throw new Error('The dependent quest is missing.')
+  }
   const updated = updateQuest(sections, dependent, quest => ({ ...quest, dependencies: [...new Set([...quest.dependencies, prerequisite])] }))
   const problem = dependencyProblem(updated)
-  if (problem) throw new Error(problem)
+  if (problem) {
+    throw new Error(problem)
+  }
   return updated
 }
 
 export function toggleQuestDependency(sections: Section[], prerequisite: string, dependent: string): Section[] {
-  if (prerequisite === dependent) throw new Error('A quest cannot depend on itself.')
+  if (prerequisite === dependent) {
+    throw new Error('A quest cannot depend on itself.')
+  }
   const quests = allQuests(sections)
   const from = quests.find(quest => quest.quest_id === prerequisite)
   const to = quests.find(quest => quest.quest_id === dependent)
-  if (!from) throw new Error('The prerequisite quest is missing.')
-  if (!to) throw new Error('The dependent quest is missing.')
+  if (!from) {
+    throw new Error('The prerequisite quest is missing.')
+  }
+  if (!to) {
+    throw new Error('The dependent quest is missing.')
+  }
   const remove = to.dependencies.includes(prerequisite)
   const updated = sections.map(section => ({ ...section, quests: section.quests.map(quest => {
-    if (quest.quest_id === dependent) return { ...quest, dependencies: remove
-      ? quest.dependencies.filter(id => id !== prerequisite)
-      : [...new Set([...quest.dependencies, prerequisite])] }
-    if (!remove && quest.quest_id === prerequisite) return { ...quest, dependencies: quest.dependencies.filter(id => id !== dependent) }
+    if (quest.quest_id === dependent) {
+      return { ...quest, dependencies: remove
+        ? quest.dependencies.filter(id => id !== prerequisite)
+        : [...new Set([...quest.dependencies, prerequisite])] }
+    }
+    if (!remove && quest.quest_id === prerequisite) {
+      return { ...quest, dependencies: quest.dependencies.filter(id => id !== dependent) }
+    }
     return quest
   }) }))
   const problem = dependencyProblem(updated)
-  if (problem) throw new Error(problem)
+  if (problem) {
+    throw new Error(problem)
+  }
   return updated
 }
 

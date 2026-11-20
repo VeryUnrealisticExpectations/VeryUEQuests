@@ -13,6 +13,9 @@ import dev.veryue.vuequests.models.reward.RewardType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeMap;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -170,10 +173,10 @@ public class QuestData {
             }
         }
 
-        var attributes = player.getAttributes();
+        AttributeMap attributes = player.getAttributes();
         BuiltInRegistries.ATTRIBUTE.holders().filter(attributes::hasAttribute).forEach(holder -> {
-            var instance = attributes.getInstance(holder);
-            for (var modifier : instance.getModifiers()) {
+            AttributeInstance instance = attributes.getInstance(holder);
+            for (AttributeModifier modifier : instance.getModifiers()) {
                 if (RewardAttribute.isRewardModifier(modifier.id())) {
                     RewardAttribute reward = claimed.get(modifier.id());
                     if (reward == null || !reward.getValue().equals(holder.key().location())) {

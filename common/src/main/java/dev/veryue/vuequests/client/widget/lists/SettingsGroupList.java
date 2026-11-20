@@ -37,11 +37,17 @@ public class SettingsGroupList extends AbstractWidget {
     }
 
     public void select(int index) {
-        if (groups.isEmpty()) return;
+        if (groups.isEmpty()) {
+            return;
+        }
         selected = Mth.clamp(index, 0, groups.size() - 1);
         setMessage(groups.get(selected));
-        if (selected * ROW_HEIGHT < scroll) scroll = selected * ROW_HEIGHT;
-        if ((selected + 1) * ROW_HEIGHT > scroll + getHeight()) scroll = (selected + 1) * ROW_HEIGHT - getHeight();
+        if (selected * ROW_HEIGHT < scroll) {
+            scroll = selected * ROW_HEIGHT;
+        }
+        if ((selected + 1) * ROW_HEIGHT > scroll + getHeight()) {
+            scroll = (selected + 1) * ROW_HEIGHT - getHeight();
+        }
         onSelect.accept(selected);
     }
 
@@ -51,7 +57,9 @@ public class SettingsGroupList extends AbstractWidget {
         graphics.enableScissor(getX(), getY(), getRight(), getBottom());
         for (int index = 0; index < groups.size(); index++) {
             int y = getY() + index * ROW_HEIGHT - (int) scroll;
-            if (y + ROW_HEIGHT <= getY() || y >= getBottom()) continue;
+            if (y + ROW_HEIGHT <= getY() || y >= getBottom()) {
+                continue;
+            }
             boolean current = index == selected;
             boolean hovered = isMouseOver(mouseX, mouseY) && mouseY >= y && mouseY < y + ROW_HEIGHT;
             Component label = groups.get(index).copy().withStyle(style -> style.withBold(current));
@@ -65,7 +73,9 @@ public class SettingsGroupList extends AbstractWidget {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (!active || !visible || button != 0 || !isMouseOver(mouseX, mouseY)) return false;
+        if (!active || !visible || button != 0 || !isMouseOver(mouseX, mouseY)) {
+            return false;
+        }
         int index = (int) ((mouseY - getY() + scroll) / ROW_HEIGHT);
         if (index < groups.size()) {
             playDownSound(Minecraft.getInstance().getSoundManager());
@@ -76,7 +86,9 @@ public class SettingsGroupList extends AbstractWidget {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double deltaX, double deltaY) {
-        if (!isMouseOver(mouseX, mouseY)) return false;
+        if (!isMouseOver(mouseX, mouseY)) {
+            return false;
+        }
         scroll = Mth.clamp(scroll - deltaY * ROW_HEIGHT, 0, Math.max(0, groups.size() * ROW_HEIGHT - getHeight()));
         return true;
     }
@@ -90,7 +102,9 @@ public class SettingsGroupList extends AbstractWidget {
             case GLFW.GLFW_KEY_END -> groups.size() - 1;
             default -> -1;
         };
-        if (index < 0 && keyCode != GLFW.GLFW_KEY_UP) return super.keyPressed(keyCode, scanCode, modifiers);
+        if (index < 0 && keyCode != GLFW.GLFW_KEY_UP) {
+            return super.keyPressed(keyCode, scanCode, modifiers);
+        }
         select(index);
         return true;
     }

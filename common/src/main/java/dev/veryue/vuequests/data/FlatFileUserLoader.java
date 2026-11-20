@@ -92,7 +92,7 @@ public class FlatFileUserLoader<T extends User> extends UserLoader<T> {
     @Override
     public Map<UUID, T> loadAllUsers() {
         Map<UUID, T> users = new HashMap<>();
-        try (var files = Files.newDirectoryStream(directory, "*.json")) {
+        try (DirectoryStream<Path> files = Files.newDirectoryStream(directory, "*.json")) {
             for (Path file : files) {
                 String name = file.getFileName().toString();
                 UUID uuid = UUID.fromString(name.substring(0, name.length() - 5));

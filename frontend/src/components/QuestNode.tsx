@@ -13,7 +13,7 @@ export function QuestNode({ quest, selected, prerequisite, connecting, disabled,
   return <button type="button" className={`quest-node${selected ? ' selected' : ''}${prerequisite ? ' connection-source' : ''}`}
     disabled={disabled} style={{ left: quest.position.x, top: quest.position.y }} aria-label={title} aria-pressed={selected}
     title={quest.display.tooltip || title} onPointerDown={onPointerDown} onContextMenu={onContextMenu} onClick={onSelect} onDoubleClick={onEdit}
-    onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); if (connecting) onSelect(); else onEdit() } }}>
+    onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); if (connecting) { onSelect(); } else { onEdit() } } }}>
     <QuestNodeIcon display={quest.display} epoch={epoch} revision={textContext.assetRevision} />
     <span className="quest-label"><ComponentText value={quest.display.title} textContext={textContext} useInterfaceFont /></span>
   </button>

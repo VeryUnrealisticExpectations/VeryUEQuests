@@ -11,18 +11,42 @@ export function defaultTaskType(kind: TaskKind, types: TypeEntry[]): string | un
 }
 
 export function taskDisplayIcon(kind: TaskKind, task: Task): string {
-  if (task.type === 'vuequests:collect_item' || task.type === 'vuequests:submit_item') return task.item?.id || 'minecraft:cobblestone'
-  if (task.type === 'vuequests:entity') return 'minecraft:iron_sword'
-  if (task.type === 'vuequests:item') return task.item?.id || 'minecraft:chest'
-  if (task.type === 'vuequests:experience' || task.type === 'vuequests:experience_levels') return 'minecraft:experience_bottle'
-  if (task.type === 'vuequests:advancement' && kind === 'reward') return 'minecraft:enchanted_book'
-  if (task.type === 'vuequests:command') return 'minecraft:command_block'
-  if (task.type === 'vuequests:attribute') return 'minecraft:golden_apple'
-  if (task.type === 'vuequests:travel_dimension') return 'minecraft:obsidian'
-  if (task.type === 'vuequests:travel_biome') return 'minecraft:grass_block'
-  if (task.type === 'vuequests:travel_coordinates') return 'minecraft:compass'
-  if (task.type === 'vuequests:travel_structure') return 'minecraft:stone_bricks'
-  if (task.type === 'vuequests:statistic') return 'minecraft:writable_book'
+  if (task.type === 'vuequests:collect_item' || task.type === 'vuequests:submit_item') {
+    return task.item?.id || 'minecraft:cobblestone'
+  }
+  if (task.type === 'vuequests:entity') {
+    return 'minecraft:iron_sword'
+  }
+  if (task.type === 'vuequests:item') {
+    return task.item?.id || 'minecraft:chest'
+  }
+  if (task.type === 'vuequests:experience' || task.type === 'vuequests:experience_levels') {
+    return 'minecraft:experience_bottle'
+  }
+  if (task.type === 'vuequests:advancement' && kind === 'reward') {
+    return 'minecraft:enchanted_book'
+  }
+  if (task.type === 'vuequests:command') {
+    return 'minecraft:command_block'
+  }
+  if (task.type === 'vuequests:attribute') {
+    return 'minecraft:golden_apple'
+  }
+  if (task.type === 'vuequests:travel_dimension') {
+    return 'minecraft:obsidian'
+  }
+  if (task.type === 'vuequests:travel_biome') {
+    return 'minecraft:grass_block'
+  }
+  if (task.type === 'vuequests:travel_coordinates') {
+    return 'minecraft:compass'
+  }
+  if (task.type === 'vuequests:travel_structure') {
+    return 'minecraft:stone_bricks'
+  }
+  if (task.type === 'vuequests:statistic') {
+    return 'minecraft:writable_book'
+  }
   return kind === 'objective' ? 'minecraft:book' : 'minecraft:chest'
 }
 
@@ -31,8 +55,12 @@ export function taskEditorId(kind: TaskKind, task: Task, index: number): string 
 }
 
 export function objectiveCount(task: Task): number | undefined {
-  if (task.type === 'vuequests:collect_item' || task.type === 'vuequests:submit_item') return task.count ?? task.item?.count ?? 1
-  if (task.type === 'vuequests:entity' || task.type === 'vuequests:statistic') return task.count ?? 1
+  if (task.type === 'vuequests:collect_item' || task.type === 'vuequests:submit_item') {
+    return task.count ?? task.item?.count ?? 1
+  }
+  if (task.type === 'vuequests:entity' || task.type === 'vuequests:statistic') {
+    return task.count ?? 1
+  }
 }
 
 export function isAdvancementId(id: string): boolean {
@@ -45,9 +73,13 @@ export function isAttributeAmount(amount: unknown): amount is number {
 
 export function taskProblem(task: Task): string | undefined {
   if (task.type === 'vuequests:collect_item' || task.type === 'vuequests:submit_item' || task.type === 'vuequests:item') {
-    if (!task.item || !isRegistryId(task.item.id)) return 'Choose an item.'
+    if (!task.item || !isRegistryId(task.item.id)) {
+      return 'Choose an item.'
+    }
     const count = task.item.count ?? 1
-    if (!Number.isInteger(count) || count < 1 || count > 99) return 'Item stack count must be between 1 and 99.'
+    if (!Number.isInteger(count) || count < 1 || count > 99) {
+      return 'Item stack count must be between 1 and 99.'
+    }
   } else if (task.type === 'vuequests:experience' && (!Number.isInteger(task.experience) || task.experience! < 0)) {
     return 'Experience must be a nonnegative integer.'
   } else if (task.type === 'vuequests:entity' && (!task.entity || !isRegistryId(task.entity))) {
@@ -62,30 +94,48 @@ export function taskProblem(task: Task): string | undefined {
       return 'Experience levels must be a positive 32-bit integer.'
     }
   } else if (task.type === 'vuequests:loot_table') {
-    if (typeof task.loot_table !== 'string' || !isRegistryId(task.loot_table)) return 'Choose a loot table.'
+    if (typeof task.loot_table !== 'string' || !isRegistryId(task.loot_table)) {
+      return 'Choose a loot table.'
+    }
   } else if (task.type === 'vuequests:command') {
     if (typeof task.command !== 'string' || !task.command.trim() || task.command.trim() === '/' || /[\r\n]/.test(task.command)) {
       return 'Enter a single Minecraft command.'
     }
   } else if (task.type === 'vuequests:attribute') {
-    if (typeof task.attribute !== 'string' || !isRegistryId(task.attribute)) return 'Choose a player attribute.'
-    if (!isAttributeAmount(task.amount)) return 'Attribute amount must be a finite positive number.'
+    if (typeof task.attribute !== 'string' || !isRegistryId(task.attribute)) {
+      return 'Choose a player attribute.'
+    }
+    if (!isAttributeAmount(task.amount)) {
+      return 'Attribute amount must be a finite positive number.'
+    }
   }
   if (task.type === 'vuequests:travel_dimension' || task.type === 'vuequests:travel_coordinates') {
-    if (!task.dimension || !isRegistryId(task.dimension)) return 'Choose a dimension.'
+    if (!task.dimension || !isRegistryId(task.dimension)) {
+      return 'Choose a dimension.'
+    }
   }
-  if (task.type === 'vuequests:travel_biome' && (!task.biome || !isRegistryId(task.biome))) return 'Choose a biome.'
-  if (task.type === 'vuequests:travel_structure' && (!task.structure || !isRegistryId(task.structure))) return 'Choose a structure.'
+  if (task.type === 'vuequests:travel_biome' && (!task.biome || !isRegistryId(task.biome))) {
+    return 'Choose a biome.'
+  }
+  if (task.type === 'vuequests:travel_structure' && (!task.structure || !isRegistryId(task.structure))) {
+    return 'Choose a structure.'
+  }
   if (task.type === 'vuequests:statistic') {
-    if (!task.stat_type || !isRegistryId(task.stat_type)) return 'Choose a statistic type.'
-    if (!task.statistic || !isRegistryId(task.statistic)) return 'Choose a statistic.'
+    if (!task.stat_type || !isRegistryId(task.stat_type)) {
+      return 'Choose a statistic type.'
+    }
+    if (!task.statistic || !isRegistryId(task.statistic)) {
+      return 'Choose a statistic.'
+    }
   }
   if (task.type === 'vuequests:travel_coordinates') {
     for (const axis of ['x', 'y', 'z'] as const) {
       const min = task[`min_${axis}`]
       const max = task[`max_${axis}`]
       if (min === undefined || max === undefined || !Number.isInteger(min) || !Number.isInteger(max)
-        || min < -2_147_483_648 || max > 2_147_483_647 || min > max) return 'Enter valid integer bounds with each minimum at most its maximum.'
+        || min < -2_147_483_648 || max > 2_147_483_647 || min > max) {
+        return 'Enter valid integer bounds with each minimum at most its maximum.'
+      }
     }
   }
   const target = objectiveCount(task)

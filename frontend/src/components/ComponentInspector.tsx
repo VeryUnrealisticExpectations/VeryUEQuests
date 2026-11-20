@@ -29,7 +29,9 @@ export function ComponentInspector({ kind, initial, textContext, catalog, epoch 
   const hoverObject = contents && typeof contents === 'object' && !Array.isArray(contents) ? contents as Record<string, unknown> : {}
   const updateHover = (next: unknown) => update({ hoverEvent: { ...hover, contents: next } })
   const submit = async () => {
-    if (checking) return
+    if (checking) {
+      return
+    }
     const invalid = panel.current?.querySelector<HTMLInputElement | HTMLTextAreaElement>('input:invalid,textarea:invalid,select:invalid')
     if (invalid) { invalid.reportValidity(); return }
     setChecking(true); setError('')
@@ -38,12 +40,18 @@ export function ComponentInspector({ kind, initial, textContext, catalog, epoch 
     const submittedVersion = version.current
     try {
       const next: unknown = kind === 'json' ? JSON.parse(json) : draft
-      if (!isChatComponent(next)) throw new Error('Enter a Minecraft text component.')
+      if (!isChatComponent(next)) {
+        throw new Error('Enter a Minecraft text component.')
+      }
       await validateComponent(next, controller.signal)
-      if (controller.signal.aborted || validation.current !== controller) return
-      if (version.current !== submittedVersion) throw new Error('The component changed while it was being checked. Apply it again.')
+      if (controller.signal.aborted || validation.current !== controller) {
+        return
+      }
+      if (version.current !== submittedVersion) {
+        throw new Error('The component changed while it was being checked. Apply it again.')
+      }
       onApply(next)
-    } catch (failure) { if (!controller.signal.aborted && validation.current === controller) setError(failure instanceof Error ? failure.message : 'The component is invalid.') }
+    } catch (failure) { if (!controller.signal.aborted && validation.current === controller) { setError(failure instanceof Error ? failure.message : 'The component is invalid.') } }
     finally { if (!controller.signal.aborted && validation.current === controller) { validation.current = undefined; setChecking(false) } }
   }
   const close = () => { validation.current?.abort(); validation.current = undefined; onClose() }
@@ -55,7 +63,7 @@ export function ComponentInspector({ kind, initial, textContext, catalog, epoch 
     {kind === 'translate' && <>
       <TranslationKeyPicker value={object.translate ?? ''} onChange={translate => update({ translate })} textContext={textContext} />
       <label className="check-field"><input type="checkbox" checked={object.fallback !== undefined} onChange={event => {
-        const next = { ...object }; if (event.target.checked) next.fallback = ''; else delete next.fallback; changeDraft(next)
+        const next = { ...object }; if (event.target.checked) { next.fallback = ''; } else { delete next.fallback; } changeDraft(next)
       }} />Use fallback text when the translation is missing</label>
       {object.fallback !== undefined && <label className="field">Fallback text<input value={object.fallback} onChange={event => update({ fallback: event.target.value })} /></label>}
       <div className="component-arguments"><span>Arguments</span>{(object.with ?? []).map((argument, index) => <div key={index} className="component-argument">
@@ -85,7 +93,7 @@ export function ComponentInspector({ kind, initial, textContext, catalog, epoch 
             onChange={event => updateHover({ ...hoverObject, id: event.target.value })} /></label>}
         <label className="field">Count<input type="number" min={1} step={1} value={Number(hoverObject.count ?? 1)} onChange={event => updateHover({ ...hoverObject, count: Number(event.target.value) })} /></label>
         <label className="field">Item components JSON<textarea defaultValue={JSON.stringify(hoverObject.components ?? {}, null, 2)} onChange={event => {
-          try { const components: unknown = JSON.parse(event.target.value); if (!components || typeof components !== 'object' || Array.isArray(components)) throw new Error();
+          try { const components: unknown = JSON.parse(event.target.value); if (!components || typeof components !== 'object' || Array.isArray(components)) { throw new Error(); }
             event.target.setCustomValidity(''); updateHover({ ...hoverObject, components }) }
           catch { event.target.setCustomValidity('Enter a JSON object.') }
         }} /></label>
@@ -96,7 +104,7 @@ export function ComponentInspector({ kind, initial, textContext, catalog, epoch 
             onChange={event => updateHover({ ...hoverObject, type: event.target.value })} /></label>}
         <label className="field">Entity UUID<input value={String(hoverObject.id ?? '')} onChange={event => updateHover({ ...hoverObject, id: event.target.value })} /></label>
         <label className="check-field"><input type="checkbox" checked={hoverObject.name !== undefined} onChange={event => {
-          const next = { ...hoverObject }; if (event.target.checked) next.name = ''; else delete next.name; updateHover(next)
+          const next = { ...hoverObject }; if (event.target.checked) { next.name = ''; } else { delete next.name; } updateHover(next)
         }} />Include an entity name</label>
         {hoverObject.name !== undefined && <ComponentEditor label="Entity name" value={isChatComponent(hoverObject.name) ? hoverObject.name : ''}
           onChange={name => updateHover({ ...hoverObject, name })} textContext={textContext} catalog={catalog} epoch={epoch} />}

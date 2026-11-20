@@ -23,8 +23,12 @@ public class QuestEditorServer {
     private static ExecutorService executor;
 
     public static synchronized boolean start(MinecraftServer minecraftServer) {
-        if (minecraftServer.isDedicatedServer()) return false;
-        if (server != null) return true;
+        if (minecraftServer.isDedicatedServer()) {
+            return false;
+        }
+        if (server != null) {
+            return true;
+        }
         String host = System.getProperty(MOD_ID + ".editor.host", "127.0.0.1");
         try {
             QuestEditorAssets.discoverRoots();
@@ -45,15 +49,21 @@ public class QuestEditorServer {
     }
 
     public static synchronized String getUrl() {
-        if (server == null) throw new IllegalStateException("The quest editor is not running.");
+        if (server == null) {
+            throw new IllegalStateException("The quest editor is not running.");
+        }
         InetSocketAddress address = server.getAddress();
         String host = address.getAddress().isAnyLocalAddress() ? "localhost" : address.getHostString();
-        if (host.contains(":")) host = "[" + host + "]";
+        if (host.contains(":")) {
+            host = "[" + host + "]";
+        }
         return "http://" + host + ":" + address.getPort() + "/";
     }
 
     static synchronized int start(String host, int port, QuestEditorService service) throws IOException {
-        if (server != null) return server.getAddress().getPort();
+        if (server != null) {
+            return server.getAddress().getPort();
+        }
         if (QuestEditorHttpHandler.class.getResource(QuestEditorHttpHandler.RESOURCE_ROOT + "index.html") == null) {
             throw new FileNotFoundException("The bundled quest editor index.html is missing.");
         }

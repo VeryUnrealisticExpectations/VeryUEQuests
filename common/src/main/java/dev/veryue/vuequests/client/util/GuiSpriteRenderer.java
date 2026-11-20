@@ -38,7 +38,9 @@ public class GuiSpriteRenderer {
 
     public static void blit(GuiGraphics graphics, ResourceLocation location, int x, int y, int width, int height,
                             float red, float green, float blue, float alpha) {
-        if (width <= 0 || height <= 0) return;
+        if (width <= 0 || height <= 0) {
+            return;
+        }
         RenderSystem.assertOnRenderThread();
         TextureAtlasSprite sprite = Minecraft.getInstance().getGuiSprites().getSprite(location);
         GuiSpriteScaling scaling = Minecraft.getInstance().getGuiSprites().getSpriteScaling(sprite);
@@ -81,7 +83,9 @@ public class GuiSpriteRenderer {
     }
 
     private void render(GuiSpriteScaling scaling, int x, int y, int width, int height) {
-        if (width <= 0 || height <= 0) return;
+        if (width <= 0 || height <= 0) {
+            return;
+        }
         if (scaling instanceof GuiSpriteScaling.Tile tile) {
             tile(x, y, width, height, 0, 0, tile.width(), tile.height(), tile.width(), tile.height());
         } else if (scaling instanceof GuiSpriteScaling.NineSlice slice) {
@@ -110,7 +114,9 @@ public class GuiSpriteRenderer {
 
     private void tile(int x, int y, int width, int height, int sourceX, int sourceY,
                       int tileWidth, int tileHeight, int textureWidth, int textureHeight) {
-        if (width <= 0 || height <= 0) return;
+        if (width <= 0 || height <= 0) {
+            return;
+        }
         for (int offsetX = 0; offsetX < width; offsetX += tileWidth) {
             int quadWidth = Math.min(tileWidth, width - offsetX);
             for (int offsetY = 0; offsetY < height; offsetY += tileHeight) {

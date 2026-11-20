@@ -25,15 +25,21 @@ export function taskRowsFor(kind: TaskKind, tasks: Task[]): TaskRow[] {
 
 export function integerInput(text: string, min: number, max = Number.MAX_SAFE_INTEGER): number | undefined {
   const value = text.trim()
-  if (!/^[+-]?\d+$/.test(value)) return
+  if (!/^[+-]?\d+$/.test(value)) {
+    return
+  }
   const number = Number(value)
-  if (Number.isSafeInteger(number) && number >= min && number <= max) return number
+  if (Number.isSafeInteger(number) && number >= min && number <= max) {
+    return number
+  }
 }
 
 export function jsonObjectInput(text: string): Record<string, unknown> | undefined {
   try {
     const value: unknown = JSON.parse(text)
-    if (value && typeof value === 'object' && !Array.isArray(value)) return value as Record<string, unknown>
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return value as Record<string, unknown>
+    }
   } catch {
     return undefined
   }
@@ -41,24 +47,38 @@ export function jsonObjectInput(text: string): Record<string, unknown> | undefin
 
 export function attributeAmountInput(text: string): number | undefined {
   const raw = text.trim()
-  if (!/^\+?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i.test(raw)) return
+  if (!/^\+?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i.test(raw)) {
+    return
+  }
   const amount = Number(raw)
-  if (isAttributeAmount(amount)) return amount
+  if (isAttributeAmount(amount)) {
+    return amount
+  }
 }
 
 export function taskQuantity(task: Task) {
   const count = objectiveCount(task)
-  if (count !== undefined) return { label: 'Quantity', field: 'count' as const, value: count, min: 1, max: MAX_OBJECTIVE_COUNT }
-  if (task.type === 'vuequests:item') return { label: 'Quantity', field: 'itemCount' as const, value: task.item?.count ?? 1, min: 1, max: 99 }
-  if (task.type === 'vuequests:experience') return { label: 'Experience', field: 'experience' as const, value: task.experience ?? 0, min: 0 }
-  if (task.type === 'vuequests:experience_levels') return { label: 'Levels', field: 'levels' as const, value: task.levels ?? 0, min: 1, max: 2_147_483_647 }
+  if (count !== undefined) {
+    return { label: 'Quantity', field: 'count' as const, value: count, min: 1, max: MAX_OBJECTIVE_COUNT }
+  }
+  if (task.type === 'vuequests:item') {
+    return { label: 'Quantity', field: 'itemCount' as const, value: task.item?.count ?? 1, min: 1, max: 99 }
+  }
+  if (task.type === 'vuequests:experience') {
+    return { label: 'Experience', field: 'experience' as const, value: task.experience ?? 0, min: 0 }
+  }
+  if (task.type === 'vuequests:experience_levels') {
+    return { label: 'Levels', field: 'levels' as const, value: task.levels ?? 0, min: 1, max: 2_147_483_647 }
+  }
 }
 
 export const taskInputId = (key: string, field: string) => 'quest-' + key + '-' + field
 
 export function sectionsWithDraft(sections: Section[], draft: Quest): Section[] {
   return sections.map(section => {
-    if (section.section_id !== draft.section_id) return section
+    if (section.section_id !== draft.section_id) {
+      return section
+    }
     const exists = section.quests.some(quest => quest.quest_id === draft.quest_id)
     return { ...section, quests: exists
       ? section.quests.map(quest => quest.quest_id === draft.quest_id ? draft : quest)
@@ -81,7 +101,9 @@ export function blockedPrerequisites(sections: Section[], questId: string): Set<
   const pending = [questId]
   while (pending.length) {
     for (const id of dependents.get(pending.pop()!) ?? []) {
-      if (blocked.has(id)) continue
+      if (blocked.has(id)) {
+        continue
+      }
       blocked.add(id)
       pending.push(id)
     }
@@ -91,9 +113,14 @@ export function blockedPrerequisites(sections: Section[], questId: string): Set<
 
 export function questIssues(draft: Quest, rows: TaskRows, inputs: InputDrafts, sections: Section[]): QuestIssue[] {
   const issues: QuestIssue[] = []
-  if (!hasComponentContent(draft.display.title)) issues.push({ stage: 'details', target: 'quest-title', message: 'Quest title is required.' })
-  else if (componentLiteralLength(draft.display.title) > 160) issues.push({ stage: 'details', target: 'quest-title', message: 'Quest title may contain at most 160 literal characters.' })
-  if (!isRegistryId(draft.display.icon)) issues.push({ stage: 'details', target: 'quest-icon', message: 'Choose a quest icon or enter a namespaced item ID.' })
+  if (!hasComponentContent(draft.display.title)) {
+    issues.push({ stage: 'details', target: 'quest-title', message: 'Quest title is required.' })
+  } else if (componentLiteralLength(draft.display.title) > 160) {
+    issues.push({ stage: 'details', target: 'quest-title', message: 'Quest title may contain at most 160 literal characters.' })
+  }
+  if (!isRegistryId(draft.display.icon)) {
+    issues.push({ stage: 'details', target: 'quest-icon', message: 'Choose a quest icon or enter a namespaced item ID.' })
+  }
   for (const axis of ['x', 'y'] as const) {
     const target = 'quest-' + axis
     if (integerInput(inputs[target] ?? String(draft.position[axis]), -2_147_483_648, 2_147_483_647) === undefined) {
@@ -138,10 +165,14 @@ export function questIssues(draft: Quest, rows: TaskRows, inputs: InputDrafts, s
         }
       }
       const problem = taskProblem(task)
-      if (problem && !invalidQuantity) issues.push({ stage, target: taskInputId(key, 'target'), taskKey: key, message: label + problem })
+      if (problem && !invalidQuantity) {
+        issues.push({ stage, target: taskInputId(key, 'target'), taskKey: key, message: label + problem })
+      }
     })
   }
   const problem = dependencyProblem(sectionsWithDraft(sections, draft))
-  if (problem) issues.push({ stage: 'review', target: 'quest-prerequisites', message: problem })
+  if (problem) {
+    issues.push({ stage: 'review', target: 'quest-prerequisites', message: problem })
+  }
   return issues
 }

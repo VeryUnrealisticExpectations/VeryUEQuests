@@ -57,7 +57,9 @@ public class ClientTeamData {
     }
 
     public static void request(Function<UUID, TeamRequestPayload> create, Consumer<CustomPacketPayload> send) {
-        if (isPending() || !ClientQuestData.isDataReady()) return;
+        if (isPending() || !ClientQuestData.isDataReady()) {
+            return;
+        }
         pendingRequest = UUID.randomUUID();
         feedback = Component.empty();
         failed = false;
@@ -66,7 +68,9 @@ public class ClientTeamData {
     }
 
     public static void complete(TeamActionResultPayload result) {
-        if (!result.requestId().equals(pendingRequest)) return;
+        if (!result.requestId().equals(pendingRequest)) {
+            return;
+        }
         pendingRequest = null;
         feedback = result.message();
         failed = !result.success();

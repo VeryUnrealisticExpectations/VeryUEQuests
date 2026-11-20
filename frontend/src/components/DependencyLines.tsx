@@ -10,7 +10,9 @@ export function DependencyLines({ quests }: { quests: Quest[] }) {
     </marker></defs>
     {quests.flatMap(quest => quest.dependencies.map(dependency => {
       const from = index.get(dependency)
-      if (!from || from.quest_id === quest.quest_id) return null
+      if (!from || from.quest_id === quest.quest_id) {
+        return null
+      }
       const a = from.position, b = quest.position
       const path = `M ${a.x} ${a.y} L ${(a.x + b.x) / 2} ${(a.y + b.y) / 2} L ${b.x} ${b.y}`
       return <g key={`${dependency}:${quest.quest_id}`}><path d={path} className="dependency-border" /><path d={path} className="dependency-line" markerMid={`url(#${marker})`} /></g>

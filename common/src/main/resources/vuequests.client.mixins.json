@@ -9,7 +9,8 @@
     "ClientLanguageAccessor",
     "FontManagerAccessor",
     "FontManagerMixin",
-    "MinecraftAccessor"
+    "MinecraftAccessor",
+    "TranslatableContentsMixin"
   ],
   "injectors": {
     "defaultRequire": 1

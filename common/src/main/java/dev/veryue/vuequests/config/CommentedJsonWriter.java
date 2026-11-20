@@ -1,6 +1,7 @@
 package dev.veryue.vuequests.config;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 
 import java.util.Map;
@@ -20,7 +21,7 @@ public class CommentedJsonWriter {
         if (value.isJsonObject()) {
             output.append('{');
             int index = 0;
-            for (var entry : value.getAsJsonObject().entrySet()) {
+            for (Map.Entry<String, JsonElement> entry : value.getAsJsonObject().entrySet()) {
                 if (index++ > 0) {
                     output.append(',');
                 }
@@ -39,7 +40,7 @@ public class CommentedJsonWriter {
             output.append('}');
         } else if (value.isJsonArray()) {
             output.append('[');
-            var array = value.getAsJsonArray();
+            JsonArray array = value.getAsJsonArray();
             for (int index = 0; index < array.size(); index++) {
                 if (index > 0) {
                     output.append(',');

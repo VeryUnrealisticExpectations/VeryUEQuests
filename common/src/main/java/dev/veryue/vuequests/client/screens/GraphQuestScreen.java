@@ -89,7 +89,7 @@ public class GraphQuestScreen extends QuestMenuScreen {
     }
 
     private void refreshData() {
-        QuestData latest = ClientQuestData.getData();
+        QuestData latest = ClientQuestData.getTranslatedData();
         if (latest == data) {
             return;
         }

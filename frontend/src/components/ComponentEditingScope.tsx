@@ -7,9 +7,13 @@ export function ComponentEditingScope({ children }: { children: ReactNode }) {
   return <ComponentEditingContext value={{ activeEditor, activateEditor }}>
     <div className="component-editing-scope" onFocusCapture={event => {
       const target = event.target
-      if (target.closest('.component-editor, [data-component-popup]')) return
+      if (target.closest('.component-editor, [data-component-popup]')) {
+        return
+      }
       if (target instanceof HTMLTextAreaElement || target instanceof HTMLInputElement
-          && !['color', 'checkbox', 'radio', 'button', 'submit'].includes(target.type)) activateEditor(undefined)
+          && !['color', 'checkbox', 'radio', 'button', 'submit'].includes(target.type)) {
+        activateEditor(undefined)
+      }
     }}>{children}</div>
   </ComponentEditingContext>
 }

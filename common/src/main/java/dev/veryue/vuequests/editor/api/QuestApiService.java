@@ -38,6 +38,7 @@ import dev.veryue.vuequests.models.quest.QuestPosition;
 import dev.veryue.vuequests.models.quest.Section;
 import dev.veryue.vuequests.models.objective.QuestObjective;
 import dev.veryue.vuequests.models.reward.RewardType;
+import dev.veryue.vuequests.models.reward.RewardTypeSerializer;
 import dev.veryue.vuequests.platform.PlatformHelper;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -93,7 +94,9 @@ public class QuestApiService {
                 case CREATE_QUESTLINE -> mutate(body, CreateQuestlineRequest.class, CreateQuestlineRequest::revision, (document, request) -> {
                     List<CreateSectionRequest> sections = list(request.sections());
                     List<CreateQuestRequest> quests = list(request.quests());
-                    if (sections.isEmpty() && quests.isEmpty()) throw new IllegalArgumentException("Supply sections or quests.");
+                    if (sections.isEmpty() && quests.isEmpty()) {
+                        throw new IllegalArgumentException("Supply sections or quests.");
+                    }
                     List<UUID> sectionIds = sections.stream().map(section -> createSection(document, section).sectionId()).toList();
                     List<QuestResult> results = quests.stream().map(quest -> createQuest(document, quest)).toList();
                     return new QuestlineResult(sectionIds, results);
@@ -102,7 +105,9 @@ public class QuestApiService {
                     Quest quest = document.quest(request.questId());
                     document.quest(request.dependencyId());
                     List<UUID> dependencies = new ArrayList<>(quest.dependencies());
-                    if (!dependencies.contains(request.dependencyId())) dependencies.add(request.dependencyId());
+                    if (!dependencies.contains(request.dependencyId())) {
+                        dependencies.add(request.dependencyId());
+                    }
                     document.update(copy(quest, quest.position(), quest.display(), quest.objectives(), quest.rewards(), dependencies));
                     return new DependencyResult(quest.questId(), request.dependencyId());
                 }, json);
@@ -133,7 +138,9 @@ public class QuestApiService {
                     return QuestResult.of(updated);
                 }, json);
                 case MODIFY_QUEST_ICON -> mutate(body, ModifyQuestIconRequest.class, ModifyQuestIconRequest::revision, (document, request) -> {
-                    if (request.icon() == null) throw new IllegalArgumentException("Supply icon.");
+                    if (request.icon() == null) {
+                        throw new IllegalArgumentException("Supply icon.");
+                    }
                     Quest quest = document.quest(request.questId());
                     QuestDisplay old = quest.display();
                     QuestDisplay display = new QuestDisplay(old.title(), old.subtitle(), old.description(),
@@ -143,7 +150,9 @@ public class QuestApiService {
                     return QuestResult.of(updated);
                 }, json);
                 case MODIFY_QUEST_POSITION -> mutate(body, ModifyQuestPositionRequest.class, ModifyQuestPositionRequest::revision, (document, request) -> {
-                    if (request.position() == null) throw new IllegalArgumentException("Supply position.");
+                    if (request.position() == null) {
+                        throw new IllegalArgumentException("Supply position.");
+                    }
                     Quest quest = document.quest(request.questId());
                     Quest updated = copy(quest, request.position().toPosition(), quest.display(), quest.objectives(), quest.rewards(), quest.dependencies());
                     document.update(updated);
@@ -157,7 +166,9 @@ public class QuestApiService {
     private <R, T> CompletableFuture<MutationResponse<T>> mutate(String body, Class<R> type, Function<R, String> revision,
                                                                BiFunction<QuestApiDocument, R, T> change, Gson json) {
         R request = json.fromJson(body, type);
-        if (request == null) throw new IllegalArgumentException("Supply a JSON request object.");
+        if (request == null) {
+            throw new IllegalArgumentException("Supply a JSON request object.");
+        }
         return editor.mutate(revision.apply(request), document -> change.apply(document, request));
     }
 
@@ -170,7 +181,7 @@ public class QuestApiService {
                     return describe(id, type.codec(), type.schema());
                 }).toList();
                 case CHECK_REWARDS -> response = VeryUERegistries.REWARD_TYPES.keySet().stream().sorted().map(id -> {
-                    var type = VeryUERegistries.REWARD_TYPES.get(id);
+                    RewardTypeSerializer type = VeryUERegistries.REWARD_TYPES.get(id);
                     return describe(id, type.codec(), type.schema());
                 }).toList();
                 case CHECK_REGISTRIES -> response = List.of(
@@ -181,8 +192,9 @@ public class QuestApiService {
                 case CHECK_SECTIONS, CHECK_QUEST, CHECK_QUEST_POSITION -> {
                     Document stored = new QuestEditorStorage(server.getWorldPath(LevelResource.DATAPACK_DIR)).read(server.getResourceManager());
                     QuestApiDocument document = new QuestApiDocument(stored.sections(), server.registryAccess().createSerializationContext(JsonOps.INSTANCE), PlatformHelper.INSTANCE::isModLoaded);
-                    if (path.equals(CHECK_SECTIONS)) response = new SectionsResponse(document.sections(), stored.revision());
-                    else {
+                    if (path.equals(CHECK_SECTIONS)) {
+                        response = new SectionsResponse(document.sections(), stored.revision());
+                    } else {
                         Quest quest = document.quest(UUID.fromString(required(parameters, "questId")));
                         response = path.equals(CHECK_QUEST) ? new QuestReadResponse(quest, stored.revision())
                                 : new PositionResponse(quest.questId(), quest.sectionUUID(), quest.position().x(), quest.position().y(), stored.revision());
@@ -197,7 +209,9 @@ public class QuestApiService {
     private Gson json() { return QuestApiJson.create(server.registryAccess().createSerializationContext(JsonOps.INSTANCE)); }
 
     static SectionResult createSection(QuestApiDocument document, CreateSectionRequest request) {
-        if (request.name() == null) throw new IllegalArgumentException("Supply name.");
+        if (request.name() == null) {
+            throw new IllegalArgumentException("Supply name.");
+        }
         UUID id = request.sectionId() == null ? UUID.randomUUID() : request.sectionId();
         document.add(new Section(id, request.name(), item(request.icon(), Items.BOOK), List.of()));
         return new SectionResult(id);
@@ -246,32 +260,46 @@ public class QuestApiService {
 
     private static int integer(Map<String, String> parameters, String name, int fallback, int minimum, int maximum) {
         int value = parameters.containsKey(name) ? Integer.parseInt(parameters.get(name)) : fallback;
-        if (value < minimum || value > maximum) throw new IllegalArgumentException(name + " must be between " + minimum + " and " + maximum + ".");
+        if (value < minimum || value > maximum) {
+            throw new IllegalArgumentException(name + " must be between " + minimum + " and " + maximum + ".");
+        }
         return value;
     }
 
     private static String required(Map<String, String> parameters, String name) {
         String value = parameters.get(name);
-        if (value == null || value.isBlank()) throw new IllegalArgumentException("Supply " + name + ".");
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("Supply " + name + ".");
+        }
         return value;
     }
 
     private static Item item(String id, Item fallback) {
-        if (id == null) return fallback;
+        if (id == null) {
+            return fallback;
+        }
         ResourceLocation location = ResourceLocation.tryParse(id);
-        if (location == null || !BuiltInRegistries.ITEM.containsKey(location)) throw new IllegalArgumentException("Unknown item " + id);
+        if (location == null || !BuiltInRegistries.ITEM.containsKey(location)) {
+            throw new IllegalArgumentException("Unknown item " + id);
+        }
         return BuiltInRegistries.ITEM.get(location);
     }
 
     private static Component component(Component value, String fallback) { return value == null ? Component.literal(fallback) : value; }
     private static <T> List<T> list(List<T> values) {
-        if (values == null) return List.of();
-        if (values.stream().anyMatch(value -> value == null)) throw new IllegalArgumentException("List entries cannot be null.");
+        if (values == null) {
+            return List.of();
+        }
+        if (values.stream().anyMatch(value -> value == null)) {
+            throw new IllegalArgumentException("List entries cannot be null.");
+        }
         return List.copyOf(values);
     }
 
     private static <T> List<T> merge(List<T> old, List<T> supplied, ListMode mode) {
-        if (supplied == null || supplied.stream().anyMatch(value -> value == null)) throw new IllegalArgumentException("Supply a list of objective/reward objects.");
+        if (supplied == null || supplied.stream().anyMatch(value -> value == null)) {
+            throw new IllegalArgumentException("Supply a list of objective/reward objects.");
+        }
         List<T> result = new ArrayList<>(mode == ListMode.REPLACE ? List.of() : old);
         result.addAll(supplied);
         return List.copyOf(result);

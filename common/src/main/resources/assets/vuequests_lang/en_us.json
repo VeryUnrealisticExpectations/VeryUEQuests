@@ -1,0 +1,1419 @@
+{
+  "sections": {
+    "75faf305-8bee-496f-be2b-1bb2ffb95b39": {
+      "name": "Overworld"
+    },
+    "2050e2df-3fca-59c4-807f-9e98b461110c": {
+      "name": "Nether"
+    },
+    "9d8b052e-ebde-5623-be7a-9802bd0da22b": {
+      "name": "End"
+    }
+  },
+  "quests": {
+    "9fa7b54c-4f22-5312-97c8-f41721e8ba25": {
+      "title": {
+        "text": "The Overworld",
+        "color": "#83c97a",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Enter the Overworld to unlock its equipment, food, combat, and exploration branches."
+          }
+        ]
+      }
+    },
+    "88bd7216-f97c-528d-b5e1-f7a02c9bf189": {
+      "title": {
+        "text": "Iron tools",
+        "color": "#83c97a",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Carry an "
+          },
+          {
+            "text": "unused",
+            "color": "yellow"
+          },
+          {
+            "text": " "
+          },
+          {
+            "text": "iron pickaxe",
+            "color": "gold"
+          },
+          {
+            "text": " and an "
+          },
+          {
+            "text": "unused",
+            "color": "yellow"
+          },
+          {
+            "text": " "
+          },
+          {
+            "text": "iron axe",
+            "color": "gold"
+          },
+          {
+            "text": ". Both tools are checked in your inventory and "
+          },
+          {
+            "text": "remain yours",
+            "color": "green"
+          },
+          {
+            "text": " after completion."
+          }
+        ]
+      }
+    },
+    "2797d0db-1023-57c2-b6b4-919260476691": {
+      "title": {
+        "text": "Stone mining",
+        "color": "#83c97a",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Mine "
+          },
+          {
+            "text": "128",
+            "color": "aqua"
+          },
+          {
+            "text": " stone blocks. This uses your existing stone-mining statistic, so earlier mining counts. Cobblestone and deepslate have separate statistics."
+          }
+        ]
+      }
+    },
+    "8a8adc5d-8c11-5f7a-8275-42f23bc2494c": {
+      "title": {
+        "text": "Diamond pickaxe",
+        "color": "#83c97a",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Carry an "
+          },
+          {
+            "text": "unused",
+            "color": "yellow"
+          },
+          {
+            "text": " "
+          },
+          {
+            "text": "diamond pickaxe",
+            "color": "gold"
+          },
+          {
+            "text": " in your inventory. This checks possession of the tool, regardless of how you obtained it."
+          }
+        ]
+      }
+    },
+    "ef362cfe-a53e-5cfb-b16b-5bf520821e04": {
+      "title": {
+        "text": "Enchanting",
+        "color": "#83c97a",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Enchant "
+          },
+          {
+            "text": "one",
+            "color": "aqua"
+          },
+          {
+            "text": " item at an enchanting table. Earlier enchantments count toward this statistic. Applying an enchanted book at an anvil does not count."
+          }
+        ]
+      }
+    },
+    "df88bb01-b94d-5a3c-8826-c0ea72158b8b": {
+      "title": {
+        "text": "Level thirty",
+        "color": "#83c97a",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Reach experience level "
+          },
+          {
+            "text": "30",
+            "color": "aqua"
+          },
+          {
+            "text": " while this quest is available. The objective records the highest level it observes and does not consume experience."
+          }
+        ]
+      }
+    },
+    "9e5919ba-7cf1-5622-b198-3e1bef2312c5": {
+      "title": {
+        "text": "Breeding",
+        "color": "#83c97a",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Breed animals "
+          },
+          {
+            "text": "four",
+            "color": "aqua"
+          },
+          {
+            "text": " times. Any animal species counted by the breeding statistic qualifies, including animals bred earlier in this world."
+          }
+        ]
+      }
+    },
+    "2b552ea4-66e4-5393-bf50-13565deff9a7": {
+      "title": {
+        "text": "Fishing",
+        "color": "#83c97a",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Catch "
+          },
+          {
+            "text": "eight",
+            "color": "aqua"
+          },
+          {
+            "text": " fish with a fishing rod. Earlier catches count toward the total. Fish collected in buckets or obtained as items do not increase the fishing statistic."
+          }
+        ]
+      }
+    },
+    "fce4814d-9b2e-578b-956b-118716c985e4": {
+      "title": {
+        "text": "Bread",
+        "color": "#83c97a",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Craft "
+          },
+          {
+            "text": "12",
+            "color": "aqua"
+          },
+          {
+            "text": " bread. The crafting statistic includes bread made earlier, but bread found in chests or obtained through trading does not count."
+          }
+        ]
+      }
+    },
+    "22804b19-9354-5016-92f6-704af5b4b1fe": {
+      "title": {
+        "text": "Food supplies",
+        "color": "#83c97a",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Submit "
+          },
+          {
+            "text": "16",
+            "color": "aqua"
+          },
+          {
+            "text": " "
+          },
+          {
+            "text": "bread",
+            "color": "gold"
+          },
+          {
+            "text": " to receive "
+          },
+          {
+            "text": "two",
+            "color": "aqua"
+          },
+          {
+            "text": " emeralds. "
+          },
+          {
+            "text": "Click the objective",
+            "color": "yellow",
+            "bold": true
+          },
+          {
+            "text": " to hand in "
+          },
+          {
+            "text": "bread",
+            "color": "gold"
+          },
+          {
+            "text": " from your inventory. "
+          },
+          {
+            "text": "Submitted bread is consumed",
+            "color": "red"
+          },
+          {
+            "text": ", and partial deliveries are retained."
+          }
+        ]
+      }
+    },
+    "79d67303-6cef-5ceb-a106-f1ca09bb2aef": {
+      "title": {
+        "text": "Villager trading",
+        "color": "#83c97a",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Complete "
+          },
+          {
+            "text": "eight",
+            "color": "aqua"
+          },
+          {
+            "text": " trades with villagers. Repeated trades with the same villager count, and your existing trade statistic is included."
+          }
+        ]
+      }
+    },
+    "22464e36-c2a8-506b-9bbb-393c27f4f504": {
+      "title": {
+        "text": "Overworld biomes",
+        "color": "#83c97a",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Visit "
+          },
+          {
+            "text": "plains",
+            "color": "gold"
+          },
+          {
+            "text": ", "
+          },
+          {
+            "text": "forest",
+            "color": "gold"
+          },
+          {
+            "text": ", and "
+          },
+          {
+            "text": "desert",
+            "color": "gold"
+          },
+          {
+            "text": " biomes. Each listed biome must be visited while this quest is available. Their variants are separate biomes."
+          }
+        ]
+      }
+    },
+    "c89a2a8e-ddad-5054-b249-7d21cb373118": {
+      "title": {
+        "text": "Plains village",
+        "color": "#83c97a",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Enter a "
+          },
+          {
+            "text": "plains village",
+            "color": "gold"
+          },
+          {
+            "text": " and move through "
+          },
+          {
+            "text": "one",
+            "color": "aqua"
+          },
+          {
+            "text": " of its generated buildings or paths. Villages in other biomes do not satisfy this structure requirement."
+          }
+        ]
+      }
+    },
+    "2b091576-05cd-504d-a8b1-19d44e7aa0f7": {
+      "title": {
+        "text": "Ocean monument",
+        "color": "#83c97a",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Enter an "
+          },
+          {
+            "text": "ocean monument",
+            "color": "gold"
+          },
+          {
+            "text": " and defeat "
+          },
+          {
+            "text": "three",
+            "color": "aqua"
+          },
+          {
+            "text": " "
+          },
+          {
+            "text": "elder guardians",
+            "color": "gold"
+          },
+          {
+            "text": ". Guardian kills count after this quest unlocks. The structure visit and kills are recorded separately."
+          }
+        ]
+      }
+    },
+    "090c3cd4-2f81-5f5c-9ed7-58ce469425a2": {
+      "title": {
+        "text": "Hostile mobs",
+        "color": "#83c97a",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Defeat "
+          },
+          {
+            "text": "five",
+            "color": "aqua"
+          },
+          {
+            "text": " "
+          },
+          {
+            "text": "zombies",
+            "color": "gold"
+          },
+          {
+            "text": ", "
+          },
+          {
+            "text": "five",
+            "color": "aqua"
+          },
+          {
+            "text": " "
+          },
+          {
+            "text": "skeletons",
+            "color": "gold"
+          },
+          {
+            "text": ", and "
+          },
+          {
+            "text": "five",
+            "color": "aqua"
+          },
+          {
+            "text": " "
+          },
+          {
+            "text": "spiders",
+            "color": "gold"
+          },
+          {
+            "text": ". Each counter records kills credited to you after the quest unlocks. Related mob variants have separate entity types."
+          }
+        ]
+      }
+    },
+    "5569b8ba-085f-5ae5-9203-2e21f7f842bb": {
+      "title": {
+        "text": "Pillager outpost",
+        "color": "#83c97a",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Visit a "
+          },
+          {
+            "text": "pillager outpost",
+            "color": "gold"
+          },
+          {
+            "text": " and defeat "
+          },
+          {
+            "text": "five",
+            "color": "aqua"
+          },
+          {
+            "text": " "
+          },
+          {
+            "text": "pillagers",
+            "color": "gold"
+          },
+          {
+            "text": ". The kills can occur away from the outpost, but they must be credited to you after this quest unlocks."
+          }
+        ]
+      }
+    },
+    "4b8c4573-b2b1-52da-8fc8-0d389005f8ed": {
+      "title": {
+        "text": "The Wither",
+        "color": "#83c97a",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Defeat a "
+          },
+          {
+            "text": "Wither",
+            "color": "gold"
+          },
+          {
+            "text": " after this quest unlocks. Claiming the reward adds "
+          },
+          {
+            "text": "one heart",
+            "color": "aqua"
+          },
+          {
+            "text": " to your "
+          },
+          {
+            "text": "maximum health",
+            "color": "aqua"
+          },
+          {
+            "text": ". The kill must be credited to you."
+          }
+        ]
+      }
+    },
+    "4f4f33b6-2688-5610-a06a-eb50f88ce9a8": {
+      "title": {
+        "text": "A beacon",
+        "color": "#83c97a",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Activate a beacon on a valid pyramid to earn the "
+          },
+          {
+            "text": "Bring Home the Beacon",
+            "color": "#83c97a",
+            "italic": true
+          },
+          {
+            "text": " advancement. An earlier completion of that advancement also satisfies this quest."
+          }
+        ]
+      }
+    },
+    "91e27426-41bb-5fb6-9b0d-f8758fbbe7ff": {
+      "title": {
+        "text": "Stronghold",
+        "color": "#83c97a",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Enter a "
+          },
+          {
+            "text": "stronghold",
+            "color": "gold"
+          },
+          {
+            "text": ". The objective records a visit to its generated rooms or corridors. Entering the End is handled independently in the End section."
+          }
+        ]
+      }
+    },
+    "425b6d5b-a0d0-58e4-8264-2a44d478463b": {
+      "title": {
+        "text": "World origin",
+        "color": "#83c97a",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Reach "
+          },
+          {
+            "text": "X=0",
+            "color": "aqua",
+            "bold": true
+          },
+          {
+            "text": " and "
+          },
+          {
+            "text": "Z=0",
+            "color": "aqua",
+            "bold": true
+          },
+          {
+            "text": " in the Overworld. "
+          },
+          {
+            "text": "Any height counts",
+            "color": "aqua",
+            "bold": true
+          },
+          {
+            "text": ". This location is the world origin, which can differ from the world spawn point."
+          }
+        ]
+      }
+    },
+    "99cd99b8-101f-5176-865f-d6720d176497": {
+      "title": {
+        "text": "Enter the Nether",
+        "color": "#ee957d",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Enter the Nether to unlock this section. Its combat, exploration, and resource branches become available after entry."
+          }
+        ]
+      }
+    },
+    "ebd9e6ae-f783-5893-9c95-253b629c76e5": {
+      "title": {
+        "text": "Nether biomes",
+        "color": "#ee957d",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Visit all "
+          },
+          {
+            "text": "five",
+            "color": "aqua"
+          },
+          {
+            "text": " Nether biomes: "
+          },
+          {
+            "text": "nether wastes",
+            "color": "gold"
+          },
+          {
+            "text": ", "
+          },
+          {
+            "text": "crimson forest",
+            "color": "gold"
+          },
+          {
+            "text": ", "
+          },
+          {
+            "text": "warped forest",
+            "color": "gold"
+          },
+          {
+            "text": ", "
+          },
+          {
+            "text": "soul sand valley",
+            "color": "gold"
+          },
+          {
+            "text": ", and "
+          },
+          {
+            "text": "basalt deltas",
+            "color": "gold"
+          },
+          {
+            "text": ". Each visit is recorded while this quest is available."
+          }
+        ]
+      }
+    },
+    "8d486ad4-42fd-5f2e-b2d5-22de186a25ca": {
+      "title": {
+        "text": "Nether fortress",
+        "color": "#ee957d",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Enter a "
+          },
+          {
+            "text": "Nether fortress",
+            "color": "gold"
+          },
+          {
+            "text": " and move through "
+          },
+          {
+            "text": "one",
+            "color": "aqua"
+          },
+          {
+            "text": " of its generated corridors or platforms. This opens the blaze and wither-skull branches."
+          }
+        ]
+      }
+    },
+    "ef8293f3-b75b-529f-801a-ca431fabcc23": {
+      "title": {
+        "text": "Blazes",
+        "color": "#ee957d",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Defeat "
+          },
+          {
+            "text": "five",
+            "color": "aqua"
+          },
+          {
+            "text": " "
+          },
+          {
+            "text": "blazes",
+            "color": "gold"
+          },
+          {
+            "text": " after this quest unlocks. Picking up "
+          },
+          {
+            "text": "blaze",
+            "color": "gold"
+          },
+          {
+            "text": " rods does not replace the kill requirement."
+          }
+        ]
+      }
+    },
+    "bfd2ca09-f21f-5495-bb09-aaf4ee57f077": {
+      "title": {
+        "text": "Brewing",
+        "color": "#ee957d",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Brew and retrieve a potion to earn the "
+          },
+          {
+            "text": "Local Brewery",
+            "color": "#ee957d",
+            "italic": true
+          },
+          {
+            "text": " advancement. An earlier completion counts, and possessing a brewing stand alone does not satisfy the objective."
+          }
+        ]
+      }
+    },
+    "370e62ec-44d3-50f1-97a1-1cca9a777256": {
+      "title": {
+        "text": "Wither skulls",
+        "color": "#ee957d",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Hold "
+          },
+          {
+            "text": "three",
+            "color": "aqua"
+          },
+          {
+            "text": " "
+          },
+          {
+            "text": "wither skeleton skulls",
+            "color": "gold"
+          },
+          {
+            "text": " in your inventory at once. The skulls are "
+          },
+          {
+            "text": "not consumed",
+            "color": "green"
+          },
+          {
+            "text": ". Keep them until the objective records the full set."
+          }
+        ]
+      }
+    },
+    "7016b3ae-9da8-55d0-b37a-29a61646d9a9": {
+      "title": {
+        "text": "Bastion remnants",
+        "color": "#ee957d",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Enter a "
+          },
+          {
+            "text": "bastion remnant",
+            "color": "gold"
+          },
+          {
+            "text": ". The structure visit is sufficient for this quest, and opening its chests is not required."
+          }
+        ]
+      }
+    },
+    "9371c8a7-9301-5e56-bf95-eebf8f4bed6e": {
+      "title": {
+        "text": "Piglin distraction",
+        "color": "#ee957d",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Give an adult piglin a gold ingot while "
+          },
+          {
+            "text": "wearing no gold armor",
+            "color": "red"
+          },
+          {
+            "text": " to earn the "
+          },
+          {
+            "text": "Oh Shiny",
+            "color": "#ee957d",
+            "italic": true
+          },
+          {
+            "text": " advancement. An earlier completion of the advancement also counts."
+          }
+        ]
+      }
+    },
+    "16e55e4e-0c5e-5ea3-a68f-c9e70418dccf": {
+      "title": {
+        "text": "Ghasts",
+        "color": "#ee957d",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Defeat "
+          },
+          {
+            "text": "three",
+            "color": "aqua"
+          },
+          {
+            "text": " "
+          },
+          {
+            "text": "ghasts",
+            "color": "gold"
+          },
+          {
+            "text": " after this quest unlocks. Direct attacks and returned fireballs both qualify when the kill is credited to you."
+          }
+        ]
+      }
+    },
+    "284101ba-b5d3-528d-91bc-9a85047c68d5": {
+      "title": {
+        "text": "Hoglins",
+        "color": "#ee957d",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Defeat "
+          },
+          {
+            "text": "five",
+            "color": "aqua"
+          },
+          {
+            "text": " "
+          },
+          {
+            "text": "hoglins",
+            "color": "gold"
+          },
+          {
+            "text": " after this quest unlocks. Zoglins are a different entity type and do not count toward this total."
+          }
+        ]
+      }
+    },
+    "e24f7596-e9d2-529e-a87a-46d4268b0cfd": {
+      "title": {
+        "text": "Ancient debris",
+        "color": "#ee957d",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Hold "
+          },
+          {
+            "text": "four",
+            "color": "aqua"
+          },
+          {
+            "text": " "
+          },
+          {
+            "text": "ancient debris",
+            "color": "gold"
+          },
+          {
+            "text": " in your inventory before smelting them. The objective checks the blocks themselves, so netherite scrap does not count."
+          }
+        ]
+      }
+    },
+    "7abf2eca-4b96-55c0-b06c-a1d21feced7d": {
+      "title": {
+        "text": "Netherite ingot",
+        "color": "#ee957d",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Carry "
+          },
+          {
+            "text": "one",
+            "color": "aqua"
+          },
+          {
+            "text": " "
+          },
+          {
+            "text": "netherite ingot",
+            "color": "gold"
+          },
+          {
+            "text": ". This checks the ingot in your inventory, rather than the act of crafting it or upgrading equipment."
+          }
+        ]
+      }
+    },
+    "c981384a-fb0c-5dc1-a41a-5ea66015fa68": {
+      "title": {
+        "text": "Respawn anchor",
+        "color": "#ee957d",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Fully charge a respawn anchor with "
+          },
+          {
+            "text": "four",
+            "color": "aqua"
+          },
+          {
+            "text": " glowstone to earn "
+          },
+          {
+            "text": "Not Quite Nine Lives",
+            "color": "#ee957d",
+            "italic": true
+          },
+          {
+            "text": ". Use the Nether for this task. Activating a charged anchor outside the Nether "
+          },
+          {
+            "text": "causes an explosion",
+            "color": "red"
+          },
+          {
+            "text": "."
+          }
+        ]
+      }
+    },
+    "cf032fa9-1103-5eef-9ab3-ffeb68feed12": {
+      "title": {
+        "text": "Strider travel",
+        "color": "#ee957d",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Ride a strider and use a warped fungus on a stick to boost it. This earns "
+          },
+          {
+            "text": "This Boat Has Legs",
+            "color": "#ee957d",
+            "italic": true
+          },
+          {
+            "text": ". Simply sitting on the strider does not complete the advancement."
+          }
+        ]
+      }
+    },
+    "a61431fe-a4a4-5f77-88d7-6210cd2df955": {
+      "title": {
+        "text": "Enter the End",
+        "color": "#c4a0ef",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Enter the End to unlock this section. The dragon's-breath objective is available before the dragon is defeated."
+          }
+        ]
+      }
+    },
+    "3eb39c50-5c4a-55ab-9066-295e93d91196": {
+      "title": {
+        "text": "Dragon's breath",
+        "color": "#c4a0ef",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Collect dragon's breath in a glass bottle to earn "
+          },
+          {
+            "text": "You Need a Mint",
+            "color": "#c4a0ef",
+            "italic": true
+          },
+          {
+            "text": ". This can be done during the first dragon fight. Earlier completion of the advancement also counts."
+          }
+        ]
+      }
+    },
+    "4a7b1da9-6024-5a41-b6d4-02efe538a0f7": {
+      "title": {
+        "text": "Ender dragon",
+        "color": "#c4a0ef",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Defeat the Ender dragon to earn "
+          },
+          {
+            "text": "Free the End",
+            "color": "#c4a0ef",
+            "italic": true
+          },
+          {
+            "text": ". This objective checks your own advancement, so being present for another player's kill is not sufficient."
+          }
+        ]
+      }
+    },
+    "57bbc51e-d687-5bb6-92e9-da7e1f9633a5": {
+      "title": {
+        "text": "End gateway",
+        "color": "#c4a0ef",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Travel through an End gateway to earn "
+          },
+          {
+            "text": "Remote Getaway",
+            "color": "#c4a0ef",
+            "italic": true
+          },
+          {
+            "text": ". Bridging to the outer islands without using a gateway does not satisfy this advancement."
+          }
+        ]
+      }
+    },
+    "7dd4cffa-8104-598b-97a6-2621f4dd757d": {
+      "title": {
+        "text": "End highlands",
+        "color": "#c4a0ef",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Visit the "
+          },
+          {
+            "text": "End highlands",
+            "color": "gold"
+          },
+          {
+            "text": " biome on the outer islands. End midlands, small End islands, and End barrens are separate biomes."
+          }
+        ]
+      }
+    },
+    "f4c4e4d7-4110-5280-b55d-1a06d0468109": {
+      "title": {
+        "text": "Chorus fruit",
+        "color": "#c4a0ef",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Hold "
+          },
+          {
+            "text": "16",
+            "color": "aqua"
+          },
+          {
+            "text": " "
+          },
+          {
+            "text": "chorus fruit",
+            "color": "gold"
+          },
+          {
+            "text": " in your inventory. Popped "
+          },
+          {
+            "text": "chorus fruit",
+            "color": "gold"
+          },
+          {
+            "text": " is a different item. The fruit remains available to eat or process after completion."
+          }
+        ]
+      }
+    },
+    "43eade70-d279-53a1-b374-f9beb00d53f1": {
+      "title": {
+        "text": "End city",
+        "color": "#c4a0ef",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Enter an "
+          },
+          {
+            "text": "End city",
+            "color": "gold"
+          },
+          {
+            "text": ". A ship is not required for the structure visit, although finding an elytra may require searching further cities."
+          }
+        ]
+      }
+    },
+    "75ba3dfc-d68a-5887-9bf8-ec70a1a037d2": {
+      "title": {
+        "text": "Shulkers",
+        "color": "#c4a0ef",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Defeat "
+          },
+          {
+            "text": "four",
+            "color": "aqua"
+          },
+          {
+            "text": " "
+          },
+          {
+            "text": "shulkers",
+            "color": "gold"
+          },
+          {
+            "text": " after this quest unlocks. Shells obtained from other players or found as items do not replace the kill requirement."
+          }
+        ]
+      }
+    },
+    "e5ebeb54-e851-5118-ae55-1bcb31e2d685": {
+      "title": {
+        "text": "Shulker shells",
+        "color": "#c4a0ef",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Hold "
+          },
+          {
+            "text": "two",
+            "color": "aqua"
+          },
+          {
+            "text": " "
+          },
+          {
+            "text": "shulker shells",
+            "color": "gold"
+          },
+          {
+            "text": " in your inventory before crafting a shulker box. The shells are "
+          },
+          {
+            "text": "not consumed",
+            "color": "green"
+          },
+          {
+            "text": " by this objective."
+          }
+        ]
+      }
+    },
+    "45f14a4b-4eee-59bc-b372-1d8a78708356": {
+      "title": {
+        "text": "Elytra",
+        "color": "#c4a0ef",
+        "bold": true
+      },
+      "subtitle": "",
+      "description": {
+        "text": "",
+        "color": "gray",
+        "extra": [
+          {
+            "text": "Carry an "
+          },
+          {
+            "text": "undamaged",
+            "color": "yellow"
+          },
+          {
+            "text": " "
+          },
+          {
+            "text": "elytra",
+            "color": "gold"
+          },
+          {
+            "text": " in your inventory. Record the objective before using it. The reward supplies "
+          },
+          {
+            "text": "16",
+            "color": "aqua"
+          },
+          {
+            "text": " flight-duration-"
+          },
+          {
+            "text": "1",
+            "color": "aqua"
+          },
+          {
+            "text": " rockets without firework explosions."
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,4 +1,5 @@
 import com.github.gradle.node.npm.task.NpmTask
+import org.gradle.jvm.tasks.Jar
 
 plugins {
     id 'fabric-loom' version '1.17.21' apply false
@@ -41,4 +42,16 @@ subprojects {
     tasks.withType(Javadoc).configureEach {
         include '**/*.java'
     }
+}
+
+def fabricProject = project(':fabric')
+def neoforgeProject = project(':neoforge')
+
+tasks.register('moveJars', Copy) {
+    group = 'build'
+    description = 'moves the jars after being built'
+    dependsOn ':fabric:build', ':neoforge:build'
+    from(providers.provider { fabricProject.tasks.named('remapJar', Jar).get().archiveFile.get() })
+    from(providers.provider { neoforgeProject.tasks.named('jar', Jar).get().archiveFile.get() })
+    into layout.projectDirectory.dir('builds')
 }

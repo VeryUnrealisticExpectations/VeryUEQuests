@@ -48,13 +48,17 @@ public class QuestSettingsScreen extends QuestMenuScreen {
         for (int group = 0; group < groups.size(); group++) {
             SettingsPanel panel = groups.get(group);
             panel.active = panel.visible = group == selectedGroup;
-            if (!panel.active) panel.setFocused(null);
+            if (!panel.active) {
+                panel.setFocused(null);
+            }
         }
     }
 
     @Override
     public void setFocused(GuiEventListener listener) {
-        if (listener != getFocused()) super.setFocused(listener);
+        if (listener != getFocused()) {
+            super.setFocused(listener);
+        }
     }
 
     @Override

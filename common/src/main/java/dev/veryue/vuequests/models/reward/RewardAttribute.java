@@ -6,6 +6,7 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.veryue.vuequests.VeryUEConstants;
 import dev.veryue.vuequests.registry.RewardTypes;
+import net.minecraft.core.Holder;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -13,10 +14,13 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
+import java.util.Optional;
 import java.util.UUID;
 
 public class RewardAttribute extends RewardType<ResourceLocation> {
@@ -48,7 +52,7 @@ public class RewardAttribute extends RewardType<ResourceLocation> {
 
     @Override
     public Component getDisplayName() {
-        var attribute = BuiltInRegistries.ATTRIBUTE.get(getValue());
+        Attribute attribute = BuiltInRegistries.ATTRIBUTE.get(getValue());
         Component name = attribute == null ? Component.literal(getValue().toString()) : Component.translatable(attribute.getDescriptionId());
         return Component.translatable("screen.vuequests.reward.attribute", name, amount);
     }
@@ -68,16 +72,16 @@ public class RewardAttribute extends RewardType<ResourceLocation> {
 
     @Override
     public boolean tryGiveReward(ServerPlayer player) {
-        var holder = BuiltInRegistries.ATTRIBUTE.getHolder(ResourceKey.create(Registries.ATTRIBUTE, getValue()));
+        Optional<Holder.Reference<Attribute>> holder = BuiltInRegistries.ATTRIBUTE.getHolder(ResourceKey.create(Registries.ATTRIBUTE, getValue()));
         if (holder.isEmpty()) {
             return false;
         }
         var attribute = holder.get();
-        var instance = player.getAttribute(attribute);
+        AttributeInstance instance = player.getAttribute(attribute);
         if (instance == null) {
             return false;
         }
-        var modifier = new AttributeModifier(getModifierId(), amount, AttributeModifier.Operation.ADD_VALUE);
+        AttributeModifier modifier = new AttributeModifier(getModifierId(), amount, AttributeModifier.Operation.ADD_VALUE);
         if (!modifier.equals(instance.getModifier(modifier.id()))) {
             instance.addOrUpdateTransientModifier(modifier);
         }

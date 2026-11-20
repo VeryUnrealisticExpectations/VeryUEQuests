@@ -20,7 +20,7 @@ public abstract class QuestLoader {
         var ops = registryLookup.createSerializationContext(JsonOps.INSTANCE);
         ImmutableMap.Builder<UUID, Section> sections = ImmutableMap.builder();
         ImmutableMap.Builder<UUID, Quest> quests = ImmutableMap.builder();
-        for (var entry : definitions.entrySet()) {
+        for (Map.Entry<?, ? extends JsonElement> entry : definitions.entrySet()) {
             try {
                 JsonElement json = entry.getValue();
                 String modLoaded = Section.MOD_LOADED_CODEC.codec().parse(JsonOps.INSTANCE, json).getOrThrow();

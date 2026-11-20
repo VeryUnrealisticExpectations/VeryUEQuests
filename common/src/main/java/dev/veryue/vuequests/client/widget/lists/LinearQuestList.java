@@ -13,6 +13,7 @@ import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.item.ItemStack;
@@ -73,8 +74,12 @@ public class LinearQuestList extends AbstractWidget {
         onSelect.accept(quest);
         if (reveal && quest != null) {
             int top = rowTop(entries.indexOf(quest));
-            if (top < scroll) scroll = top;
-            if (top + ROW_HEIGHT > scroll + height) scroll = top + ROW_HEIGHT - height;
+            if (top < scroll) {
+                scroll = top;
+            }
+            if (top + ROW_HEIGHT > scroll + height) {
+                scroll = top + ROW_HEIGHT - height;
+            }
             clampScroll();
         }
     }
@@ -112,7 +117,9 @@ public class LinearQuestList extends AbstractWidget {
         graphics.drawString(font, Component.translatable("screen.vuequests.completed"), getX() + 3, completedTop + 3, 0xFFA0A0A0);
         for (int i = 0; i < entries.size(); i++) {
             int y = top + rowTop(i);
-            if (y + ROW_HEIGHT <= getY() || y >= getBottom()) continue;
+            if (y + ROW_HEIGHT <= getY() || y >= getBottom()) {
+                continue;
+            }
             Quest quest = entries.get(i);
             boolean current = quest.questId().equals(selected);
             boolean hovered = isMouseOver(mouseX, mouseY) && mouseY >= y && mouseY < y + ROW_HEIGHT;
@@ -126,7 +133,7 @@ public class LinearQuestList extends AbstractWidget {
                     QuestWidgetSprites.blitClaimBadge(graphics, getX() + 3, y + 3, allRewardsClaimed);
                 }
                 Component styledTitle = quest.display().title().copy().withStyle(style -> style.withBold(current));
-                var title = Language.getInstance().getVisualOrder(font.substrByWidth(styledTitle, Math.max(1, width - 27 - Mth.ceil(inset))));
+                FormattedCharSequence title = Language.getInstance().getVisualOrder(font.substrByWidth(styledTitle, Math.max(1, width - 27 - Mth.ceil(inset))));
                 graphics.drawString(font, title, getX() + 25, y + 7,
                         current ? 0xFFFFFFFF : completed ? 0xFF999999 : 0xFFCCCCCC);
             });
@@ -136,7 +143,9 @@ public class LinearQuestList extends AbstractWidget {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (!active || !visible || button != 0 || !isMouseOver(mouseX, mouseY)) return false;
+        if (!active || !visible || button != 0 || !isMouseOver(mouseX, mouseY)) {
+            return false;
+        }
         double y = mouseY - getY() + scroll;
         for (int i = 0; i < entries.size(); i++) {
             if (y >= rowTop(i) && y < rowTop(i) + ROW_HEIGHT) {
@@ -150,7 +159,9 @@ public class LinearQuestList extends AbstractWidget {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double deltaX, double deltaY) {
-        if (!isMouseOver(mouseX, mouseY)) return false;
+        if (!isMouseOver(mouseX, mouseY)) {
+            return false;
+        }
         scroll -= deltaY * ROW_HEIGHT;
         clampScroll();
         return true;
@@ -158,9 +169,15 @@ public class LinearQuestList extends AbstractWidget {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (entries.isEmpty()) return false;
+        if (entries.isEmpty()) {
+            return false;
+        }
         int current = 0;
-        for (int i = 0; i < entries.size(); i++) if (entries.get(i).questId().equals(selected)) current = i;
+        for (int i = 0; i < entries.size(); i++) {
+            if (entries.get(i).questId().equals(selected)) {
+                current = i;
+            }
+        }
         int next = switch (keyCode) {
             case GLFW.GLFW_KEY_UP -> current - 1;
             case GLFW.GLFW_KEY_DOWN -> current + 1;
@@ -170,7 +187,9 @@ public class LinearQuestList extends AbstractWidget {
             case GLFW.GLFW_KEY_PAGE_DOWN -> current + Math.max(1, height / ROW_HEIGHT);
             default -> Integer.MIN_VALUE;
         };
-        if (next == Integer.MIN_VALUE) return super.keyPressed(keyCode, scanCode, modifiers);
+        if (next == Integer.MIN_VALUE) {
+            return super.keyPressed(keyCode, scanCode, modifiers);
+        }
         select(entries.get(Mth.clamp(next, 0, entries.size() - 1)), true);
         return true;
     }

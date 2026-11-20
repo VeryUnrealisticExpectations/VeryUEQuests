@@ -17,25 +17,34 @@ export function TranslationKeyPicker({ value, onChange, textContext }:
   const selected = textContext?.translations.find(entry => entry.key === value)
   const choose = (index: number) => {
     const entry = matches[index]
-    if (!entry) return
+    if (!entry) {
+      return
+    }
     onChange(entry.key); setCursor({ query: entry.key, index: 0 }); setScrollTop(0)
-    if (list.current) list.current.scrollTop = 0
+    if (list.current) {
+      list.current.scrollTop = 0
+    }
   }
   return <div className="translation-key-picker">
     <label className="field">Translation key<input required value={value} autoComplete="off" spellCheck={false}
       placeholder="screen.vuequests.title" role="combobox" aria-autocomplete="list" aria-expanded={matches.length > 0}
       aria-controls={`${id}-keys`} aria-activedescendant={active >= first && active < first + VISIBLE_ROWS + 2 ? `${id}-${active}` : undefined}
-      onChange={event => { onChange(event.target.value); setCursor({ query: event.target.value, index: 0 }); setScrollTop(0); if (list.current) list.current.scrollTop = 0 }}
+      onChange={event => { onChange(event.target.value); setCursor({ query: event.target.value, index: 0 }); setScrollTop(0); if (list.current) { list.current.scrollTop = 0 } }}
       onKeyDown={event => {
         if (event.key === 'Enter' && matches[active]) { event.preventDefault(); event.stopPropagation(); choose(active); return }
         const offset = { ArrowUp: -1, ArrowDown: 1, PageUp: -VISIBLE_ROWS, PageDown: VISIBLE_ROWS }[event.key]
-        if (offset === undefined || !matches.length) return
+        if (offset === undefined || !matches.length) {
+          return
+        }
         event.preventDefault(); event.stopPropagation()
         const next = Math.max(0, Math.min(matches.length - 1, active + offset))
         setCursor({ query: value, index: next })
         if (list.current) {
-          if (next * ROW_HEIGHT < list.current.scrollTop) list.current.scrollTop = next * ROW_HEIGHT
-          else if ((next + 1) * ROW_HEIGHT > list.current.scrollTop + list.current.clientHeight) list.current.scrollTop = (next + 1) * ROW_HEIGHT - list.current.clientHeight
+          if (next * ROW_HEIGHT < list.current.scrollTop) {
+            list.current.scrollTop = next * ROW_HEIGHT
+          } else if ((next + 1) * ROW_HEIGHT > list.current.scrollTop + list.current.clientHeight) {
+            list.current.scrollTop = (next + 1) * ROW_HEIGHT - list.current.clientHeight
+          }
         }
       }} /></label>
     <div className="translation-pair-heading"><span>Key</span><span>Value · {textContext?.language ?? 'en_us'}</span></div>

@@ -1,6 +1,7 @@
 package dev.veryue.vuequests.client;
 
 import com.google.common.collect.ImmutableMap;
+import dev.veryue.vuequests.client.lang.ClientQuestLanguages;
 import dev.veryue.vuequests.config.QuestView;
 import dev.veryue.vuequests.data.quest.QuestData;
 import dev.veryue.vuequests.data.quest.QuestReloadDelegate;
@@ -21,7 +22,8 @@ import java.util.UUID;
 public class ClientQuestData {
 
     private static final SystemToast.SystemToastId OBJECTIVE_COMPLETED = new SystemToast.SystemToastId();
-    private static QuestData data = QuestData.EMPTY;
+    private static QuestData syncedData = QuestData.EMPTY;
+    private static QuestData translatedData = QuestData.EMPTY;
     @Nullable
     private static PlayerUser user;
     private static boolean debugEnabled;
@@ -44,12 +46,15 @@ public class ClientQuestData {
         dataError = message;
         if (!ready) {
             user = null;
-            data = QuestData.EMPTY;
+            syncedData = QuestData.EMPTY;
+            translatedData = QuestData.EMPTY;
         }
         if (changed) {
             ClientTeamData.refresh();
-            if (!ready && Minecraft.getInstance().player != null)
-                Minecraft.getInstance().gui.getChat().addMessage(message);
+            Minecraft minecraft = Minecraft.getInstance();
+            if (!ready && minecraft != null && minecraft.player != null) {
+                minecraft.gui.getChat().addMessage(message);
+            }
         }
     }
 
@@ -66,13 +71,24 @@ public class ClientQuestData {
     }
 
     public static void update(List<Section> sections, PlayerUser playerUser) {
-        if (dataUnavailable) return;
-        if (hasIntegratedServer()) {
-            data = QuestData.EMPTY;
-            updateProgress(playerUser);
+        if (dataUnavailable) {
             return;
         }
 
+        Minecraft minecraft = Minecraft.getInstance();
+        QuestData latest = minecraft != null && minecraft.getSingleplayerServer() != null
+                ? QuestReloadDelegate.INSTANCE.getData() : indexDefinitions(sections);
+        if (syncedData != latest) {
+            syncedData = latest;
+            refreshTranslations();
+        }
+        updateProgress(playerUser);
+    }
+
+    private static QuestData indexDefinitions(List<Section> sections) {
+        if (sections.isEmpty()) {
+            return QuestData.EMPTY;
+        }
         ImmutableMap.Builder<UUID, Section> sectionIndex = ImmutableMap.builder();
         ImmutableMap.Builder<UUID, Quest> questIndex = ImmutableMap.builder();
         for (Section section : sections) {
@@ -81,12 +97,13 @@ public class ClientQuestData {
                 questIndex.put(quest.questId(), quest);
             }
         }
-        data = new QuestData(sectionIndex.buildOrThrow(), questIndex.buildOrThrow());
-        updateProgress(playerUser);
+        return new QuestData(sectionIndex.buildOrThrow(), questIndex.buildOrThrow());
     }
 
     public static void updateProgress(PlayerUser playerUser) {
-        if (dataUnavailable) return;
+        if (dataUnavailable) {
+            return;
+        }
         PlayerUser previousUser = user;
         user = playerUser;
         if (previousUser != null && previousUser.getUuid().equals(playerUser.getUuid())
@@ -96,7 +113,7 @@ public class ClientQuestData {
     }
 
     private static void showObjectiveCompletionToasts(PlayerUser previousUser, PlayerUser playerUser) {
-        for (Quest quest : getData().quests().values()) {
+        for (Quest quest : getTranslatedData().quests().values()) {
             for (QuestObjective<?, ?> objective : quest.objectives()) {
                 if (playerUser.hasCompletedObjective(objective) && !previousUser.hasCompletedObjective(objective)) {
                     Minecraft minecraft = Minecraft.getInstance();
@@ -108,13 +125,12 @@ public class ClientQuestData {
         }
     }
 
-    public static QuestData getData() {
-        return hasIntegratedServer() ? QuestReloadDelegate.INSTANCE.getData() : data;
+    public static QuestData getTranslatedData() {
+        return translatedData;
     }
 
-    private static boolean hasIntegratedServer() {
-        Minecraft minecraft = Minecraft.getInstance();
-        return minecraft != null && minecraft.getSingleplayerServer() != null;
+    public static void refreshTranslations() {
+        translatedData = ClientQuestLanguages.buildTranslations(Minecraft.getInstance(), syncedData);
     }
 
     @Nullable
@@ -123,7 +139,7 @@ public class ClientQuestData {
     }
 
     public static boolean prerequisitesMet(Quest quest) {
-        return user == null ? quest.dependencies().isEmpty() : getData().prerequisitesMet(quest.questId(), user);
+        return user == null ? quest.dependencies().isEmpty() : getTranslatedData().prerequisitesMet(quest.questId(), user);
     }
 
     public static boolean isQuestComplete(Quest quest) {
@@ -137,7 +153,7 @@ public class ClientQuestData {
     }
 
     public static boolean canClaimRewards(Quest quest) {
-        return user != null && getData().canClaimRewards(quest, user);
+        return user != null && getTranslatedData().canClaimRewards(quest, user);
     }
 
     public static boolean isDebugEnabled() {
@@ -152,7 +168,8 @@ public class ClientQuestData {
 
     public static void clear() {
         ClientTeamData.clear();
-        data = QuestData.EMPTY;
+        syncedData = QuestData.EMPTY;
+        translatedData = QuestData.EMPTY;
         user = null;
         debugEnabled = false;
         questView = null;

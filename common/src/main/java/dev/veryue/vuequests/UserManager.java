@@ -6,6 +6,7 @@ import dev.veryue.vuequests.data.UserLoader;
 import dev.veryue.vuequests.exceptions.UserDoesNotExitException;
 import dev.veryue.vuequests.models.*;
 import net.minecraft.CrashReport;
+import net.minecraft.CrashReportCategory;
 import net.minecraft.ReportType;
 import net.minecraft.ReportedException;
 import net.minecraft.nbt.NbtOps;
@@ -73,8 +74,12 @@ public class UserManager {
     }
 
     private void requireRunning() {
-        if (fatalFailure != null) throw fatalFailure;
-        if (!running) throw new IllegalStateException("Quest data service is stopped");
+        if (fatalFailure != null) {
+            throw fatalFailure;
+        }
+        if (!running) {
+            throw new IllegalStateException("Quest data service is stopped");
+        }
     }
 
     public boolean isRunning(MinecraftServer server) {
@@ -94,7 +99,9 @@ public class UserManager {
     }
 
     public Optional<User> getUser(UUID playerId) {
-        if (!isReady(playerId)) return Optional.empty();
+        if (!isReady(playerId)) {
+            return Optional.empty();
+        }
         TeamUser team = teamsByPlayer.get(playerId);
         return Optional.of(team != null && team.isSharingProgressWithTeamMembers() ? team : players.get(playerId));
     }
@@ -112,7 +119,9 @@ public class UserManager {
     }
 
     public Set<UUID> getProgressRecipients(UUID playerId) {
-        if (!isReady(playerId)) return Set.of();
+        if (!isReady(playerId)) {
+            return Set.of();
+        }
         TeamUser team = teamsByPlayer.get(playerId);
         return team != null && team.isSharingProgressWithTeamMembers() ? new HashSet<>(team.getMembers().keySet()) : Set.of(playerId);
     }
@@ -120,7 +129,9 @@ public class UserManager {
     public void loadPlayer(ServerPlayer player) {
         requireRunning();
         UUID id = player.getUUID();
-        if (players.containsKey(id) || unavailable.containsKey(id)) return;
+        if (players.containsKey(id) || unavailable.containsKey(id)) {
+            return;
+        }
         awaitPendingSaves();
         PlayerUser personal;
         try {
@@ -152,19 +163,27 @@ public class UserManager {
 
     private void requireReady(UUID id) {
         requireRunning();
-        if (!isReady(id)) throw new TeamActionException("data_unavailable");
+        if (!isReady(id)) {
+            throw new TeamActionException("data_unavailable");
+        }
     }
 
     private PlayerUser personalForTransition(UUID id) {
-        if (unavailable.containsKey(id)) throw new TeamActionException("member_unavailable", id.toString());
+        if (unavailable.containsKey(id)) {
+            throw new TeamActionException("member_unavailable", id.toString());
+        }
         PlayerUser personal = players.get(id);
-        if (personal != null) return personal;
+        if (personal != null) {
+            return personal;
+        }
         awaitPendingSaves();
         try {
             return playerLoader.loadUser(id);
         } catch (UserDoesNotExitException | RuntimeException exception) {
             LOGGER.error("Cannot transition member {}: personal file {} is unavailable", id, playerLoader.userPath(id), exception);
-            if (server.getPlayerList().getPlayer(id) != null) markUnavailable(id, exception);
+            if (server.getPlayerList().getPlayer(id) != null) {
+                markUnavailable(id, exception);
+            }
             throw new TeamActionException("member_unavailable", id.toString());
         }
     }
@@ -178,20 +197,26 @@ public class UserManager {
     private TeamUser memberTeam(UUID requester, UUID teamId) {
         requireReady(requester);
         TeamUser team = teamsById.get(teamId);
-        if (team == null || teamsByPlayer.get(requester) != team) throw new TeamActionException("stale_team");
+        if (team == null || teamsByPlayer.get(requester) != team) {
+            throw new TeamActionException("stale_team");
+        }
         return team;
     }
 
     private TeamUser ownedTeam(UUID requester, UUID teamId) {
         TeamUser team = memberTeam(requester, teamId);
-        if (!team.getOwnerId().equals(requester)) throw new TeamActionException("owner_only");
+        if (!team.getOwnerId().equals(requester)) {
+            throw new TeamActionException("owner_only");
+        }
         return team;
     }
 
     public Set<UUID> createTeam(ServerPlayer requester) {
         UUID owner = requester.getUUID();
         requireReady(owner);
-        if (teamsByPlayer.containsKey(owner)) throw new TeamActionException("already_teamed");
+        if (teamsByPlayer.containsKey(owner)) {
+            throw new TeamActionException("already_teamed");
+        }
         Map<UUID, PlayerUser> personal = personalCandidates(Set.of(owner));
         String ownerName = requester.getGameProfile().getName();
         TeamUser team = new TeamUser(UUID.randomUUID(), ownerName + "'s Team", owner, ownerName);
@@ -206,8 +231,12 @@ public class UserManager {
     public Set<UUID> renameTeam(UUID requester, UUID teamId, String requestedName) {
         TeamUser team = ownedTeam(requester, teamId);
         String name = requestedName.strip();
-        if (name.isBlank() || name.length() > 64) throw new TeamActionException("invalid_name");
-        if (name.equals(team.getName())) return Set.of(requester);
+        if (name.isBlank() || name.length() > 64) {
+            throw new TeamActionException("invalid_name");
+        }
+        if (name.equals(team.getName())) {
+            return Set.of(requester);
+        }
         TeamUser candidate = userSnapshot(team, TeamUser.CODEC, teamLoader);
         candidate.setName(name);
         saveData("rename team", Map.of(), candidate, null);
@@ -218,7 +247,9 @@ public class UserManager {
     public Set<UUID> changeSetting(UUID requester, UUID teamId, TeamSetting setting, boolean value) {
         TeamUser team = ownedTeam(requester, teamId);
         boolean current = setting == TeamSetting.SHARING_PROGRESS ? team.isSharingProgressWithTeamMembers() : team.isKeepProgressWhenLeavingTeam();
-        if (current == value) return Set.of(requester);
+        if (current == value) {
+            return Set.of(requester);
+        }
         Map<UUID, PlayerUser> personal = setting == TeamSetting.SHARING_PROGRESS
                 ? personalCandidates(team.getMembers().keySet()) : Map.of();
         TeamUser candidate = userSnapshot(team, TeamUser.CODEC, teamLoader);
@@ -244,9 +275,13 @@ public class UserManager {
     public Set<UUID> invite(UUID requester, UUID teamId, String targetName) {
         ownedTeam(requester, teamId);
         ServerPlayer target = server.getPlayerList().getPlayerByName(targetName);
-        if (target == null) throw new TeamActionException("offline_player", targetName);
+        if (target == null) {
+            throw new TeamActionException("offline_player", targetName);
+        }
         requireReady(target.getUUID());
-        if (teamsByPlayer.containsKey(target.getUUID())) throw new TeamActionException("target_teamed", targetName);
+        if (teamsByPlayer.containsKey(target.getUUID())) {
+            throw new TeamActionException("target_teamed", targetName);
+        }
         invitations.computeIfAbsent(target.getUUID(), id -> new LinkedHashSet<>()).add(teamId);
         return Set.of(requester, target.getUUID());
     }
@@ -259,7 +294,9 @@ public class UserManager {
         UUID id = requester.getUUID();
         requireReady(id);
         Set<UUID> pending = invitations.get(id);
-        if (pending == null || !pending.contains(teamId)) throw new TeamActionException("invalid_invitation");
+        if (pending == null || !pending.contains(teamId)) {
+            throw new TeamActionException("invalid_invitation");
+        }
         TeamUser team = teamsById.get(teamId);
         if (team == null) {
             pending.remove(teamId);
@@ -269,7 +306,9 @@ public class UserManager {
             pending.remove(teamId);
             return Set.of(id);
         }
-        if (teamsByPlayer.containsKey(id)) throw new TeamActionException("already_teamed");
+        if (teamsByPlayer.containsKey(id)) {
+            throw new TeamActionException("already_teamed");
+        }
         Map<UUID, PlayerUser> personal = personalCandidates(Set.of(id));
         TeamUser candidate = userSnapshot(team, TeamUser.CODEC, teamLoader);
         candidate.getMembers().put(id, new TeamMember(requester.getGameProfile().getName(), personal.get(id).getClaimedRewards()));
@@ -286,8 +325,9 @@ public class UserManager {
 
     public Set<UUID> kickMember(UUID requester, UUID teamId, UUID target) {
         TeamUser team = ownedTeam(requester, teamId);
-        if (!team.containsPlayer(target) || target.equals(team.getOwnerId()))
+        if (!team.containsPlayer(target) || target.equals(team.getOwnerId())) {
             throw new TeamActionException("invalid_member");
+        }
         return removeFromTeam(team, Set.of(target));
     }
 
@@ -298,7 +338,9 @@ public class UserManager {
         for (UUID id : departing) {
             PlayerUser user = personal.get(id);
             if (team.isSharingProgressWithTeamMembers()) {
-                if (team.isKeepProgressWhenLeavingTeam()) replaceProgress(user, team);
+                if (team.isKeepProgressWhenLeavingTeam()) {
+                    replaceProgress(user, team);
+                }
                 replaceClaims(user.getClaimedRewards(), team.getClaimedRewards(id));
             }
             candidate.getMembers().remove(id);
@@ -306,14 +348,18 @@ public class UserManager {
         Set<UUID> affected = teamAudience(team);
         saveData(disband ? "disband team" : "depart team", personal, disband ? null : candidate, disband ? team.getUuid() : null);
         addToTeam(personal, disband ? null : candidate, disband ? team.getUuid() : null);
-        if (disband) invitations.values().forEach(pending -> pending.remove(team.getUuid()));
+        if (disband) {
+            invitations.values().forEach(pending -> pending.remove(team.getUuid()));
+        }
         return affected;
     }
 
     private Set<UUID> teamAudience(TeamUser team) {
         Set<UUID> affected = new HashSet<>(team.getMembers().keySet());
         invitations.forEach((recipient, pending) -> {
-            if (pending.contains(team.getUuid())) affected.add(recipient);
+            if (pending.contains(team.getUuid())) {
+                affected.add(recipient);
+            }
         });
         return affected;
     }
@@ -362,21 +408,29 @@ public class UserManager {
     }
 
     private void writeData(String operation, Map<UUID, PlayerUser> personal, TeamUser team, UUID deleteTeam) {
-        if (fatalFailure != null) throw fatalFailure;
+        if (fatalFailure != null) {
+            throw fatalFailure;
+        }
         Path path = null;
         try {
             for (UUID id : personal.keySet().stream().sorted().toList()) {
-                if (fatalFailure != null) throw fatalFailure;
+                if (fatalFailure != null) {
+                    throw fatalFailure;
+                }
                 path = playerLoader.userPath(id);
                 playerLoader.saveUser(personal.get(id));
             }
             if (team != null) {
-                if (fatalFailure != null) throw fatalFailure;
+                if (fatalFailure != null) {
+                    throw fatalFailure;
+                }
                 path = teamLoader.userPath(team.getUuid());
                 teamLoader.saveUser(team);
             }
             if (deleteTeam != null) {
-                if (fatalFailure != null) throw fatalFailure;
+                if (fatalFailure != null) {
+                    throw fatalFailure;
+                }
                 path = teamLoader.userPath(deleteTeam);
                 teamLoader.deleteUser(deleteTeam);
             }
@@ -388,7 +442,7 @@ public class UserManager {
     private synchronized ReportedException fail(String operation, Path path, RuntimeException exception) {
         if (fatalFailure == null) {
             CrashReport report = CrashReport.forThrowable(exception, "VUEQuests persistence failure");
-            var category = report.addCategory("Quest persistence");
+            CrashReportCategory category = report.addCategory("Quest persistence");
             category.setDetail("Operation", operation);
             category.setDetail("File", String.valueOf(path));
             fatalFailure = new ReportedException(report);
@@ -402,24 +456,32 @@ public class UserManager {
         UUID teamId = team == null ? deleteTeam : team.getUuid();
         if (teamId != null) {
             TeamUser previous = teamsById.remove(teamId);
-            if (previous != null) previous.getMembers().keySet().forEach(teamsByPlayer::remove);
+            if (previous != null) {
+                previous.getMembers().keySet().forEach(teamsByPlayer::remove);
+            }
             if (team != null) {
                 teamsById.put(teamId, team);
                 team.getMembers().keySet().forEach(id -> teamsByPlayer.put(id, team));
             }
         }
         personal.forEach((id, user) -> {
-            if (players.containsKey(id)) players.put(id, user);
+            if (players.containsKey(id)) {
+                players.put(id, user);
+            }
         });
     }
 
     public void unloadPlayer(UUID id) {
-        if (fatalFailure != null) return;
+        if (fatalFailure != null) {
+            return;
+        }
         invitations.remove(id);
         PlayerUser personal = players.get(id);
         TeamUser team = teamsByPlayer.get(id);
-        if (running && personal != null) saveDataAsync("logout " + id, Map.of(id, personal),
-                team != null && team.isSharingProgressWithTeamMembers() ? team : null, null);
+        if (running && personal != null) {
+            saveDataAsync("logout " + id, Map.of(id, personal),
+                    team != null && team.isSharingProgressWithTeamMembers() ? team : null, null);
+        }
         players.remove(id);
         unavailable.remove(id);
     }
@@ -443,7 +505,9 @@ public class UserManager {
 
     private void awaitPendingSaves() {
         awaitSave(CompletableFuture.runAsync(() -> {
-            if (fatalFailure != null) throw fatalFailure;
+            if (fatalFailure != null) {
+                throw fatalFailure;
+            }
         }, saveExecutor));
     }
 
@@ -451,13 +515,17 @@ public class UserManager {
         try {
             save.join();
         } catch (CompletionException exception) {
-            if (fatalFailure != null) throw fatalFailure;
+            if (fatalFailure != null) {
+                throw fatalFailure;
+            }
             throw exception;
         }
     }
 
     public void stop() {
-        if (!running) return;
+        if (!running) {
+            return;
+        }
         autosave.cancel(false);
         try {
             awaitPendingSaves();
@@ -479,6 +547,8 @@ public class UserManager {
                 invitations.clear();
             }
         }
-        if (fatalFailure != null) throw fatalFailure;
+        if (fatalFailure != null) {
+            throw fatalFailure;
+        }
     }
 }

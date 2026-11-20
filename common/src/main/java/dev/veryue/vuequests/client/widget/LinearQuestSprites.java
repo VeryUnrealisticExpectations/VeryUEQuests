@@ -47,7 +47,9 @@ public class LinearQuestSprites {
             try {
                 graphics.blitSprite(BREAKLINE, 0, 0, armWidth, 9);
             } finally {
-                if (culling) RenderSystem.enableCull();
+                if (culling) {
+                    RenderSystem.enableCull();
+                }
                 graphics.pose().popPose();
             }
         }

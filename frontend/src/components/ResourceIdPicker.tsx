@@ -13,10 +13,15 @@ export function ResourceIdPicker({ kind, entries, value, onChoose, validId = isR
       <input type="search" data-panel-focus placeholder={search} value={query} spellCheck={false}
         onChange={event => setQuery(event.target.value)}
         onKeyDown={event => {
-          if (event.key !== 'Enter') return
+          if (event.key !== 'Enter') {
+            return
+          }
           event.preventDefault()
-          if (matches.length === 1) onChoose(matches[0].id)
-          else if (validId(raw)) onChoose(raw)
+          if (matches.length === 1) {
+            onChoose(matches[0].id)
+          } else if (validId(raw)) {
+            onChoose(raw)
+          }
         }} />
     </label>
     <div className="wizard-search-results">
