@@ -49,12 +49,12 @@ public class QuestDetailsPanel extends AbstractTextAreaWidget {
     private static final Component NONE = Component.translatable("screen.vuequests.none");
 
     private final Font font;
-    private final Quest quest;
+    private Quest quest;
     private final Predicate<Style> onTextClick;
     private final Consumer<RewardType<?>> onRewardClick;
     private final Consumer<QuestObjective<?, ?>> onObjectiveClick;
-    private final List<ItemStack> objectiveIcons;
-    private final List<ItemStack> rewardIcons;
+    private List<ItemStack> objectiveIcons;
+    private List<ItemStack> rewardIcons;
     private List<FormattedCharSequence> titleLines = List.of();
     private List<FormattedCharSequence> descriptionLines = List.of();
     private int iconColumns;
@@ -66,10 +66,15 @@ public class QuestDetailsPanel extends AbstractTextAreaWidget {
                              Consumer<QuestObjective<?, ?>> onObjectiveClick) {
         super(0, 0, 0, 0, quest.display().title(), defaultSettings(18), false, false);
         this.font = font;
-        this.quest = quest;
         this.onTextClick = onTextClick;
         this.onRewardClick = onRewardClick;
         this.onObjectiveClick = onObjectiveClick;
+        setQuest(quest);
+    }
+
+    public void setQuest(Quest quest) {
+        this.quest = quest;
+        setMessage(quest.display().title());
         objectiveIcons = quest.objectives().stream().map(QuestObjective::getIconStack).toList();
         rewardIcons = quest.rewards().stream().map(RewardType::getIconStack).toList();
     }

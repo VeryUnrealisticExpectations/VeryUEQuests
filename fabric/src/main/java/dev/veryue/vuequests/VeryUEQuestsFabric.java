@@ -68,8 +68,9 @@ public class VeryUEQuestsFabric extends VeryUEMod implements ModInitializer {
         });
         ServerPlayNetworking.registerGlobalReceiver(QuestScreenOpenedPayload.TYPE,
                 (payload, context) -> {
-                    payload.handle(context.player());
-                    syncQuests(context.player());
+                    ServerPlayer player = context.player();
+                    payload.handle(player);
+                    syncQuestScreen(player, ServerPlayNetworking.canSend(player, QuestProgressSyncPayload.TYPE));
                 });
         ServerPlayNetworking.registerGlobalReceiver(ClaimQuestRewardPayload.TYPE, (payload, context) -> {
             ServerPlayer player = context.player();
@@ -125,7 +126,9 @@ public class VeryUEQuestsFabric extends VeryUEMod implements ModInitializer {
 
     @Override
     protected void sendPayload(ServerPlayer player, CustomPacketPayload payload) {
-        if (ServerPlayNetworking.canSend(player, payload.type())) ServerPlayNetworking.send(player, payload);
+        if (ServerPlayNetworking.canSend(player, payload.type())) {
+            ServerPlayNetworking.send(player, payload);
+        }
     }
 
     private boolean sendDebugToggle(ServerPlayer player) {

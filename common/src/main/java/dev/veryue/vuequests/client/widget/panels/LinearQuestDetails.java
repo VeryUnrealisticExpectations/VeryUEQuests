@@ -115,7 +115,9 @@ public class LinearQuestDetails extends AbstractTextAreaWidget {
             contentHeight = 0;
             return;
         }
-        if (keyboardAction >= quest.objectives().size() + quest.rewards().size()) keyboardAction = -1;
+        if (keyboardAction >= quest.objectives().size() + quest.rewards().size()) {
+            keyboardAction = -1;
+        }
         int textWidth = Math.max(1, width - totalInnerPadding());
         title = font.split(quest.display().title(), Math.max(1, (int) (textWidth / TITLE_SCALE)));
         description = quest.display().description().getString().isBlank() ? List.of()
@@ -168,7 +170,9 @@ public class LinearQuestDetails extends AbstractTextAreaWidget {
         int hoveredObjective = inside(mouseX, mouseY) ? objectiveAt(mouseY) : -1;
         for (int i = 0; i < actions.size(); i++) {
             int y = top() + objectivesTop + objectiveOffsets[i];
-            if (!withinContentAreaTopBottom(y, top() + objectivesTop + objectiveOffsets[i + 1])) continue;
+            if (!withinContentAreaTopBottom(y, top() + objectivesTop + objectiveOffsets[i + 1])) {
+                continue;
+            }
             QuestObjective<?, ?> objective = quest.objectives().get(i);
             RenderAnimation animation = objectiveInsets.computeIfAbsent(objective.getObjectiveId(), id -> new RenderAnimation(0));
             ItemStack icon = objectiveIcons.get(i);
@@ -191,7 +195,9 @@ public class LinearQuestDetails extends AbstractTextAreaWidget {
         for (int i = 0; i < rewardIcons.size(); i++) {
             int x = rewardX(i);
             int y = top() + rewardsTop + i / rewardColumns * REWARD_STEP;
-            if (!withinContentAreaTopBottom(y - REWARD_PADDING, y + ICON + REWARD_PADDING)) continue;
+            if (!withinContentAreaTopBottom(y - REWARD_PADDING, y + ICON + REWARD_PADDING)) {
+                continue;
+            }
             RewardType<?> reward = quest.rewards().get(i);
             ItemStack icon = rewardIcons.get(i);
             RenderAnimation animation = rewardScales.computeIfAbsent(reward.getRewardId(), id -> new RenderAnimation(1));
@@ -260,14 +266,20 @@ public class LinearQuestDetails extends AbstractTextAreaWidget {
     }
 
     private void interact(int index) {
-        if (index < 0 || !ClientQuestData.prerequisitesMet(quest)) return;
+        if (index < 0 || !ClientQuestData.prerequisitesMet(quest)) {
+            return;
+        }
         if (index < actions.size()) {
             QuestObjective<?, ?> objective = quest.objectives().get(index);
             if (objective.requiresInteraction() && ClientQuestData.getUser() != null
-                    && !ClientQuestData.getUser().hasCompletedObjective(objective)) onObjectiveClick.accept(objective);
+                    && !ClientQuestData.getUser().hasCompletedObjective(objective)) {
+                onObjectiveClick.accept(objective);
+            }
         } else {
             RewardType<?> reward = quest.rewards().get(index - actions.size());
-            if (ClientQuestData.canClaimRewards(quest) && !ClientQuestData.isRewardClaimed(reward)) onRewardClick.accept(reward);
+            if (ClientQuestData.canClaimRewards(quest) && !ClientQuestData.isRewardClaimed(reward)) {
+                onRewardClick.accept(reward);
+            }
         }
     }
 
@@ -289,8 +301,12 @@ public class LinearQuestDetails extends AbstractTextAreaWidget {
                 keyboardAction = Math.floorMod(keyboardAction + (keyCode == InputConstants.KEY_RIGHT ? 1 : -1), count);
                 int y = keyboardAction < actions.size() ? objectivesTop + objectiveOffsets[keyboardAction]
                         : rewardsTop + (keyboardAction - actions.size()) / rewardColumns * REWARD_STEP;
-                if (y < scrollAmount()) setScrollAmount(y);
-                if (y + ICON > scrollAmount() + height - totalInnerPadding()) setScrollAmount(y + ICON - height + totalInnerPadding());
+                if (y < scrollAmount()) {
+                    setScrollAmount(y);
+                }
+                if (y + ICON > scrollAmount() + height - totalInnerPadding()) {
+                    setScrollAmount(y + ICON - height + totalInnerPadding());
+                }
             }
             case InputConstants.KEY_RETURN, InputConstants.KEY_NUMPADENTER, InputConstants.KEY_SPACE -> { interact(keyboardAction); }
             default -> { return super.keyPressed(event); }
@@ -301,19 +317,27 @@ public class LinearQuestDetails extends AbstractTextAreaWidget {
     private int objectiveAt(double mouseY) {
         double y = mouseY + scrollAmount() - top() - objectivesTop;
         for (int i = 0; i < actions.size(); i++) {
-            if (y >= objectiveOffsets[i] && y < objectiveOffsets[i + 1] - 7) return i;
+            if (y >= objectiveOffsets[i] && y < objectiveOffsets[i + 1] - 7) {
+                return i;
+            }
         }
         return -1;
     }
 
     private int rewardAt(double mouseX, double mouseY) {
         double y = mouseY + scrollAmount() - top() - rewardsTop;
-        if (y < -REWARD_PADDING) return -1;
+        if (y < -REWARD_PADDING) {
+            return -1;
+        }
         int row = (int) ((y + REWARD_PADDING) / REWARD_STEP);
-        if (y - row * REWARD_STEP >= ICON + REWARD_PADDING) return -1;
+        if (y - row * REWARD_STEP >= ICON + REWARD_PADDING) {
+            return -1;
+        }
         int first = row * rewardColumns;
         for (int i = first; i < Math.min(first + rewardColumns, rewardIcons.size()); i++) {
-            if (mouseX >= rewardX(i) - REWARD_PADDING && mouseX < rewardX(i) + ICON + REWARD_PADDING) return i;
+            if (mouseX >= rewardX(i) - REWARD_PADDING && mouseX < rewardX(i) + ICON + REWARD_PADDING) {
+                return i;
+            }
         }
         return -1;
     }
@@ -327,7 +351,9 @@ public class LinearQuestDetails extends AbstractTextAreaWidget {
     private Style styleAt(double mouseX, double mouseY) {
         double y = mouseY + scrollAmount() - top() - descriptionTop;
         int index = (int) (y / lineHeight());
-        if (y < 0 || index >= description.size() || y % lineHeight() >= font.lineHeight) return null;
+        if (y < 0 || index >= description.size() || y % lineHeight() >= font.lineHeight) {
+            return null;
+        }
         double x = mouseX - textX();
         return x < 0 || x >= font.width(description.get(index)) ? null
                 : ClientTextUtil.styleAtWidth(font, description.get(index), (int) x);
@@ -355,7 +381,9 @@ public class LinearQuestDetails extends AbstractTextAreaWidget {
     @Override
     protected void updateWidgetNarration(NarrationElementOutput output) {
         output.add(NarratedElementType.TITLE, getMessage());
-        if (quest == null) return;
+        if (quest == null) {
+            return;
+        }
         List<Component> contents = new ArrayList<>();
         contents.add(quest.display().description());
         contents.add(OBJECTIVES);

@@ -12,6 +12,7 @@ import net.minecraft.server.packs.VanillaPackResourcesBuilder;
 import net.minecraft.server.packs.repository.PackSource;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 public final class QuestEditorAssets {
     private static final String GUI_SPRITE_DIRECTORY = "textures/gui/sprites";
@@ -33,10 +35,10 @@ public final class QuestEditorAssets {
     private static final Cache<List<String>> directories = new Cache<>(2 * 1024 * 1024, 256);
 
     public static void discoverRoots() {
-        var sources = new ArrayList<>(PlatformHelper.INSTANCE.assetRoots());
+        ArrayList<Path> sources = new ArrayList<>(PlatformHelper.INSTANCE.assetRoots());
         // NeoForge keeps vanilla assets in a separate client-extra JAR, outside ModList.
         if (VanillaPackResources.class.getResource("/assets/.mcassetsroot") != null) {
-            var vanilla = new VanillaPackResourcesBuilder().pushJarResources().build(
+            VanillaPackResources vanilla = new VanillaPackResourcesBuilder().pushJarResources().build(
                     new PackLocationInfo("vanilla", Component.literal("Minecraft"), PackSource.BUILT_IN, Optional.empty()));
             vanilla.listRawPaths(PackType.CLIENT_RESOURCES, Identifier.withDefaultNamespace("models"),
                     path -> sources.add(path.getParent().getParent().getParent()));
@@ -59,19 +61,25 @@ public final class QuestEditorAssets {
     }
 
     public static synchronized List<Identifier> questBackgrounds() throws IOException {
-        if (questBackgrounds != null) return questBackgrounds;
+        if (questBackgrounds != null) {
+            return questBackgrounds;
+        }
         TreeSet<Identifier> backgrounds = new TreeSet<>();
         for (String namespace : list("assets")) {
             String directoryPath = "assets/" + namespace + "/" + QUEST_BACKGROUND_TEXTURE_DIRECTORY;
             for (Path root : roots) {
                 Path directory = root.resolve(directoryPath);
-                if (!Files.isDirectory(directory)) continue;
-                try (var textures = Files.find(directory, Integer.MAX_VALUE,
+                if (!Files.isDirectory(directory)) {
+                    continue;
+                }
+                try (Stream<Path> textures = Files.find(directory, Integer.MAX_VALUE,
                         (file, attributes) -> attributes.isRegularFile() && file.getFileName().toString().endsWith(".png"))) {
                     textures.forEach(file -> {
                         String relative = directory.relativize(file).toString().replace('\\', '/');
                         Identifier texture = Identifier.tryBuild(namespace, QUEST_BACKGROUND_TEXTURE_DIRECTORY + "/" + relative);
-                        if (texture != null) backgrounds.add(GUI_SPRITE_FILES.fileToId(texture));
+                        if (texture != null) {
+                            backgrounds.add(GUI_SPRITE_FILES.fileToId(texture));
+                        }
                     });
                 }
             }
@@ -82,16 +90,22 @@ public final class QuestEditorAssets {
 
     public static synchronized byte[] read(String path) throws IOException {
         validate(path);
-        if (!path.startsWith("assets/") || path.split("/").length < 3) return null;
+        if (!path.startsWith("assets/") || path.split("/").length < 3) {
+            return null;
+        }
         Optional<byte[]> cached = files.get(path);
-        if (cached != null) return cached.orElse(null);
+        if (cached != null) {
+            return cached.orElse(null);
+        }
         byte[] data = null;
         for (Path root : roots) {
             Path file = root.resolve(path);
             if (Files.isRegularFile(file)) {
-                try (var stream = Files.newInputStream(file)) {
+                try (InputStream stream = Files.newInputStream(file)) {
                     data = stream.readNBytes(MAX_RESOURCE_BYTES + 1);
-                    if (data.length > MAX_RESOURCE_BYTES) throw new IOException("The resource exceeds the editor's 8 MiB limit.");
+                    if (data.length > MAX_RESOURCE_BYTES) {
+                        throw new IOException("The resource exceeds the editor's 8 MiB limit.");
+                    }
                 }
                 break;
             }
@@ -102,14 +116,18 @@ public final class QuestEditorAssets {
 
     public static synchronized List<String> list(String path) throws IOException {
         validate(path);
-        if (path.isEmpty()) return List.of("assets");
+        if (path.isEmpty()) {
+            return List.of("assets");
+        }
         List<String> cached = directories.get(path);
-        if (cached != null) return cached;
+        if (cached != null) {
+            return cached;
+        }
         TreeSet<String> names = new TreeSet<>();
         for (Path root : roots) {
             Path directory = root.resolve(path);
             if (Files.isDirectory(directory)) {
-                try (var entries = Files.list(directory)) {
+                try (Stream<Path> entries = Files.list(directory)) {
                     entries.forEach(entry -> names.add(entry.getFileName().toString()));
                 }
             }
@@ -120,7 +138,9 @@ public final class QuestEditorAssets {
     }
 
     public static void validate(String path) {
-        if (path.isEmpty()) return;
+        if (path.isEmpty()) {
+            return;
+        }
         if ((!path.equals("assets") && !path.startsWith("assets/")) || path.indexOf('\\') >= 0 || path.indexOf('\0') >= 0) {
             throw new IllegalArgumentException("Invalid resource path");
         }
@@ -150,8 +170,12 @@ public final class QuestEditorAssets {
 
         private void put(String key, V value, long weight) {
             Entry<V> previous = entries.remove(key);
-            if (previous != null) bytes -= previous.bytes();
-            if (weight > maximumBytes) return;
+            if (previous != null) {
+                bytes -= previous.bytes();
+            }
+            if (weight > maximumBytes) {
+                return;
+            }
             entries.put(key, new Entry<>(value, weight));
             bytes += weight;
             while (bytes > maximumBytes || entries.size() > maximumEntries) bytes -= entries.pollFirstEntry().getValue().bytes();

@@ -76,7 +76,9 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
 
     @Override
     protected void sendPayload(ServerPlayer player, CustomPacketPayload payload) {
-        if (player.connection.hasChannel(payload.type())) PacketDistributor.sendToPlayer(player, payload);
+        if (player.connection.hasChannel(payload.type())) {
+            PacketDistributor.sendToPlayer(player, payload);
+        }
     }
 
     private boolean sendDebugToggle(ServerPlayer player) {
@@ -90,25 +92,39 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
     private void registerPayloads(RegisterPayloadHandlersEvent event) {
         event.registrar("1")
                 .playToServer(CreateTeamPayload.TYPE, CreateTeamPayload.STREAM_CODEC, (payload, context) -> {
-                    if (context.player() instanceof ServerPlayer player) handleTeamRequest(player, payload);
+                    if (context.player() instanceof ServerPlayer player) {
+                        handleTeamRequest(player, payload);
+                    }
                 })
                 .playToServer(RenameTeamPayload.TYPE, RenameTeamPayload.STREAM_CODEC, (payload, context) -> {
-                    if (context.player() instanceof ServerPlayer player) handleTeamRequest(player, payload);
+                    if (context.player() instanceof ServerPlayer player) {
+                        handleTeamRequest(player, payload);
+                    }
                 })
                 .playToServer(ChangeTeamSettingPayload.TYPE, ChangeTeamSettingPayload.STREAM_CODEC, (payload, context) -> {
-                    if (context.player() instanceof ServerPlayer player) handleTeamRequest(player, payload);
+                    if (context.player() instanceof ServerPlayer player) {
+                        handleTeamRequest(player, payload);
+                    }
                 })
                 .playToServer(InviteTeamPlayerPayload.TYPE, InviteTeamPlayerPayload.STREAM_CODEC, (payload, context) -> {
-                    if (context.player() instanceof ServerPlayer player) handleTeamRequest(player, payload);
+                    if (context.player() instanceof ServerPlayer player) {
+                        handleTeamRequest(player, payload);
+                    }
                 })
                 .playToServer(RespondTeamInvitationPayload.TYPE, RespondTeamInvitationPayload.STREAM_CODEC, (payload, context) -> {
-                    if (context.player() instanceof ServerPlayer player) handleTeamRequest(player, payload);
+                    if (context.player() instanceof ServerPlayer player) {
+                        handleTeamRequest(player, payload);
+                    }
                 })
                 .playToServer(LeaveTeamPayload.TYPE, LeaveTeamPayload.STREAM_CODEC, (payload, context) -> {
-                    if (context.player() instanceof ServerPlayer player) handleTeamRequest(player, payload);
+                    if (context.player() instanceof ServerPlayer player) {
+                        handleTeamRequest(player, payload);
+                    }
                 })
                 .playToServer(KickTeamMemberPayload.TYPE, KickTeamMemberPayload.STREAM_CODEC, (payload, context) -> {
-                    if (context.player() instanceof ServerPlayer player) handleTeamRequest(player, payload);
+                    if (context.player() instanceof ServerPlayer player) {
+                        handleTeamRequest(player, payload);
+                    }
                 })
                 .playToClient(TeamSyncPayload.TYPE, TeamSyncPayload.STREAM_CODEC,
                         (payload, context) -> ClientTeamData.update(payload))
@@ -128,7 +144,7 @@ public class VeryUEQuestsNeoForge extends VeryUEMod {
                 .playToServer(QuestScreenOpenedPayload.TYPE, QuestScreenOpenedPayload.STREAM_CODEC, (payload, context) -> {
                     if (context.player() instanceof ServerPlayer player) {
                         payload.handle(player);
-                        syncQuests(player);
+                        syncQuestScreen(player, player.connection.hasChannel(QuestProgressSyncPayload.TYPE));
                     }
                 })
                 .playToServer(InteractQuestObjectivePayload.TYPE, InteractQuestObjectivePayload.STREAM_CODEC, (payload, context) -> {

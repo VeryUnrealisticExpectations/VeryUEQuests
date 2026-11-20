@@ -5,7 +5,9 @@ export const COMPONENT_MIN_HEIGHT = 40
 export const COMPONENT_MAX_HEIGHT = 2052
 
 export function componentPreviewMode(context?: ComponentTextContext, approximate = false): 'pending' | 'native' | 'approximate' {
-  if (context?.pending) return 'pending'
+  if (context?.pending) {
+    return 'pending'
+  }
   return context?.source === 'local-client' && !approximate ? 'native' : 'approximate'
 }
 

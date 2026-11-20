@@ -32,7 +32,9 @@ export function SectionSidebar({sections, selected, epoch, textContext, disabled
       </button>
     </div>
     <nav aria-label="Quest sections" className="section-list" onDragLeave={event => {
-      if (!(event.relatedTarget instanceof Node) || !event.currentTarget.contains(event.relatedTarget)) setDropTarget(undefined)
+      if (!(event.relatedTarget instanceof Node) || !event.currentTarget.contains(event.relatedTarget)) {
+        setDropTarget(undefined)
+      }
     }}>
       {sections.map((section, index) =>
           <div key={section.section_id} className={`section-row ${selected === section.section_id ? 'selected' : ''} ${dragged === section.section_id && !disabled ? 'is-dragging' : ''}`}
@@ -45,7 +47,9 @@ export function SectionSidebar({sections, selected, epoch, textContext, disabled
                  setDragged(section.section_id)
                }}
                onDragOver={event => {
-                 if (disabled || !dragged) return
+                 if (disabled || !dragged) {
+                   return
+                 }
                  event.preventDefault()
                  event.dataTransfer.dropEffect = 'move'
                  if (dragged === section.section_id) { setDropTarget(undefined); return }
@@ -64,10 +68,14 @@ export function SectionSidebar({sections, selected, epoch, textContext, disabled
                     aria-current={selected === section.section_id ? 'page' : undefined}
                     aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
                     onKeyDown={event => {
-                      if (disabled || !event.altKey || event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return
+                      if (disabled || !event.altKey || event.key !== 'ArrowUp' && event.key !== 'ArrowDown') {
+                        return
+                      }
                       event.preventDefault()
                       const target = sections[index + (event.key === 'ArrowUp' ? -1 : 1)]
-                      if (target) onMove(section.section_id, target.section_id, event.key === 'ArrowUp' ? 'before' : 'after')
+                      if (target) {
+                        onMove(section.section_id, target.section_id, event.key === 'ArrowUp' ? 'before' : 'after')
+                      }
                     }}
           onClick={() => onSelect(section.section_id)}><ItemIcon id={section.icon} epoch={epoch} />
               <span><strong><ComponentText value={section.name}

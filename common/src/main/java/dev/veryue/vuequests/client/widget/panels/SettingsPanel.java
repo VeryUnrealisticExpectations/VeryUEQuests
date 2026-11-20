@@ -68,7 +68,9 @@ public abstract class SettingsPanel extends AbstractContainerWidget {
     public void setRectangle(int width, int height, int x, int y) {
         boolean resized = width != getWidth() || height != getHeight();
         super.setRectangle(width, height, x, y);
-        if (resized) rebuildControls();
+        if (resized) {
+            rebuildControls();
+        }
         positionControls();
     }
 
@@ -83,7 +85,9 @@ public abstract class SettingsPanel extends AbstractContainerWidget {
 
     @Override
     public void setFocused(boolean focused) {
-        if (!focused) setFocused(null);
+        if (!focused) {
+            setFocused(null);
+        }
     }
 
     @Override
@@ -93,11 +97,17 @@ public abstract class SettingsPanel extends AbstractContainerWidget {
 
     @Override
     public void setFocused(GuiEventListener listener) {
-        if (listener != getFocused()) super.setFocused(listener);
+        if (listener != getFocused()) {
+            super.setFocused(listener);
+        }
         if (listener instanceof AbstractWidget control && positions.containsKey(control)) {
             ScreenRectangle bounds = positions.get(control);
-            if (bounds.top() < scroll) scroll = bounds.top();
-            if (bounds.bottom() > scroll + getHeight()) scroll = bounds.bottom() - getHeight();
+            if (bounds.top() < scroll) {
+                scroll = bounds.top();
+            }
+            if (bounds.bottom() > scroll + getHeight()) {
+                scroll = bounds.bottom() - getHeight();
+            }
             positionControls();
         }
     }
@@ -139,7 +149,9 @@ public abstract class SettingsPanel extends AbstractContainerWidget {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double deltaX, double deltaY) {
-        if (!active || !visible || !isMouseOver(mouseX, mouseY)) return false;
+        if (!active || !visible || !isMouseOver(mouseX, mouseY)) {
+            return false;
+        }
         scroll -= deltaY * 22;
         positionControls();
         return true;
@@ -164,7 +176,9 @@ public abstract class SettingsPanel extends AbstractContainerWidget {
     @Override
     protected void updateWidgetNarration(NarrationElementOutput output) {
         output.add(NarratedElementType.TITLE, getMessage());
-        if (getFocused() instanceof AbstractWidget control) control.updateNarration(output.nest());
+        if (getFocused() instanceof AbstractWidget control) {
+            control.updateNarration(output.nest());
+        }
         output.add(NarratedElementType.USAGE, Component.translatable("narration.vuequests.settings_usage"));
     }
 }

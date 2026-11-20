@@ -77,12 +77,19 @@ public class TeamSettingsPanel extends SettingsPanel {
             setContentHeight(y);
             return;
         }
-        if (team == null) buildTeamless();
-        else buildTeam(team);
+        if (team == null) {
+            buildTeamless();
+        } else {
+            buildTeam(team);
+        }
         if (ClientTeamData.isPending()) {
             for (AbstractWidget control : children()) {
-                if (!(control instanceof StringWidget)) control.active = false;
-                if (control instanceof TeamMemberRow row) row.setActionsEnabled(false);
+                if (!(control instanceof StringWidget)) {
+                    control.active = false;
+                }
+                if (control instanceof TeamMemberRow row) {
+                    row.setActionsEnabled(false);
+                }
             }
         }
     }
@@ -190,7 +197,9 @@ public class TeamSettingsPanel extends SettingsPanel {
                 if (owner) {
                     disbandConfirmation = team.id();
                     rebuildControls();
-                } else request(id -> new LeaveTeamPayload(id, team.id()));
+                } else {
+                    request(id -> new LeaveTeamPayload(id, team.id()));
+                }
             }).build(), 0, y, width, 20);
         }
         setContentHeight(actionFeedback(y + 24));
@@ -237,26 +246,31 @@ public class TeamSettingsPanel extends SettingsPanel {
 
     private void applyName() {
         ClientTeam team = ownedTeam();
-        if (team != null && !nameDraft.isBlank())
+        if (team != null && !nameDraft.isBlank()) {
             request(id -> new RenameTeamPayload(id, team.id(), nameDraft.strip()));
+        }
     }
 
     private void setSharingProgress(boolean value) {
         ClientTeam team = ownedTeam();
-        if (team != null)
+        if (team != null) {
             request(id -> new ChangeTeamSettingPayload(id, team.id(), TeamSetting.SHARING_PROGRESS, value));
+        }
     }
 
     private void setKeepProgress(boolean value) {
         ClientTeam team = ownedTeam();
-        if (team != null) request(id -> new ChangeTeamSettingPayload(id, team.id(), TeamSetting.KEEP_PROGRESS, value));
+        if (team != null) {
+            request(id -> new ChangeTeamSettingPayload(id, team.id(), TeamSetting.KEEP_PROGRESS, value));
+        }
     }
 
     private void sendInvitation() {
         ClientTeam team = ownedTeam();
         String playerName = inviteDraft;
-        if (team != null && canInvite(playerName))
+        if (team != null && canInvite(playerName)) {
             request(id -> new InviteTeamPlayerPayload(id, team.id(), playerName));
+        }
     }
 
     private void acceptInvitation(ClientTeamInvitation invitation) {
@@ -269,8 +283,9 @@ public class TeamSettingsPanel extends SettingsPanel {
 
     private void kickMember(UUID playerId) {
         ClientTeam team = ownedTeam();
-        if (team != null && !team.ownerId().equals(playerId))
+        if (team != null && !team.ownerId().equals(playerId)) {
             request(id -> new KickTeamMemberPayload(id, team.id(), playerId));
+        }
     }
 
     @Override

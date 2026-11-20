@@ -25,12 +25,16 @@ export function DraggablePopup({ title, anchor, children, onClose, className = '
         ? bounds.top - (size?.height ?? 240) - 8 : bounds.bottom + 8 : 24 }))
     const resize = () => setPosition(current => clamp(current ?? { x: 24, y: 24 }))
     const observer = new ResizeObserver(resize)
-    if (popup.current) observer.observe(popup.current)
+    if (popup.current) {
+      observer.observe(popup.current)
+    }
     window.addEventListener('resize', resize)
     return () => { observer.disconnect(); window.removeEventListener('resize', resize) }
   }, [anchor])
   useLayoutEffect(() => {
-    if (focusOnOpen && placed) popup.current?.focus()
+    if (focusOnOpen && placed) {
+      popup.current?.focus()
+    }
   }, [focusOnOpen, placed])
   const host = anchor?.closest('dialog[open]') ?? document.body
   return createPortal(<div ref={popup} className={`draggable-popup ${className}`} data-component-popup role="dialog" aria-label={title}
@@ -42,21 +46,29 @@ export function DraggablePopup({ title, anchor, children, onClose, className = '
     <header className="draggable-popup-header">
       <button type="button" className="mc-button draggable-popup-handle" aria-label={`Move ${title}`} title="Drag to move; arrow keys to move"
         onPointerDown={event => {
-          if (event.button !== 0) return
+          if (event.button !== 0) {
+            return
+          }
           event.preventDefault()
           const bounds = popup.current!.getBoundingClientRect()
           dragging.current = { pointer: event.pointerId, start: { x: event.clientX, y: event.clientY }, origin: { x: bounds.left, y: bounds.top } }
           event.currentTarget.setPointerCapture(event.pointerId)
         }} onPointerMove={event => {
           const gesture = dragging.current
-          if (gesture?.pointer === event.pointerId) setPosition(clamp({ x: gesture.origin.x + event.clientX - gesture.start.x,
-            y: gesture.origin.y + event.clientY - gesture.start.y }))
+          if (gesture?.pointer === event.pointerId) {
+            setPosition(clamp({ x: gesture.origin.x + event.clientX - gesture.start.x,
+              y: gesture.origin.y + event.clientY - gesture.start.y }))
+          }
         }} onPointerUp={event => {
           dragging.current = undefined
-          if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId)
+          }
         }} onPointerCancel={() => { dragging.current = undefined }} onKeyDown={event => {
           const direction = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[event.key]
-          if (!direction) return
+          if (!direction) {
+            return
+          }
           event.preventDefault(); event.stopPropagation()
           setPosition(current => clamp({ x: (current?.x ?? 24) + direction[0] * (event.shiftKey ? 1 : 10),
             y: (current?.y ?? 24) + direction[1] * (event.shiftKey ? 1 : 10) }))

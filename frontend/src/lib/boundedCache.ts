@@ -11,13 +11,17 @@ export class BoundedCache<K, V> {
   get size() { return this.entries.size }
   get(key: K): V | undefined {
     const entry = this.entries.get(key)
-    if (!entry) return undefined
+    if (!entry) {
+      return undefined
+    }
     this.entries.delete(key); this.entries.set(key, entry)
     return entry.value
   }
   set(key: K, value: V, bytes: number) {
     this.delete(key)
-    if (bytes > this.maximumBytes) return
+    if (bytes > this.maximumBytes) {
+      return
+    }
     this.entries.set(key, { value, bytes }); this.used += bytes
     while (this.used > this.maximumBytes || this.entries.size > this.maximumEntries) this.delete(this.entries.keys().next().value!)
   }

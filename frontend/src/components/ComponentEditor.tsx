@@ -24,9 +24,13 @@ const CLIPBOARD_TYPE = 'application/x-vuequests-component+json'
 function stopsFor(layout: ComponentPreviewResponse, projection: ReturnType<typeof projectComponent>): Stop[] {
   const stops = layout.fragments.flatMap(fragment => {
     const leaf = projection.leaves.find(entry => entry.id === fragment.id)
-    if (!leaf) return []
+    if (!leaf) {
+      return []
+    }
     const mapped = fragment.carets.map(stop => ({ ...stop, offset: leaf.start + Math.min(leaf.text.length, stop.offset), affinity: `${stop.affinity ?? ''}:${stop.x}:${stop.y}` }))
-    if (leaf.kind === 'atomic' && !mapped.some(stop => stop.offset === leaf.end) && mapped[0]) mapped.push({ ...mapped[0], offset: leaf.end })
+    if (leaf.kind === 'atomic' && !mapped.some(stop => stop.offset === leaf.end) && mapped[0]) {
+      mapped.push({ ...mapped[0], offset: leaf.end })
+    }
     return mapped
   })
   return [...new Map(stops.map(stop => [`${stop.offset}:${stop.x}:${stop.y}`, stop])).values()]
@@ -83,7 +87,9 @@ export function ComponentEditor({ label, value, onChange, textContext, multiline
   const [wasVisible, setWasVisible] = useState(visible)
   if (visible !== wasVisible) {
     setWasVisible(visible)
-    if (!visible) setInspector(undefined)
+    if (!visible) {
+      setInspector(undefined)
+    }
   }
   const [error, setError] = useState('')
   const dragging = useRef<{ anchor: number; pointer: number } | undefined>(undefined)
@@ -92,7 +98,7 @@ export function ComponentEditor({ label, value, onChange, textContext, multiline
   const resizeHeight = useRef<number | undefined>(undefined)
   const autoFit = useRef(false)
   const revealPending = useRef(false)
-  const valueKey = JSON.stringify(documentValue)
+  const valueKey = JSON.stringify([textContext?.language, documentValue])
   const animated = hasObfuscatedComponent(documentValue)
   const annotations = componentAnnotations(projection, selection)
   const renderMode = componentPreviewMode(textContext, previewOverride?.revision === textContext?.assetRevision && previewOverride?.approximate)
@@ -110,21 +116,29 @@ export function ComponentEditor({ label, value, onChange, textContext, multiline
     const textLength = projectionRef.current.text.length
     const bounded = { ...next, start: Math.max(0, Math.min(textLength, next.start)), end: Math.max(0, Math.min(textLength, next.end)) }
     selectionRef.current = bounded; setSelection(bounded); setBlink(true)
-    if (resetStyle) setTypingStyle({})
+    if (resetStyle) {
+      setTypingStyle({})
+    }
     const input = textarea.current
     if (input) {
-      if (focus) input.focus({ preventScroll: true })
+      if (focus) {
+        input.focus({ preventScroll: true })
+      }
       input.setSelectionRange(bounded.start, bounded.end, bounded.direction ?? 'none')
     }
   }
 
   const commit = (next: ChatComponent, nextSelection: Selection, record = true, typing = false) => {
     if (JSON.stringify(next) === JSON.stringify(documentRef.current)) { select(nextSelection, false, false); return }
-    if (record) history.current.record({ value: documentRef.current, selection: selectionRef.current }, typing)
+    if (record) {
+      history.current.record({ value: documentRef.current, selection: selectionRef.current }, typing)
+    }
     documentRef.current = next
     revealPending.current = true
     projectionRef.current = projectComponent(next)
-    if (!projectionRef.current.text.length) setTypingStyle({})
+    if (!projectionRef.current.text.length) {
+      setTypingStyle({})
+    }
     setDocumentValue(next); onChange(next); setError(''); setInspector(undefined)
     select(nextSelection, false, false)
     if (textarea.current && !composing.current) {
@@ -139,7 +153,7 @@ export function ComponentEditor({ label, value, onChange, textContext, multiline
 
   useEffect(() => () => { clipboardRequest.current?.abort(); clipboardRequest.current = undefined }, [])
 
-  useEffect(() => () => { if (resizeFrame.current !== undefined) window.cancelAnimationFrame(resizeFrame.current) }, [])
+  useEffect(() => () => { if (resizeFrame.current !== undefined) { window.cancelAnimationFrame(resizeFrame.current) } }, [])
 
   useEffect(() => {
     if (JSON.stringify(value) !== JSON.stringify(documentRef.current)) {
@@ -157,9 +171,13 @@ export function ComponentEditor({ label, value, onChange, textContext, multiline
 
   useEffect(() => {
     const target = surface.current
-    if (!target) return
+    if (!target) {
+      return
+    }
     const resize = () => {
-      if (!target.clientWidth) return
+      if (!target.clientWidth) {
+        return
+      }
       setWidth(Math.max(32, Math.min(1024, Math.floor((target.clientWidth - 56) / SCALE))))
       setViewportHeight(Math.max(1, Math.min(1024, Math.floor(target.clientHeight / SCALE))))
     }
@@ -171,29 +189,37 @@ export function ComponentEditor({ label, value, onChange, textContext, multiline
   }, [])
 
   useEffect(() => {
-    if (!animated || !visible || !inViewport || textContext?.source !== 'local-client') return
+    if (!animated || !visible || !inViewport || textContext?.source !== 'local-client') {
+      return
+    }
     const timer = window.setInterval(() => setAnimationTick(previous => previous + 1), 250)
     return () => window.clearInterval(timer)
   }, [animated, visible, inViewport, textContext?.source])
 
   useEffect(() => {
-    if (!focused) return
+    if (!focused) {
+      return
+    }
     const timer = window.setInterval(() => setBlink(previous => !previous), 500)
     return () => window.clearInterval(timer)
   }, [focused])
 
   useEffect(() => {
-    if (!visible || renderMode === 'pending') return
+    if (!visible || renderMode === 'pending') {
+      return
+    }
     const controller = new AbortController()
     let cancelled = false
     const sequence = ++requestId.current
-    const request: ComponentPreviewRequest = { assetRevision: textContext?.assetRevision ?? '', previewId: id, requestId: sequence,
+    const request: ComponentPreviewRequest = { assetRevision: textContext?.assetRevision ?? '', locale: textContext?.language, previewId: id, requestId: sequence,
       width, scale: SCALE, viewportTop, viewportHeight: previewHeight, fragments: projection.fragments }
     if (renderMode === 'approximate') {
       const layout = approximateComponentPreview(request, textContext)
       setPreview({ layout, key: valueKey, exact: false, wrapWidth: width, viewportHeight: previewHeight,
         message: 'Approximate preview' })
-      if (autoFit.current) setEditorHeight(fittedComponentHeight(layout.totalHeight))
+      if (autoFit.current) {
+        setEditorHeight(fittedComponentHeight(layout.totalHeight))
+      }
       return () => controller.abort()
     }
     const timer = window.setTimeout(() => {
@@ -201,7 +227,9 @@ export function ComponentEditor({ label, value, onChange, textContext, multiline
       nativeComponentPreview(request, controller.signal).then(layout => {
         if (!cancelled && !controller.signal.aborted && requestId.current === sequence) {
           setPreview({ layout, key: valueKey, exact: true, wrapWidth: width, viewportHeight: previewHeight, message: layout.warnings.join(' ') })
-          if (autoFit.current) setEditorHeight(fittedComponentHeight(layout.totalHeight))
+          if (autoFit.current) {
+            setEditorHeight(fittedComponentHeight(layout.totalHeight))
+          }
           setNativeFailure('')
         }
       }).catch(failure => {
@@ -214,32 +242,44 @@ export function ComponentEditor({ label, value, onChange, textContext, multiline
   }, [id, projection, valueKey, width, viewportTop, previewHeight, textContext, animationTick, renderMode, retryPreview, visible])
 
   useEffect(() => {
-    if (!preview || preview.key !== valueKey) return
+    if (!preview || preview.key !== valueKey) {
+      return
+    }
     let current = true
-    decodeComponentPreview(preview.layout.png).then(image => { if (current) setDecoded({ preview, image }) }).catch(() => {
-      if (current) setError('The text preview could not be displayed.')
+    decodeComponentPreview(preview.layout.png).then(image => { if (current) { setDecoded({ preview, image }) } }).catch(() => {
+      if (current) {
+        setError('The text preview could not be displayed.')
+      }
     })
     return () => { current = false }
   }, [preview, valueKey])
 
   useEffect(() => {
     const target = canvas.current
-    if (!target) return
+    if (!target) {
+      return
+    }
     if (!projection.text.length && !previewCurrent) {
       target.getContext('2d')?.clearRect(0, 0, target.width, target.height)
       return
     }
-    if (!decoded || !previewCurrent) return
+    if (!decoded || !previewCurrent) {
+      return
+    }
     const layout = decoded.preview.layout
     paintComponentPreview(target, decoded.image, decoded.preview.wrapWidth, decoded.preview.viewportHeight, SCALE, layout.width, layout.height, graphics => {
       if (selection.end > selection.start) {
         graphics.fillStyle = 'rgba(92, 184, 88, .45)'
         for (const fragment of layout.fragments) {
           const leaf = projection.leaves.find(entry => entry.id === fragment.id)
-          if (!leaf) continue
+          if (!leaf) {
+            continue
+          }
           for (const range of fragment.ranges) {
             const start = leaf.start + (leaf.kind === 'atomic' ? 0 : range.start), end = leaf.start + (leaf.kind === 'atomic' ? 1 : range.end)
-            if (end > selection.start && start < selection.end) graphics.fillRect(range.x, range.y - layout.viewportTop, Math.max(1, range.width), range.height)
+            if (end > selection.start && start < selection.end) {
+              graphics.fillRect(range.x, range.y - layout.viewportTop, Math.max(1, range.width), range.height)
+            }
           }
         }
       }
@@ -256,13 +296,20 @@ export function ComponentEditor({ label, value, onChange, textContext, multiline
   }, [decoded, previewCurrent, projection, selection, focused, blink])
 
   useEffect(() => {
-    if (!revealPending.current || !focused || !decoded || !previewCurrent || !surface.current) return
+    if (!revealPending.current || !focused || !decoded || !previewCurrent || !surface.current) {
+      return
+    }
     const stop = stopsFor(decoded.preview.layout, projection).find(entry => entry.offset === selection.end)
-    if (!stop) return
+    if (!stop) {
+      return
+    }
     revealPending.current = false
     const top = surface.current.scrollTop / SCALE
-    if (stop.y < top) surface.current.scrollTop = stop.y * SCALE
-    else if (stop.y + decoded.preview.layout.lineHeight > top + viewportHeight) surface.current.scrollTop = (stop.y + decoded.preview.layout.lineHeight - viewportHeight) * SCALE
+    if (stop.y < top) {
+      surface.current.scrollTop = stop.y * SCALE
+    } else if (stop.y + decoded.preview.layout.lineHeight > top + viewportHeight) {
+      surface.current.scrollTop = (stop.y + decoded.preview.layout.lineHeight - viewportHeight) * SCALE
+    }
   }, [decoded, previewCurrent, projection, focused, selection.end, viewportHeight])
 
   const activeLeaf = leafAtOffset(projection, selection.start)
@@ -274,58 +321,87 @@ export function ComponentEditor({ label, value, onChange, textContext, multiline
     if (document.activeElement === textarea.current) {
       const range = inputSelection(); selectionRef.current = range; setSelection(range)
     }
-    if (!active) setInspector(undefined)
-    if (docked) return
-    if (editingSession) editingSession.activateEditor(id)
-    else setLocalActive(true)
+    if (!active) {
+      setInspector(undefined)
+    }
+    if (docked) {
+      return
+    }
+    if (editingSession) {
+      editingSession.activateEditor(id)
+    } else {
+      setLocalActive(true)
+    }
   }
   const closeFormatting = () => {
     setInspector(undefined)
-    if (editingSession) editingSession.activateEditor(undefined)
-    else setLocalActive(false)
+    if (editingSession) {
+      editingSession.activateEditor(undefined)
+    } else {
+      setLocalActive(false)
+    }
   }
   const fitText = () => {
     autoFit.current = true
-    if (preview) setEditorHeight(fittedComponentHeight(preview.layout.totalHeight))
+    if (preview) {
+      setEditorHeight(fittedComponentHeight(preview.layout.totalHeight))
+    }
   }
   const queueResize = (height: number) => {
     resizeHeight.current = height
-    if (resizeFrame.current !== undefined) return
+    if (resizeFrame.current !== undefined) {
+      return
+    }
     resizeFrame.current = window.requestAnimationFrame(() => {
       resizeFrame.current = undefined
-      if (resizeHeight.current !== undefined) setEditorHeight(resizeHeight.current)
+      if (resizeHeight.current !== undefined) {
+        setEditorHeight(resizeHeight.current)
+      }
       resizeHeight.current = undefined
     })
   }
   const finishResize = () => {
     resizing.current = undefined
-    if (resizeFrame.current !== undefined) window.cancelAnimationFrame(resizeFrame.current)
+    if (resizeFrame.current !== undefined) {
+      window.cancelAnimationFrame(resizeFrame.current)
+    }
     resizeFrame.current = undefined
-    if (resizeHeight.current !== undefined) setEditorHeight(resizeHeight.current)
+    if (resizeHeight.current !== undefined) {
+      setEditorHeight(resizeHeight.current)
+    }
     resizeHeight.current = undefined
   }
   const applyStyle = (change: ComponentObject, restoreFocus = true) => {
     const range = inputSelection()
     selectionRef.current = range; setSelection(range)
-    if (range.start !== range.end) commit(styleComponentRange(documentRef.current, range.start, range.end, change), range)
-    else setTypingStyle(previous => ({ ...previous, ...change }))
-    if (restoreFocus) textarea.current?.focus({ preventScroll: true })
+    if (range.start !== range.end) {
+      commit(styleComponentRange(documentRef.current, range.start, range.end, change), range)
+    } else {
+      setTypingStyle(previous => ({ ...previous, ...change }))
+    }
+    if (restoreFocus) {
+      textarea.current?.focus({ preventScroll: true })
+    }
   }
   const open = (kind: ComponentInspectorKind, tokenId?: string) => {
     const leaf = tokenId ? projection.leaves.find(entry => entry.id === tokenId) : undefined
     const range = leaf ? { start: leaf.start, end: leaf.end } : inputSelection()
     const initial = kind === 'json' ? leaf?.own ?? documentRef.current
-      : kind === 'hover' ? { text: '', hoverEvent: (leaf?.style ?? activeStyle).hoverEvent ?? { action: 'show_text', contents: '' } }
+      : kind === 'hover' ? { text: '', hover_event: (leaf?.style ?? activeStyle).hover_event ?? { action: 'show_text', value: '' } }
         : leaf?.own ?? (kind === 'translate' ? { translate: '', with: [] } : { keybind: 'key.jump' })
     setInspector({ kind, initial, selection: range, whole: kind === 'json' && !leaf })
   }
   const applyInspector = (next: ChatComponent) => {
     const editing = inspector!
-    if (editing.whole) commit(next, { start: 0, end: 0 })
-    else if (editing.kind === 'hover') {
+    if (editing.whole) {
+      commit(next, { start: 0, end: 0 })
+    } else if (editing.kind === 'hover') {
       const object = next as ComponentObject
-      if (editing.selection.start === editing.selection.end) setTypingStyle(previous => ({ ...previous, hoverEvent: object.hoverEvent }))
-      else commit(styleComponentRange(documentRef.current, editing.selection.start, editing.selection.end, { hoverEvent: object.hoverEvent }), editing.selection)
+      if (editing.selection.start === editing.selection.end) {
+        setTypingStyle(previous => ({ ...previous, hover_event: object.hover_event, hoverEvent: null }))
+      } else {
+        commit(styleComponentRange(documentRef.current, editing.selection.start, editing.selection.end, { hover_event: object.hover_event, hoverEvent: null }), editing.selection)
+      }
     } else {
       const length = projectComponent(next).text.length
       commit(replaceComponentRange(documentRef.current, editing.selection.start, editing.selection.end, [next]),
@@ -335,12 +411,16 @@ export function ComponentEditor({ label, value, onChange, textContext, multiline
   }
   const closeInspector = () => {
     setInspector(undefined)
-    if (docked) textarea.current?.focus({ preventScroll: true })
+    if (docked) {
+      textarea.current?.focus({ preventScroll: true })
+    }
   }
   const undo = (redo = false) => {
     const current = { value: documentRef.current, selection: selectionRef.current }
     const restored = redo ? history.current.redo(current) : history.current.undo(current)
-    if (restored) commit(restored.value, restored.selection, false)
+    if (restored) {
+      commit(restored.value, restored.selection, false)
+    }
   }
   const updateFromInput = (input: HTMLTextAreaElement) => {
     const previous = beforeInput.current ?? { text: projectionRef.current.text, selection: selectionRef.current }
@@ -356,18 +436,27 @@ export function ComponentEditor({ label, value, onChange, textContext, multiline
 
   const hit = (event: PointerEvent): Stop | undefined => {
     const displayed = previewRef.current
-    if (displayed?.key !== JSON.stringify(documentRef.current)) return undefined
+    if (displayed?.key !== JSON.stringify(documentRef.current)) {
+      return undefined
+    }
     const layout = displayed?.layout, target = canvas.current
-    if (!layout || !target) return undefined
+    if (!layout || !target) {
+      return undefined
+    }
     const bounds = target.getBoundingClientRect()
     return nearestStop(stopsFor(layout, projectionRef.current), (event.clientX - bounds.left) / SCALE,
       (event.clientY - bounds.top) / SCALE + layout.viewportTop, layout.lineHeight)
   }
   const reveal = (stop: Stop | undefined) => {
-    if (!stop || !surface.current) return
+    if (!stop || !surface.current) {
+      return
+    }
     const top = surface.current.scrollTop / SCALE
-    if (stop.y < top) surface.current.scrollTop = stop.y * SCALE
-    else if (stop.y + (preview?.layout.lineHeight ?? 11) > top + viewportHeight) surface.current.scrollTop = (stop.y + (preview?.layout.lineHeight ?? 11) - viewportHeight) * SCALE
+    if (stop.y < top) {
+      surface.current.scrollTop = stop.y * SCALE
+    } else if (stop.y + (preview?.layout.lineHeight ?? 11) > top + viewportHeight) {
+      surface.current.scrollTop = (stop.y + (preview?.layout.lineHeight ?? 11) - viewportHeight) * SCALE
+    }
   }
   const keyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     const modifier = event.ctrlKey || event.metaKey
@@ -381,25 +470,34 @@ export function ComponentEditor({ label, value, onChange, textContext, multiline
       commit(typeof documentRef.current === 'string' ? '' : { text: '' }, { start: 0, end: 0 })
       return
     }
-    if (composing.current || !preview || !previewCurrent) return
+    if (composing.current || !preview || !previewCurrent) {
+      return
+    }
     const isNavigation = ['ArrowUp', 'ArrowDown', 'Home', 'End', 'ArrowLeft', 'ArrowRight'].includes(event.key)
-    if (!isNavigation || modifier && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) return
+    if (!isNavigation || modifier && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+      return
+    }
     const range = selectionRef.current
     const active = range.direction === 'backward' ? range.start : range.end
     const stops = stopsFor(preview.layout, projection)
     const current = stops.find(stop => stop.offset === active && (!range.affinity || stop.affinity === range.affinity)) ?? stops.find(stop => stop.offset === active)
-    if (!current) return
+    if (!current) {
+      return
+    }
     let next: Stop | undefined
     const ordered = [...stops].sort((a, b) => a.y - b.y || a.x - b.x)
-    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') next = nearestStop(stops, current.x, current.y + preview.layout.lineHeight * (event.key === 'ArrowUp' ? -1 : 1) + preview.layout.lineHeight / 2, preview.layout.lineHeight)
-    else if (event.key === 'Home' || event.key === 'End') {
+    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+      next = nearestStop(stops, current.x, current.y + preview.layout.lineHeight * (event.key === 'ArrowUp' ? -1 : 1) + preview.layout.lineHeight / 2, preview.layout.lineHeight)
+    } else if (event.key === 'Home' || event.key === 'End') {
       const line = modifier ? ordered : ordered.filter(stop => stop.line === current.line)
       next = event.key === 'Home' ? line[0] : line.at(-1)
     } else {
       const index = ordered.findIndex(stop => stop.offset === current.offset && stop.x === current.x && stop.y === current.y)
       next = ordered[Math.max(0, Math.min(ordered.length - 1, index + (event.key === 'ArrowLeft' ? -1 : 1)))]
     }
-    if (!next) return
+    if (!next) {
+      return
+    }
     event.preventDefault()
     const anchor = event.shiftKey ? range.direction === 'backward' ? range.end : range.start : next.offset
     select({ start: Math.min(anchor, next.offset), end: Math.max(anchor, next.offset), direction: next.offset < anchor ? 'backward' : 'forward', affinity: next.affinity })
@@ -422,7 +520,7 @@ export function ComponentEditor({ label, value, onChange, textContext, multiline
       <button type="button" className="mc-button mc-button--small" onClick={() => open('translate')}>Translate</button>
       <button type="button" className="mc-button mc-button--small" onClick={() => open('keybind')}>Keybind</button>
       <button type="button" className="mc-button mc-button--small" onClick={() => open('hover')}>Hover</button>
-      {activeStyle.hoverEvent !== undefined && <button type="button" className="mc-button mc-button--small" onMouseDown={event => event.preventDefault()} onClick={() => applyStyle({ hoverEvent: null })}>Remove hover</button>}
+      {(activeStyle.hover_event !== undefined || activeStyle.hoverEvent !== undefined) && <button type="button" className="mc-button mc-button--small" onMouseDown={event => event.preventDefault()} onClick={() => applyStyle({ hover_event: null, hoverEvent: null })}>Remove hover</button>}
       <button type="button" className="mc-button mc-button--small" onMouseDown={event => event.preventDefault()} onClick={() => undo()}>Undo</button>
       <button type="button" className="mc-button mc-button--small" onMouseDown={event => event.preventDefault()} onClick={() => undo(true)}>Redo</button>
       <button type="button" className="mc-button mc-button--small" onClick={() => open('json')}>JSON</button>
@@ -452,8 +550,8 @@ export function ComponentEditor({ label, value, onChange, textContext, multiline
 
   return <div className={`component-editor ${active ? 'is-active' : ''}`} role="group" aria-labelledby={`${id}-label`}
     data-preview-mode={renderMode} data-preview-current={previewCurrent ? 'true' : 'false'} hidden={!visible}
-    onPointerDownCapture={event => { if (!(event.target as Element).closest('[data-component-resize]')) activate() }}
-    onFocusCapture={event => { if (!(event.target as Element).closest('[data-component-resize]')) activate() }}>
+    onPointerDownCapture={event => { if (!(event.target as Element).closest('[data-component-resize]')) { activate() } }}
+    onFocusCapture={event => { if (!(event.target as Element).closest('[data-component-resize]')) { activate() } }}>
     <label id={`${id}-label`} htmlFor={`${id}-input`} className={docked ? 'sr-only' : 'component-editor-label'}>{label}</label>
     {docked && visible && formatting}
     <div className="component-textarea">
@@ -468,35 +566,49 @@ export function ComponentEditor({ label, value, onChange, textContext, multiline
         <div className="component-preview-viewport" style={{ height: viewportHeight * SCALE }}>
         <canvas ref={canvas} width={1} height={1} className="component-canvas" aria-hidden="true" style={{ touchAction: 'none', cursor: 'text' }}
           onPointerDown={event => {
-            if (event.button !== 0) return
+            if (event.button !== 0) {
+              return
+            }
             const stop = hit(event)
-            if (!stop) return
+            if (!stop) {
+              return
+            }
             event.preventDefault()
             const anchor = event.shiftKey ? selectionRef.current.direction === 'backward' ? selectionRef.current.end : selectionRef.current.start : stop.offset
             dragging.current = { anchor, pointer: event.pointerId }; event.currentTarget.setPointerCapture(event.pointerId)
             select({ start: Math.min(anchor, stop.offset), end: Math.max(anchor, stop.offset), direction: stop.offset < anchor ? 'backward' : 'forward', affinity: stop.affinity })
           }}
           onPointerMove={event => {
-            if (dragging.current?.pointer !== event.pointerId) return
+            if (dragging.current?.pointer !== event.pointerId) {
+              return
+            }
             const stop = hit(event)
-            if (!stop) return
+            if (!stop) {
+              return
+            }
             const anchor = dragging.current.anchor
             select({ start: Math.min(anchor, stop.offset), end: Math.max(anchor, stop.offset), direction: stop.offset < anchor ? 'backward' : 'forward', affinity: stop.affinity })
             reveal(stop)
           }} onPointerUp={() => { dragging.current = undefined }} onPointerCancel={() => { dragging.current = undefined }}
           onDoubleClick={event => {
             const layout = previewRef.current?.layout, target = canvas.current
-            if (!layout || !target || !previewCurrent) return
+            if (!layout || !target || !previewCurrent) {
+              return
+            }
             const bounds = target.getBoundingClientRect()
             const stop = nearestStop(stopsFor(layout, projectionRef.current), (event.clientX - bounds.left) / SCALE, (event.clientY - bounds.top) / SCALE + layout.viewportTop, layout.lineHeight)
-            if (!stop) return
+            if (!stop) {
+              return
+            }
             const leaf = leafAtOffset(projectionRef.current, stop.offset)
             if (leaf?.kind === 'atomic') { select({ start: leaf.start, end: leaf.end }); return }
             let locale = textContext?.language.replaceAll('_', '-') ?? 'en'
             try { locale = Intl.getCanonicalLocales(locale)[0] ?? 'en' } catch { locale = 'en' }
             const segmenter = new Intl.Segmenter(locale, { granularity: 'word' })
             const word = Array.from(segmenter.segment(projectionRef.current.text)).find(entry => entry.index <= stop.offset && entry.index + entry.segment.length > stop.offset)
-            if (word) select({ start: word.index, end: word.index + word.segment.length })
+            if (word) {
+              select({ start: word.index, end: word.index + word.segment.length })
+            }
           }} />
         </div>
       </div>
@@ -509,23 +621,29 @@ export function ComponentEditor({ label, value, onChange, textContext, multiline
           selection: { start: input.selectionStart, end: input.selectionEnd, direction: input.selectionDirection } } }}
         onChange={event => updateFromInput(event.currentTarget)}
         onSelect={event => {
-          if (composing.current) return
+          if (composing.current) {
+            return
+          }
           const input = event.currentTarget
           const next = { start: input.selectionStart, end: input.selectionEnd, direction: input.selectionDirection }
           if (next.start !== selectionRef.current.start || next.end !== selectionRef.current.end) {
             selectionRef.current = next; setSelection(next); setTypingStyle({}); setBlink(true)
           }
         }} onCompositionStart={() => { composing.current = true; history.current.record({ value: documentRef.current, selection: selectionRef.current }) }}
-        onCompositionEnd={() => { composing.current = false; if (textarea.current) updateFromInput(textarea.current) }}
+        onCompositionEnd={() => { composing.current = false; if (textarea.current) { updateFromInput(textarea.current) } }}
         onCopy={event => {
           const range = selectionRef.current
-          if (range.start === range.end) return
+          if (range.start === range.end) {
+            return
+          }
           event.preventDefault()
           const selected = selectedComponent(documentRef.current, range.start, range.end)
           event.clipboardData.setData('text/plain', plainComponentText(selected, textContext)); event.clipboardData.setData(CLIPBOARD_TYPE, JSON.stringify(selected))
         }} onCut={event => {
           const range = selectionRef.current
-          if (range.start === range.end) return
+          if (range.start === range.end) {
+            return
+          }
           event.preventDefault()
           const selected = selectedComponent(documentRef.current, range.start, range.end)
           event.clipboardData.setData('text/plain', plainComponentText(selected, textContext)); event.clipboardData.setData(CLIPBOARD_TYPE, JSON.stringify(selected))
@@ -538,19 +656,23 @@ export function ComponentEditor({ label, value, onChange, textContext, multiline
           if (structured) {
             try {
               const component: unknown = JSON.parse(structured)
-              if (!isChatComponent(component)) throw new Error('The clipboard Component is invalid.')
+              if (!isChatComponent(component)) {
+                throw new Error('The clipboard Component is invalid.')
+              }
               const controller = new AbortController()
               clipboardRequest.current = controller
               void validateComponent(component, controller.signal).then(() => {
-                if (controller.signal.aborted || clipboardRequest.current !== controller) return
+                if (controller.signal.aborted || clipboardRequest.current !== controller) {
+                  return
+                }
                 const currentSelection = inputSelection()
                 if (JSON.stringify(documentRef.current) !== JSON.stringify(original) || currentSelection.start !== range.start || currentSelection.end !== range.end) {
                   setError('The text or selection changed while the clipboard was being checked. Paste again.'); return
                 }
                 const end = range.start + projectComponent(component).text.length
                 commit(replaceComponentRange(original, range.start, range.end, [component]), { start: end, end })
-              }).catch(failure => { if (!controller.signal.aborted && clipboardRequest.current === controller) setError(failure instanceof Error ? failure.message : 'Could not paste the Component.') })
-                .finally(() => { if (clipboardRequest.current === controller) clipboardRequest.current = undefined })
+              }).catch(failure => { if (!controller.signal.aborted && clipboardRequest.current === controller) { setError(failure instanceof Error ? failure.message : 'Could not paste the Component.') } })
+                .finally(() => { if (clipboardRequest.current === controller) { clipboardRequest.current = undefined } })
             } catch (failure) { setError(failure instanceof Error ? failure.message : 'Could not paste the Component.') }
           } else {
             const text = event.clipboardData.getData('text/plain').replaceAll(/\r\n?/g, '\n')
@@ -563,18 +685,26 @@ export function ComponentEditor({ label, value, onChange, textContext, multiline
       <div className="component-resize-handle" data-component-resize role="separator" tabIndex={0} aria-orientation="horizontal" aria-label={`Resize ${label} text area`}
         aria-valuemin={COMPONENT_MIN_HEIGHT} aria-valuemax={COMPONENT_MAX_HEIGHT} aria-valuenow={editorHeight} aria-valuetext={`${editorHeight} pixels tall`}
         title="Drag to resize; double-click to fit text; use Up or Down to resize by rows" onPointerDown={event => {
-          if (event.button !== 0) return
+          if (event.button !== 0) {
+            return
+          }
           event.preventDefault(); event.stopPropagation()
           autoFit.current = false
           resizing.current = { height: editorHeight, y: event.clientY, pointer: event.pointerId }
           event.currentTarget.setPointerCapture(event.pointerId)
         }} onPointerMove={event => {
           const resize = resizing.current
-          if (resize?.pointer === event.pointerId) queueResize(resizedComponentHeight(resize.height, event.clientY - resize.y))
+          if (resize?.pointer === event.pointerId) {
+            queueResize(resizedComponentHeight(resize.height, event.clientY - resize.y))
+          }
         }} onPointerUp={event => {
-          if (resizing.current?.pointer !== event.pointerId) return
+          if (resizing.current?.pointer !== event.pointerId) {
+            return
+          }
           finishResize()
-          if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId)
+          }
         }} onPointerCancel={finishResize} onLostPointerCapture={finishResize} onDoubleClick={fitText} onKeyDown={event => {
           if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
             event.preventDefault(); event.stopPropagation()
@@ -582,8 +712,9 @@ export function ComponentEditor({ label, value, onChange, textContext, multiline
             setEditorHeight(height => resizedComponentHeight(height, (event.key === 'ArrowUp' ? -1 : 1) * rowHeight))
           } else if (event.key === 'Home' || event.key === 'End') {
             event.preventDefault(); event.stopPropagation()
-            if (event.key === 'End') fitText()
-            else { autoFit.current = false; setEditorHeight(COMPONENT_MIN_HEIGHT) }
+            if (event.key === 'End') {
+              fitText()
+            } else { autoFit.current = false; setEditorHeight(COMPONENT_MIN_HEIGHT) }
           }
         }} />
     </div>

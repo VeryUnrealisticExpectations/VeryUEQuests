@@ -30,6 +30,7 @@ export interface ComponentTextContext {
 export interface ComponentPreviewFragment { id: string; component: ChatComponent; literal?: string }
 export interface ComponentPreviewRequest {
   assetRevision: string
+  locale?: string
   previewId: string
   requestId: number
   width: number
@@ -124,4 +125,18 @@ export interface EditorSnapshot {
   minecraftVersion: string
   assetRevision: string
   catalog: Catalog
+}
+
+export interface QuestEditorLanguage { code: string; name: string; hasCatalog: boolean }
+export type QuestLocaleField = 'title' | 'subtitle' | 'description'
+export interface QuestLanguageText {
+  sections: Partial<Record<string, { name?: ChatComponent }>>
+  quests: Partial<Record<string, Partial<Record<QuestLocaleField, ChatComponent>>>>
+}
+export interface QuestLanguageCatalog {
+  locale: string
+  assets: QuestLanguageText
+  overrides: QuestLanguageText
+  server: QuestLanguageText
+  revision: string
 }

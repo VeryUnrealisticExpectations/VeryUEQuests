@@ -11,7 +11,9 @@ public class QuestMenuNavigation {
     private int selectedIndex;
 
     public QuestMenuNavigation(QuestMenuKeyMappings keyMappings, List<QuestMenuPage> pages) {
-        if (pages.isEmpty()) throw new IllegalArgumentException("A quest menu must contain at least one page");
+        if (pages.isEmpty()) {
+            throw new IllegalArgumentException("A quest menu must contain at least one page");
+        }
         this.keyMappings = keyMappings;
         this.pages = pages;
     }

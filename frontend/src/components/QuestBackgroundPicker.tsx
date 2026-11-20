@@ -3,7 +3,9 @@ import { DEFAULT_QUEST_BACKGROUND } from '../lib/quests.ts'
 import { QuestBackgroundSprite } from './QuestBackgroundSprite.tsx'
 
 function spriteLabel(id: string): string {
-  if (id === DEFAULT_QUEST_BACKGROUND) return 'Default square'
+  if (id === DEFAULT_QUEST_BACKGROUND) {
+    return 'Default square'
+  }
   return id.split(':').at(-1)!.split('/').at(-1)!.replace(/^background_icon_/, '').replaceAll('_', ' ')
 }
 
@@ -25,7 +27,9 @@ export function QuestBackgroundPicker({ value, backgrounds, revision, onChange, 
   }, [open, highlighted])
 
   return <div className="field quest-background-picker" onBlur={event => {
-    if (!event.currentTarget.contains(event.relatedTarget)) setActive(undefined)
+    if (!event.currentTarget.contains(event.relatedTarget)) {
+      setActive(undefined)
+    }
   }}>
     {!panel && <><label htmlFor={id}>Quest background</label>
     <button id={id} type="button" className="mc-button quest-background-trigger" role="combobox"
@@ -43,14 +47,21 @@ export function QuestBackgroundPicker({ value, backgrounds, revision, onChange, 
           setActive(undefined)
         } else if (key === 'Enter' || key === ' ') {
           event.preventDefault()
-          if (open) choose(highlighted)
-          else setActive(value)
+          if (open) {
+            choose(highlighted)
+          } else {
+            setActive(value)
+          }
         } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(key)) {
           event.preventDefault()
           let next = index
-          if (key === 'Home') next = 0
-          else if (key === 'End') next = choices.length - 1
-          else if (open) next += key === 'ArrowUp' || key === 'ArrowLeft' ? -1 : 1
+          if (key === 'Home') {
+            next = 0
+          } else if (key === 'End') {
+            next = choices.length - 1
+          } else if (open) {
+            next += key === 'ArrowUp' || key === 'ArrowLeft' ? -1 : 1
+          }
           setActive(choices[Math.max(0, Math.min(choices.length - 1, next))])
         }
       }}>
@@ -64,7 +75,7 @@ export function QuestBackgroundPicker({ value, backgrounds, revision, onChange, 
         ref={!panel && choice === highlighted ? activeOption : undefined} type="button" className="mc-button quest-background-option"
         data-active={choice === highlighted || undefined} role={panel ? undefined : 'option'} tabIndex={panel ? undefined : -1}
         aria-label={spriteLabel(choice)} aria-pressed={panel ? choice === value : undefined}
-        aria-selected={panel ? undefined : choice === value} title={choice} onMouseDown={event => { if (!panel) event.preventDefault() }}
+        aria-selected={panel ? undefined : choice === value} title={choice} onMouseDown={event => { if (!panel) { event.preventDefault() } }}
         onClick={() => choose(choice)}>
         <QuestBackgroundSprite id={choice} revision={revision} />
       </button>)}

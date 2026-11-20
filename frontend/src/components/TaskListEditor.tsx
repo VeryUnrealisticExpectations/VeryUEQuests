@@ -42,12 +42,19 @@ export function TaskListEditor({ kind, rows, inputs, catalog, epoch, activeTrigg
         const target = taskTarget(task, catalog)
         const label = taskTypeLabel(kind, task.type)
         const changeQuantity = (text: string) => {
-          if (!quantity || !quantityId) return
+          if (!quantity || !quantityId) {
+            return
+          }
           onInput(quantityId, text)
           const value = integerInput(text, quantity.min, quantity.max)
-          if (value === undefined) return
-          if (quantity.field === 'itemCount') onChange(key, { ...task, item: { ...task.item, id: task.item?.id ?? '', count: value } })
-          else onChange(key, { ...task, [quantity.field]: value })
+          if (value === undefined) {
+            return
+          }
+          if (quantity.field === 'itemCount') {
+            onChange(key, { ...task, item: { ...task.item, id: task.item?.id ?? '', count: value } })
+          } else {
+            onChange(key, { ...task, [quantity.field]: value })
+          }
         }
         return <div key={key} className="wizard-task" data-active={activeTrigger === targetId || activeTrigger === typeId || undefined}>
           <div className="wizard-task-row">
@@ -68,7 +75,9 @@ export function TaskListEditor({ kind, rows, inputs, catalog, epoch, activeTrigg
                   const text = event.target.value
                   onInput(amountId, text)
                   const amount = attributeAmountInput(text)
-                  if (amount !== undefined) onChange(key, { ...task, amount })
+                  if (amount !== undefined) {
+                    onChange(key, { ...task, amount })
+                  }
                 }} />
             </label>}
             <button type="button" className="mc-button mc-button--icon mc-button--small mc-button--red"
@@ -83,7 +92,9 @@ export function TaskListEditor({ kind, rows, inputs, catalog, epoch, activeTrigg
                 onChange={text => {
                   onInput(componentsId, text)
                   const components = jsonObjectInput(text)
-                  if (components) onChange(key, { ...task, item: { ...task.item, id: task.item?.id ?? '', components } })
+                  if (components) {
+                    onChange(key, { ...task, item: { ...task.item, id: task.item?.id ?? '', components } })
+                  }
                 }} />
             </details>}
           </div>
@@ -99,7 +110,9 @@ export function TaskListEditor({ kind, rows, inputs, catalog, epoch, activeTrigg
 }
 
 export function TaskSummary({ kind, rows, catalog, epoch }: Pick<TaskListEditorProps, 'kind' | 'rows' | 'catalog' | 'epoch'>) {
-  if (!rows.length) return <p className="muted">None</p>
+  if (!rows.length) {
+    return <p className="muted">None</p>
+  }
   return <ul className="wizard-summary-tasks">
     {rows.map(({ key, task }) => {
       const quantity = taskQuantity(task)
@@ -133,7 +146,9 @@ export function CustomTaskEditor({ kind, row, catalog, inputs, onInput, onChange
     text={inputs[id] ?? JSON.stringify(customTaskFields(kind, task), null, 2)} onChange={text => {
       onInput(id, text)
       const value = jsonObjectInput(text)
-      if (value) onChange(key, updateCustomTaskFields(kind, task, value))
+      if (value) {
+        onChange(key, updateCustomTaskFields(kind, task, value))
+      }
     }} />
 }
 
@@ -141,24 +156,48 @@ function taskTarget(task: Task, catalog: Catalog): string | undefined {
   if (task.type === 'vuequests:collect_item' || task.type === 'vuequests:submit_item' || task.type === 'vuequests:item') {
     return catalog.items.find(entry => entry.id === task.item?.id)?.name ?? task.item?.id
   }
-  if (task.type === 'vuequests:entity') return catalog.entities.find(entry => entry.id === task.entity)?.name ?? task.entity
-  if (task.type === 'vuequests:advancement') return task.advancement || 'Choose advancement'
-  if (task.type === 'vuequests:loot_table') return task.loot_table || 'Choose loot table'
-  if (task.type === 'vuequests:command') return task.command || 'Enter command'
-  if (task.type === 'vuequests:travel_dimension') return task.dimension || 'Choose dimension'
-  if (task.type === 'vuequests:travel_biome') return task.biome || 'Choose biome'
-  if (task.type === 'vuequests:travel_structure') return task.structure || 'Choose structure'
-  if (task.type === 'vuequests:travel_coordinates') return `${task.dimension}: (${task.min_x}, ${task.min_y}, ${task.min_z}) to (${task.max_x}, ${task.max_y}, ${task.max_z})`
-  if (task.type === 'vuequests:statistic') return task.statistic ? `${task.stat_type} / ${task.statistic}` : 'Choose statistic'
-  if (task.type === 'vuequests:acknowledgement') return 'Click to acknowledge'
+  if (task.type === 'vuequests:entity') {
+    return catalog.entities.find(entry => entry.id === task.entity)?.name ?? task.entity
+  }
+  if (task.type === 'vuequests:advancement') {
+    return task.advancement || 'Choose advancement'
+  }
+  if (task.type === 'vuequests:loot_table') {
+    return task.loot_table || 'Choose loot table'
+  }
+  if (task.type === 'vuequests:command') {
+    return task.command || 'Enter command'
+  }
+  if (task.type === 'vuequests:travel_dimension') {
+    return task.dimension || 'Choose dimension'
+  }
+  if (task.type === 'vuequests:travel_biome') {
+    return task.biome || 'Choose biome'
+  }
+  if (task.type === 'vuequests:travel_structure') {
+    return task.structure || 'Choose structure'
+  }
+  if (task.type === 'vuequests:travel_coordinates') {
+    return `${task.dimension}: (${task.min_x}, ${task.min_y}, ${task.min_z}) to (${task.max_x}, ${task.max_y}, ${task.max_z})`
+  }
+  if (task.type === 'vuequests:statistic') {
+    return task.statistic ? `${task.stat_type} / ${task.statistic}` : 'Choose statistic'
+  }
+  if (task.type === 'vuequests:acknowledgement') {
+    return 'Click to acknowledge'
+  }
   if (task.type === 'vuequests:attribute') {
     return catalog.attributes?.find(entry => entry.id === task.attribute)?.name ?? (task.attribute || 'Choose attribute')
   }
 }
 
 function taskTypeLabel(kind: TaskKind, type: string): string {
-  if (kind === 'objective' && type === 'vuequests:experience_levels') return 'Reach experience level'
-  if (kind === 'reward' && type === 'vuequests:advancement') return 'Advancement reward'
+  if (kind === 'objective' && type === 'vuequests:experience_levels') {
+    return 'Reach experience level'
+  }
+  if (kind === 'reward' && type === 'vuequests:advancement') {
+    return 'Advancement reward'
+  }
   return taskTypeNames[type] ?? labelFor(type)
 }
 

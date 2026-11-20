@@ -54,7 +54,9 @@ public class QuestApiHttpHandler implements HttpHandler {
             try {
                 String path = exchange.getRequestURI().getPath().substring(API.length());
                 boolean write = WRITE_ROUTES.contains(path);
-                if (!write && !READ_ROUTES.contains(path)) throw new QuestApiException(404, "Endpoint not found.");
+                if (!write && !READ_ROUTES.contains(path)) {
+                    throw new QuestApiException(404, "Endpoint not found.");
+                }
                 if (!token.isEmpty() && !authorized(exchange)) {
                     exchange.getResponseHeaders().set("WWW-Authenticate", "Bearer");
                     throw new QuestApiException(401, "Supply the configured API bearer token.");
@@ -70,7 +72,9 @@ public class QuestApiHttpHandler implements HttpHandler {
                     response = service.write(path, readBody(exchange)).get(60, TimeUnit.SECONDS);
                 } else if (path.equals(OPENAPI)) {
                     try (InputStream input = QuestApiHttpHandler.class.getResourceAsStream(OPENAPI_RESOURCE)) {
-                        if (input == null) throw new IllegalStateException("The bundled OpenAPI contract is missing.");
+                        if (input == null) {
+                            throw new IllegalStateException("The bundled OpenAPI contract is missing.");
+                        }
                         response = new String(input.readAllBytes(), StandardCharsets.UTF_8);
                     }
                 } else {
@@ -85,11 +89,17 @@ public class QuestApiHttpHandler implements HttpHandler {
                         : cause instanceof QuestEditorService.ConflictException ? 409
                         : cause instanceof TimeoutException ? 503
                         : cause instanceof IllegalArgumentException || cause instanceof JsonParseException ? 400 : 500;
-                if (status == 500) LOGGER.error("Quest API request failed", cause);
-                if (cause instanceof InterruptedException) Thread.currentThread().interrupt();
+                if (status == 500) {
+                    LOGGER.error("Quest API request failed", cause);
+                }
+                if (cause instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                }
                 String message = status == 500 ? "Quest API request failed; check the server log." : cause.getMessage();
-                if (message == null || message.isBlank()) message = status == 503
-                        ? "Timed out waiting for the game server. Inspect the document before retrying a write." : "Invalid API request.";
+                if (message == null || message.isBlank()) {
+                    message = status == 503
+                            ? "Timed out waiting for the game server. Inspect the document before retrying a write." : "Invalid API request.";
+                }
                 send(exchange, status, JSON.toJson(new ApiError(message)), head);
             }
         }
@@ -102,10 +112,13 @@ public class QuestApiHttpHandler implements HttpHandler {
 
     private static void checkOrigin(HttpExchange exchange) {
         String site = exchange.getRequestHeaders().getFirst("Sec-Fetch-Site");
-        if (site != null && !site.equals("same-origin") && !site.equals("none"))
+        if (site != null && !site.equals("same-origin") && !site.equals("none")) {
             throw new QuestApiException(403, "Cross-origin writes are forbidden.");
+        }
         String origin = exchange.getRequestHeaders().getFirst("Origin");
-        if (origin == null) return;
+        if (origin == null) {
+            return;
+        }
         URI source = URI.create(origin);
         URI target = URI.create("http://" + exchange.getRequestHeaders().getFirst("Host"));
         int sourcePort = source.getPort() < 0 ? 80 : source.getPort();
@@ -121,38 +134,50 @@ public class QuestApiHttpHandler implements HttpHandler {
             throw new QuestApiException(415, "Use Content-Type: application/json.");
         }
         byte[] body = exchange.getRequestBody().readNBytes(MAX_REQUEST_BYTES + 1);
-        if (body.length > MAX_REQUEST_BYTES) throw new QuestApiException(413, "API requests are limited to 1 MiB.");
+        if (body.length > MAX_REQUEST_BYTES) {
+            throw new QuestApiException(413, "API requests are limited to 1 MiB.");
+        }
         String text = new String(body, StandardCharsets.UTF_8);
         JsonElement parsed;
         try (JsonReader reader = new JsonReader(new StringReader(text))) {
             reader.setLenient(false);
             parsed = JSON.getAdapter(JsonElement.class).read(reader);
-            if (reader.peek() != JsonToken.END_DOCUMENT)
+            if (reader.peek() != JsonToken.END_DOCUMENT) {
                 throw new JsonParseException("Unexpected data after the request object.");
+            }
         } catch (IOException exception) {
             throw new JsonParseException("Supply valid JSON.", exception);
         }
-        if (!parsed.isJsonObject()) throw new IllegalArgumentException("Supply a JSON request object.");
+        if (!parsed.isJsonObject()) {
+            throw new IllegalArgumentException("Supply a JSON request object.");
+        }
         checkDepth(parsed, 0);
         return text;
     }
 
     private static void checkDepth(JsonElement element, int depth) {
-        if (depth > 64) throw new IllegalArgumentException("JSON nesting exceeds 64 levels.");
-        if (element.isJsonObject())
+        if (depth > 64) {
+            throw new IllegalArgumentException("JSON nesting exceeds 64 levels.");
+        }
+        if (element.isJsonObject()) {
             element.getAsJsonObject().entrySet().forEach(entry -> checkDepth(entry.getValue(), depth + 1));
-        else if (element.isJsonArray()) element.getAsJsonArray().forEach(child -> checkDepth(child, depth + 1));
+        } else if (element.isJsonArray()) {
+            element.getAsJsonArray().forEach(child -> checkDepth(child, depth + 1));
+        }
     }
 
     private static Map<String, String> parameters(HttpExchange exchange) {
         Map<String, String> parameters = new LinkedHashMap<>();
         String query = exchange.getRequestURI().getRawQuery();
-        if (query != null) for (String entry : query.split("&")) {
-            String[] pair = entry.split("=", 2);
-            String name = URLDecoder.decode(pair[0], StandardCharsets.UTF_8);
-            String value = pair.length == 2 ? URLDecoder.decode(pair[1], StandardCharsets.UTF_8) : "";
-            if (parameters.putIfAbsent(name, value) != null)
-                throw new IllegalArgumentException("Duplicate query parameter " + name);
+        if (query != null) {
+            for (String entry : query.split("&")) {
+                String[] pair = entry.split("=", 2);
+                String name = URLDecoder.decode(pair[0], StandardCharsets.UTF_8);
+                String value = pair.length == 2 ? URLDecoder.decode(pair[1], StandardCharsets.UTF_8) : "";
+                if (parameters.putIfAbsent(name, value) != null) {
+                    throw new IllegalArgumentException("Duplicate query parameter " + name);
+                }
+            }
         }
         return parameters;
     }

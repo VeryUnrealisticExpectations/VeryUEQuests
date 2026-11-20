@@ -24,7 +24,9 @@ export function TravelCoordinatesEditor({ task, rowKey, catalog, inputs, onInput
             aria-invalid={integerInput(text, -2_147_483_648, 2_147_483_647) === undefined} onChange={event => {
               onInput(id, event.target.value)
               const value = integerInput(event.target.value, -2_147_483_648, 2_147_483_647)
-              if (value !== undefined) onChange({ ...task, [field]: value })
+              if (value !== undefined) {
+                onChange({ ...task, [field]: value })
+              }
             }} />
         </label>
       })}

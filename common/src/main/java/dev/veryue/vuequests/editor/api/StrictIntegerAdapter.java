@@ -12,7 +12,9 @@ public class StrictIntegerAdapter extends TypeAdapter<Integer> {
     @Override
     public Integer read(JsonReader reader) throws IOException {
         if (reader.peek() == JsonToken.NULL) { reader.nextNull(); return null; }
-        if (reader.peek() != JsonToken.NUMBER) throw new JsonParseException("Expected an integer number.");
+        if (reader.peek() != JsonToken.NUMBER) {
+            throw new JsonParseException("Expected an integer number.");
+        }
         try {
             return new BigDecimal(reader.nextString()).intValueExact();
         } catch (ArithmeticException | NumberFormatException exception) {

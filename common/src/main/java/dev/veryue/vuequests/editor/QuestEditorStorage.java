@@ -13,6 +13,7 @@ import net.minecraft.SharedConstants;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.FileToIdConverter;
 import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 
 import java.io.IOException;
@@ -32,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 public class QuestEditorStorage {
 
@@ -64,16 +66,20 @@ public class QuestEditorStorage {
                 for (JsonObject section : new QuestConfigStorage(root).read().values()) {
                     UUID id = UUID.fromString(section.get("section_id").getAsString());
                     Identifier source = Identifier.fromNamespaceAndPath("vuequests", "vuequests/sections/" + id + ".json");
-                    if (sources.putIfAbsent(id, source) != null) throw new IllegalArgumentException("Duplicate section UUID " + id);
+                    if (sources.putIfAbsent(id, source) != null) {
+                        throw new IllegalArgumentException("Duplicate section UUID " + id);
+                    }
                     definitions.put(id, section);
                 }
             } else {
-                var files = FileToIdConverter.json(FlatFileQuestLoader.RESOURCE_DIRECTORY).listMatchingResources(resources);
-                for (var entry : files.entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()) {
+                Map<Identifier, Resource> files = FileToIdConverter.json(FlatFileQuestLoader.RESOURCE_DIRECTORY).listMatchingResources(resources);
+                for (Map.Entry<Identifier, Resource> entry : files.entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()) {
                     try (Reader reader = entry.getValue().openAsReader()) {
                         JsonObject section = JsonParser.parseReader(reader).getAsJsonObject();
                         UUID id = UUID.fromString(section.get("section_id").getAsString());
-                        if (sources.putIfAbsent(id, entry.getKey()) != null) throw new IllegalArgumentException("Duplicate section UUID " + id);
+                        if (sources.putIfAbsent(id, entry.getKey()) != null) {
+                            throw new IllegalArgumentException("Duplicate section UUID " + id);
+                        }
                         definitions.put(id, section);
                     }
                 }
@@ -121,7 +127,7 @@ public class QuestEditorStorage {
 
         Set<UUID> present = new HashSet<>();
         Set<Path> desired = new HashSet<>();
-        for (var entry : sections) {
+        for (JsonObject entry : sections) {
             JsonObject section = entry.getAsJsonObject();
             UUID id = UUID.fromString(section.get("section_id").getAsString());
             present.add(id);
@@ -150,7 +156,7 @@ public class QuestEditorStorage {
         }
         Path data = root.resolve("data");
         if (Files.isDirectory(data)) {
-            try (var files = Files.walk(data)) {
+            try (Stream<Path> files = Files.walk(data)) {
                 for (Path file : files.filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".json")).toList()) {
                     if (!desired.contains(file.toAbsolutePath().normalize())) {
                         Files.delete(file);

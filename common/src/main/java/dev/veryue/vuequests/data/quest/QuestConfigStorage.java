@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 public class QuestConfigStorage {
 
@@ -36,7 +37,7 @@ public class QuestConfigStorage {
         Map<Path, JsonObject> sections = new LinkedHashMap<>();
         try {
             Files.createDirectories(root);
-            try (var files = Files.walk(root)) {
+            try (Stream<Path> files = Files.walk(root)) {
                 for (Path path : files.filter(Files::isRegularFile)
                         .filter(file -> file.toString().endsWith(".json")).sorted().toList()) {
                     try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
@@ -65,7 +66,7 @@ public class QuestConfigStorage {
 
     private void writeSections(List<JsonObject> sections, boolean replace) throws IOException {
         Map<UUID, Path> existing = new HashMap<>();
-        for (var entry : read().entrySet()) {
+        for (Map.Entry<Path, JsonObject> entry : read().entrySet()) {
             UUID id = sectionId(entry.getValue());
             if (existing.putIfAbsent(id, entry.getKey()) != null) {
                 throw new IllegalArgumentException("Duplicate section UUID " + id + " in " + root);
@@ -89,7 +90,7 @@ public class QuestConfigStorage {
             }
             desired.put(target, section);
         }
-        for (var entry : desired.entrySet()) {
+        for (Map.Entry<Path, JsonObject> entry : desired.entrySet()) {
             write(entry.getKey(), entry.getValue());
         }
         if (replace) {

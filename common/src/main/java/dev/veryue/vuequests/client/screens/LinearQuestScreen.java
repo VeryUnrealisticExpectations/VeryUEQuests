@@ -63,7 +63,9 @@ public class LinearQuestScreen extends QuestMenuScreen {
     private void refreshData() {
         QuestData latest = ClientQuestData.getData();
         PlayerUser latestUser = ClientQuestData.getUser();
-        if (latest == data && latestUser == user) return;
+        if (latest == data && latestUser == user) {
+            return;
+        }
         data = latest;
         user = latestUser;
         questList.setQuests(data.quests().values().stream().toList());

@@ -23,13 +23,13 @@ export function ComponentInspector({ kind, initial, textContext, catalog, epoch 
   const object: ComponentObject = typeof draft === 'object' && !Array.isArray(draft) ? draft : {}
   const changeDraft = (next: ChatComponent) => { version.current++; setDraft(next); setError('') }
   const update = (change: ComponentObject) => changeDraft({ ...object, ...change })
-  const hover = object.hoverEvent && typeof object.hoverEvent === 'object' ? object.hoverEvent as Record<string, unknown> : { action: 'show_text', contents: '' }
+  const hover = object.hover_event && typeof object.hover_event === 'object' ? object.hover_event as Record<string, unknown> : {}
   const action = String(hover.action ?? 'show_text')
-  const contents = hover.contents ?? hover.value ?? ''
-  const hoverObject = contents && typeof contents === 'object' && !Array.isArray(contents) ? contents as Record<string, unknown> : {}
-  const updateHover = (next: unknown) => update({ hoverEvent: { ...hover, contents: next } })
+  const updateHover = (next: Record<string, unknown>) => update({ hover_event: { ...next, action } })
   const submit = async () => {
-    if (checking) return
+    if (checking) {
+      return
+    }
     const invalid = panel.current?.querySelector<HTMLInputElement | HTMLTextAreaElement>('input:invalid,textarea:invalid,select:invalid')
     if (invalid) { invalid.reportValidity(); return }
     setChecking(true); setError('')
@@ -38,12 +38,18 @@ export function ComponentInspector({ kind, initial, textContext, catalog, epoch 
     const submittedVersion = version.current
     try {
       const next: unknown = kind === 'json' ? JSON.parse(json) : draft
-      if (!isChatComponent(next)) throw new Error('Enter a Minecraft text component.')
+      if (!isChatComponent(next)) {
+        throw new Error('Enter a Minecraft text component.')
+      }
       await validateComponent(next, controller.signal)
-      if (controller.signal.aborted || validation.current !== controller) return
-      if (version.current !== submittedVersion) throw new Error('The component changed while it was being checked. Apply it again.')
+      if (controller.signal.aborted || validation.current !== controller) {
+        return
+      }
+      if (version.current !== submittedVersion) {
+        throw new Error('The component changed while it was being checked. Apply it again.')
+      }
       onApply(next)
-    } catch (failure) { if (!controller.signal.aborted && validation.current === controller) setError(failure instanceof Error ? failure.message : 'The component is invalid.') }
+    } catch (failure) { if (!controller.signal.aborted && validation.current === controller) { setError(failure instanceof Error ? failure.message : 'The component is invalid.') } }
     finally { if (!controller.signal.aborted && validation.current === controller) { validation.current = undefined; setChecking(false) } }
   }
   const close = () => { validation.current?.abort(); validation.current = undefined; onClose() }
@@ -55,7 +61,7 @@ export function ComponentInspector({ kind, initial, textContext, catalog, epoch 
     {kind === 'translate' && <>
       <TranslationKeyPicker value={object.translate ?? ''} onChange={translate => update({ translate })} textContext={textContext} />
       <label className="check-field"><input type="checkbox" checked={object.fallback !== undefined} onChange={event => {
-        const next = { ...object }; if (event.target.checked) next.fallback = ''; else delete next.fallback; changeDraft(next)
+        const next = { ...object }; if (event.target.checked) { next.fallback = ''; } else { delete next.fallback; } changeDraft(next)
       }} />Use fallback text when the translation is missing</label>
       {object.fallback !== undefined && <label className="field">Fallback text<input value={object.fallback} onChange={event => update({ fallback: event.target.value })} /></label>}
       <div className="component-arguments"><span>Arguments</span>{(object.with ?? []).map((argument, index) => <div key={index} className="component-argument">
@@ -72,34 +78,37 @@ export function ComponentInspector({ kind, initial, textContext, catalog, epoch 
       <datalist id={`${id}-keybind-keys`}>{textContext?.keybinds.map(entry => <option key={entry.key} value={entry.key}>{entry.label} · {entry.resolved}</option>)}</datalist>
       <small className="muted">Current key: {plainComponentText(object, textContext)}</small></>}
     {kind === 'hover' && <>
-      <label className="field">Hover type<select value={action} onChange={event => update({ hoverEvent: { action: event.target.value,
-        contents: event.target.value === 'show_text' ? '' : event.target.value === 'show_item' ? { id: 'minecraft:book', count: 1 }
-          : { type: 'minecraft:pig', id: crypto.randomUUID() } } })}>
+      <label className="field">Hover type<select value={action} onChange={event => {
+        const action = event.target.value
+        const fields = action === 'show_text' ? { value: '' } : action === 'show_item' ? { id: 'minecraft:book', count: 1 }
+          : { id: 'minecraft:pig', uuid: crypto.randomUUID() }
+        update({ hover_event: { action, ...fields } })
+      }}>
         <option value="show_text">Text</option><option value="show_item">Item</option><option value="show_entity">Entity</option>
       </select></label>
-      {action === 'show_text' && <ComponentEditor label="Hover text" value={isChatComponent(contents) ? contents : ''} onChange={updateHover}
+      {action === 'show_text' && <ComponentEditor label="Hover text" value={isChatComponent(hover.value) ? hover.value : ''} onChange={value => updateHover({ ...hover, value })}
         textContext={textContext} catalog={catalog} epoch={epoch} multiline />}
       {action === 'show_item' && <>
-        {catalog ? <RegistryPicker label="Hover item" value={String(hoverObject.id ?? 'minecraft:book')} onChange={id => updateHover({ ...hoverObject, id })}
-          catalog={catalog} epoch={epoch} /> : <label className="field">Hover item<input value={String(hoverObject.id ?? 'minecraft:book')}
-            onChange={event => updateHover({ ...hoverObject, id: event.target.value })} /></label>}
-        <label className="field">Count<input type="number" min={1} step={1} value={Number(hoverObject.count ?? 1)} onChange={event => updateHover({ ...hoverObject, count: Number(event.target.value) })} /></label>
-        <label className="field">Item components JSON<textarea defaultValue={JSON.stringify(hoverObject.components ?? {}, null, 2)} onChange={event => {
-          try { const components: unknown = JSON.parse(event.target.value); if (!components || typeof components !== 'object' || Array.isArray(components)) throw new Error();
-            event.target.setCustomValidity(''); updateHover({ ...hoverObject, components }) }
+        {catalog ? <RegistryPicker label="Hover item" value={String(hover.id ?? 'minecraft:book')} onChange={id => updateHover({ ...hover, id })}
+          catalog={catalog} epoch={epoch} /> : <label className="field">Hover item<input value={String(hover.id ?? 'minecraft:book')}
+            onChange={event => updateHover({ ...hover, id: event.target.value })} /></label>}
+        <label className="field">Count<input type="number" min={1} step={1} value={Number(hover.count ?? 1)} onChange={event => updateHover({ ...hover, count: Number(event.target.value) })} /></label>
+        <label className="field">Item components JSON<textarea defaultValue={JSON.stringify(hover.components ?? {}, null, 2)} onChange={event => {
+          try { const components: unknown = JSON.parse(event.target.value); if (!components || typeof components !== 'object' || Array.isArray(components)) { throw new Error(); }
+            event.target.setCustomValidity(''); updateHover({ ...hover, components }) }
           catch { event.target.setCustomValidity('Enter a JSON object.') }
         }} /></label>
       </>}
       {action === 'show_entity' && <>
-        {catalog ? <RegistryPicker label="Entity type" kind="entities" value={String(hoverObject.type ?? 'minecraft:pig')} onChange={type => updateHover({ ...hoverObject, type })}
-          catalog={catalog} epoch={epoch} /> : <label className="field">Entity type<input value={String(hoverObject.type ?? 'minecraft:pig')}
-            onChange={event => updateHover({ ...hoverObject, type: event.target.value })} /></label>}
-        <label className="field">Entity UUID<input value={String(hoverObject.id ?? '')} onChange={event => updateHover({ ...hoverObject, id: event.target.value })} /></label>
-        <label className="check-field"><input type="checkbox" checked={hoverObject.name !== undefined} onChange={event => {
-          const next = { ...hoverObject }; if (event.target.checked) next.name = ''; else delete next.name; updateHover(next)
+        {catalog ? <RegistryPicker label="Entity type" kind="entities" value={String(hover.id ?? 'minecraft:pig')} onChange={id => updateHover({ ...hover, id })}
+          catalog={catalog} epoch={epoch} /> : <label className="field">Entity type<input value={String(hover.id ?? 'minecraft:pig')}
+            onChange={event => updateHover({ ...hover, id: event.target.value })} /></label>}
+        <label className="field">Entity UUID<input value={String(hover.uuid ?? '')} onChange={event => updateHover({ ...hover, uuid: event.target.value })} /></label>
+        <label className="check-field"><input type="checkbox" checked={hover.name !== undefined} onChange={event => {
+          const next = { ...hover }; if (event.target.checked) { next.name = ''; } else { delete next.name; } updateHover(next)
         }} />Include an entity name</label>
-        {hoverObject.name !== undefined && <ComponentEditor label="Entity name" value={isChatComponent(hoverObject.name) ? hoverObject.name : ''}
-          onChange={name => updateHover({ ...hoverObject, name })} textContext={textContext} catalog={catalog} epoch={epoch} />}
+        {hover.name !== undefined && <ComponentEditor label="Entity name" value={isChatComponent(hover.name) ? hover.name : ''}
+          onChange={name => updateHover({ ...hover, name })} textContext={textContext} catalog={catalog} epoch={epoch} />}
       </>}
       {!['show_text', 'show_item', 'show_entity'].includes(action) && <p className="muted">Edit this hover event in Advanced JSON to preserve its native fields.</p>}
     </>}

@@ -13,7 +13,9 @@ public class UuidJsonAdapter extends TypeAdapter<UUID> {
         String text = reader.nextString();
         try {
             UUID value = UUID.fromString(text);
-            if (!value.toString().equalsIgnoreCase(text)) throw new IllegalArgumentException();
+            if (!value.toString().equalsIgnoreCase(text)) {
+                throw new IllegalArgumentException();
+            }
             return value;
         } catch (IllegalArgumentException exception) {
             throw new JsonParseException("Supply a canonical UUID string.", exception);

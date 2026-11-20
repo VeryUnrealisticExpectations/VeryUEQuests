@@ -87,7 +87,9 @@ public abstract class QuestMenuScreen extends Screen {
 
     private boolean selectPage(int index) {
         QuestMenuScreen screen = navigation.select(index);
-        if (screen == this) return false;
+        if (screen == this) {
+            return false;
+        }
         minecraft.gui.setScreen(screen);
         return minecraft.gui.screen() == screen;
     }

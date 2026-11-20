@@ -1,5 +1,6 @@
 package dev.veryue.vuequests.client.screens;
 
+import dev.veryue.vuequests.client.ClientQuestData;
 import dev.veryue.vuequests.client.util.GuiSpriteRenderer;
 import dev.veryue.vuequests.client.widget.QuestWidgetSprites;
 import dev.veryue.vuequests.client.widget.panels.QuestDetailsPanel;
@@ -25,7 +26,7 @@ public class QuestDetailsScreen extends Screen {
     private static final int CLOSE_SIZE = 16;
 
     private final GraphQuestScreen parent;
-    private final Quest quest;
+    private Quest quest;
     private final Consumer<CustomPacketPayload> sendToServer;
     private QuestDetailsPanel details;
     private ImageButton closeButton;
@@ -39,6 +40,11 @@ public class QuestDetailsScreen extends Screen {
         this.parent = parent;
         this.quest = quest;
         this.sendToServer = sendToServer;
+    }
+
+    @Override
+    public Component getTitle() {
+        return quest.display().title();
     }
 
     @Override
@@ -72,6 +78,16 @@ public class QuestDetailsScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        Quest latest = ClientQuestData.getData().quests().get(quest.questId());
+        if (latest == null) {
+            onClose();
+            return;
+        }
+        if (latest != quest) {
+            quest = latest;
+            details.setQuest(latest);
+            repositionElements();
+        }
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
     }
 

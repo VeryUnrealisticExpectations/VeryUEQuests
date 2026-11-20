@@ -1,6 +1,5 @@
 package dev.veryue.vuequests.editor;
 
-import net.minecraft.world.entity.EntityTypes;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.serialization.JsonOps;
@@ -27,10 +26,16 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.core.Holder;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.DefaultAttributes;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
+import net.minecraft.stats.StatType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.storage.LevelResource;
 
 import java.io.IOException;
@@ -90,7 +95,9 @@ public class QuestEditorService {
 
     public CompletableFuture<JsonObject> validateComponent(JsonObject request) {
         return server.submit(() -> {
-            if (!request.has("component")) throw new IllegalArgumentException("Supply a component.");
+            if (!request.has("component")) {
+                throw new IllegalArgumentException("Supply a component.");
+            }
             ComponentSerialization.CODEC.parse(server.registryAccess().createSerializationContext(JsonOps.INSTANCE), request.get("component"))
                     .getOrThrow(IllegalArgumentException::new);
             JsonObject response = new JsonObject();
@@ -102,7 +109,9 @@ public class QuestEditorService {
 
     public CompletableFuture<Snapshot> save(SaveRequest request) {
         return persist(previous -> {
-            if (request.revision() == null) throw new IllegalArgumentException("Supply the editor document revision.");
+            if (request.revision() == null) {
+                throw new IllegalArgumentException("Supply the editor document revision.");
+            }
             checkRevision(previous, request.revision());
             return request.sections();
         }).thenCompose(ignored -> load());
@@ -169,7 +178,9 @@ public class QuestEditorService {
                 throw new IllegalArgumentException("Duplicate section UUID " + sectionId);
             }
             // Match the loader: unavailable mods may supply registry values that cannot be decoded here.
-            if (section == null || section.disabled()) continue;
+            if (section == null || section.disabled()) {
+                continue;
+            }
             for (Quest quest : section.questList()) {
                 UUID id = quest.questId();
                 if (!sectionId.equals(quest.sectionUUID())) {
@@ -179,10 +190,14 @@ public class QuestEditorService {
                     throw new IllegalArgumentException("Duplicate quest UUID " + id);
                 }
                 for (var objective : quest.objectives()) {
-                    if (!objectiveIds.add(objective.getObjectiveId())) throw new IllegalArgumentException("Duplicate objective UUID " + objective.getObjectiveId());
+                    if (!objectiveIds.add(objective.getObjectiveId())) {
+                        throw new IllegalArgumentException("Duplicate objective UUID " + objective.getObjectiveId());
+                    }
                 }
                 for (var reward : quest.rewards()) {
-                    if (!rewardIds.add(reward.getRewardId())) throw new IllegalArgumentException("Duplicate reward UUID " + reward.getRewardId());
+                    if (!rewardIds.add(reward.getRewardId())) {
+                        throw new IllegalArgumentException("Duplicate reward UUID " + reward.getRewardId());
+                    }
                 }
             }
         }
@@ -190,36 +205,36 @@ public class QuestEditorService {
     }
 
     private Catalog createCatalog() {
-        var items = BuiltInRegistries.ITEM.keySet().stream().sorted().map(id ->
+        List<RegistryEntry> items = BuiltInRegistries.ITEM.keySet().stream().sorted().map(id ->
                 new RegistryEntry(id.toString(), new ItemStack(BuiltInRegistries.ITEM.getValue(id)).getHoverName().getString(), null)).toList();
-        var blocks = BuiltInRegistries.BLOCK.keySet().stream().sorted().map(id -> {
-            var block = BuiltInRegistries.BLOCK.getValue(id);
+        List<RegistryEntry> blocks = BuiltInRegistries.BLOCK.keySet().stream().sorted().map(id -> {
+            Block block = BuiltInRegistries.BLOCK.getValue(id);
             return new RegistryEntry(id.toString(), block.getName().getString(),
                     block.asItem() == Items.AIR ? null : BuiltInRegistries.ITEM.getKey(block.asItem()).toString());
         }).toList();
-        var entities = BuiltInRegistries.ENTITY_TYPE.keySet().stream().sorted().map(id -> {
-            var entity = BuiltInRegistries.ENTITY_TYPE.getValue(id);
-            var egg = SpawnEggItem.byId(entity).map(Holder::value).orElse(null);
+        List<RegistryEntry> entities = BuiltInRegistries.ENTITY_TYPE.keySet().stream().sorted().map(id -> {
+            EntityType<?> entity = BuiltInRegistries.ENTITY_TYPE.getValue(id);
+            Item egg = SpawnEggItem.byId(entity).map(Holder::value).orElse(null);
             return new RegistryEntry(id.toString(), entity.getDescription().getString(), egg == null ? null : BuiltInRegistries.ITEM.getKey(egg).toString());
         }).toList();
-        var advancements = server.getAdvancements().getAllAdvancements().stream()
+        List<String> advancements = server.getAdvancements().getAllAdvancements().stream()
                 .map(AdvancementHolder::id).map(Identifier::toString).sorted().toList();
-        var lootTables = server.reloadableRegistries().lookup().lookupOrThrow(Registries.LOOT_TABLE).listElementIds().map(ResourceKey::identifier)
+        List<String> lootTables = server.reloadableRegistries().lookup().lookupOrThrow(Registries.LOOT_TABLE).listElementIds().map(ResourceKey::identifier)
                 .map(Identifier::toString).sorted().toList();
-        var playerAttributes = DefaultAttributes.getSupplier(EntityTypes.PLAYER);
-        var attributes = BuiltInRegistries.ATTRIBUTE.listElements().filter(playerAttributes::hasAttribute)
+        AttributeSupplier playerAttributes = DefaultAttributes.getSupplier(EntityTypes.PLAYER);
+        List<RegistryEntry> attributes = BuiltInRegistries.ATTRIBUTE.listElements().filter(playerAttributes::hasAttribute)
                 .map(holder -> new RegistryEntry(holder.key().identifier().toString(),
                         Component.translatable(holder.value().getDescriptionId()).getString(), null))
                 .sorted(Comparator.comparing(RegistryEntry::id)).toList();
-        var objectives = VeryUERegistries.QUEST_OBJECTIVE_TYPES.keySet().stream().sorted().map(id ->
+        List<TypeEntry> objectives = VeryUERegistries.QUEST_OBJECTIVE_TYPES.keySet().stream().sorted().map(id ->
                 new TypeEntry(id.toString(), VeryUERegistries.QUEST_OBJECTIVE_TYPES.getValue(id).codec().keys(JsonOps.INSTANCE).map(JsonElement::getAsString).toList())).toList();
-        var rewards = VeryUERegistries.REWARD_TYPES.keySet().stream().sorted().map(id ->
+        List<TypeEntry> rewards = VeryUERegistries.REWARD_TYPES.keySet().stream().sorted().map(id ->
                 new TypeEntry(id.toString(), VeryUERegistries.REWARD_TYPES.getValue(id).codec().keys(JsonOps.INSTANCE).map(JsonElement::getAsString).toList())).toList();
-        var dimensions = server.levelKeys().stream().map(key -> key.identifier().toString()).sorted().toList();
-        var biomes = server.registryAccess().lookupOrThrow(Registries.BIOME).keySet().stream().map(Identifier::toString).sorted().toList();
-        var structures = server.registryAccess().lookupOrThrow(Registries.STRUCTURE).keySet().stream().map(Identifier::toString).sorted().toList();
-        var statistics = BuiltInRegistries.STAT_TYPE.keySet().stream().sorted().map(id -> {
-            var type = BuiltInRegistries.STAT_TYPE.getValue(id);
+        List<String> dimensions = server.levelKeys().stream().map(key -> key.identifier().toString()).sorted().toList();
+        List<String> biomes = server.registryAccess().lookupOrThrow(Registries.BIOME).keySet().stream().map(Identifier::toString).sorted().toList();
+        List<String> structures = server.registryAccess().lookupOrThrow(Registries.STRUCTURE).keySet().stream().map(Identifier::toString).sorted().toList();
+        List<StatisticTypeEntry> statistics = BuiltInRegistries.STAT_TYPE.keySet().stream().sorted().map(id -> {
+            StatType<?> type = BuiltInRegistries.STAT_TYPE.getValue(id);
             return new StatisticTypeEntry(id.toString(), type.getDisplayName().getString(),
                     type.getRegistry().keySet().stream().map(Identifier::toString).sorted().toList());
         }).toList();

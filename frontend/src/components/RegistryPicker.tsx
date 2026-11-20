@@ -43,14 +43,18 @@ export function RegistryPicker({ label, value, onChange, catalog, epoch, kind = 
     input.current?.setCustomValidity(isRegistryId(value) ? '' : `Choose ${kind === 'items' ? 'an item' : 'an entity'} or enter a namespaced registry ID.`)
   }, [value, kind])
 
-  useEffect(() => { if (autoFocus) input.current?.focus() }, [autoFocus])
+  useEffect(() => { if (autoFocus) { input.current?.focus() } }, [autoFocus])
 
   useEffect(() => {
     const element = viewport.current
-    if (!open || !element || kind !== 'items') return
+    if (!open || !element || kind !== 'items') {
+      return
+    }
     const observer = new ResizeObserver(entries => {
       const width = entries[0]?.contentRect.width
-      if (width !== undefined) setColumns(inventoryColumns(width))
+      if (width !== undefined) {
+        setColumns(inventoryColumns(width))
+      }
     })
     observer.observe(element)
     return () => observer.disconnect()
@@ -58,7 +62,9 @@ export function RegistryPicker({ label, value, onChange, catalog, epoch, kind = 
 
   const resetScroll = () => {
     setScrollTop(0)
-    if (viewport.current) viewport.current.scrollTop = 0
+    if (viewport.current) {
+      viewport.current.scrollTop = 0
+    }
   }
   const show = () => {
     setQuery(''); setActive(0); setKeyboardBrowsing(false); resetScroll(); setOpen(true)
@@ -68,18 +74,22 @@ export function RegistryPicker({ label, value, onChange, catalog, epoch, kind = 
     onChange(registryId)
     if (!panel) { input.current?.focus(); close() }
   }
-  const select = (index: number) => { if (choices[index]) commit(choices[index].id) }
+  const select = (index: number) => { if (choices[index]) { commit(choices[index].id) } }
   const navigate = (key: string) => {
     if (!open) { show(); return }
     setKeyboardBrowsing(true)
     const next = moveInventorySelection(highlighted, key, choices.length, rowColumns)
     const offset = revealInventorySelection(next, rowColumns, scrollTop, rowHeight)
     setActive(next); setScrollTop(offset)
-    if (viewport.current) viewport.current.scrollTop = offset
+    if (viewport.current) {
+      viewport.current.scrollTop = offset
+    }
   }
 
   return <div className={`registry-field registry-field--${kind}${panel ? ' registry-field--panel' : ''}`} onBlur={event => {
-    if (!panel && !event.currentTarget.contains(event.relatedTarget)) close()
+    if (!panel && !event.currentTarget.contains(event.relatedTarget)) {
+      close()
+    }
   }}>
     <label htmlFor={id} className={panel ? 'sr-only' : undefined}>{label}</label>
     <div className="registry-search-row">
@@ -89,7 +99,7 @@ export function RegistryPicker({ label, value, onChange, catalog, epoch, kind = 
         aria-activedescendant={open && choices.length > 0 && activeMounted ? `${id}-option-${highlighted}` : undefined}
         aria-invalid={!isRegistryId(value)} value={open ? query : value} autoComplete="off" spellCheck={false}
         placeholder={`Search ${kind} or enter namespace:${kind === 'items' ? 'item' : 'entity'}`}
-        onFocus={panel ? undefined : show} onClick={() => { if (!open) show() }}
+        onFocus={panel ? undefined : show} onClick={() => { if (!open) { show() } }}
         onChange={event => { setQuery(event.target.value); setOpen(true); setActive(0); setKeyboardBrowsing(false); resetScroll() }}
         onKeyDown={event => {
           const directional = ['ArrowDown', 'ArrowUp', 'PageUp', 'PageDown'].includes(event.key)
@@ -98,8 +108,11 @@ export function RegistryPicker({ label, value, onChange, catalog, epoch, kind = 
             event.preventDefault(); navigate(event.key)
           } else if (event.key === 'Enter' && open) {
             event.preventDefault()
-            if (choices.length) select(highlighted)
-            else if (canUseRawId) commit(rawId)
+            if (choices.length) {
+              select(highlighted)
+            } else if (canUseRawId) {
+              commit(rawId)
+            }
           } else if (event.key === 'Escape' && open && !panel) {
             event.preventDefault(); event.stopPropagation(); close()
           }

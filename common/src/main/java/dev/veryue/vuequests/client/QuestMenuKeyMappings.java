@@ -38,9 +38,15 @@ public class QuestMenuKeyMappings {
     }
 
     public KeyMapping matching(InputConstants.Key key) {
-        if (key.equals(InputConstants.UNKNOWN)) return null;
-        if (matches.test(previous, key)) return previous;
-        if (matches.test(next, key)) return next;
+        if (key.equals(InputConstants.UNKNOWN)) {
+            return null;
+        }
+        if (matches.test(previous, key)) {
+            return previous;
+        }
+        if (matches.test(next, key)) {
+            return next;
+        }
         return null;
     }
 

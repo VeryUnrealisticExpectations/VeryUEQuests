@@ -13,6 +13,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletionException;
@@ -27,6 +28,7 @@ import static dev.veryue.vuequests.editor.QuestEditorConstants.EDITOR;
 import static dev.veryue.vuequests.editor.QuestEditorConstants.EDITOR_COMPONENTS;
 import static dev.veryue.vuequests.editor.QuestEditorConstants.EDITOR_COMPONENT_PREVIEW;
 import static dev.veryue.vuequests.editor.QuestEditorConstants.EDITOR_COMPONENT_VALIDATE;
+import static dev.veryue.vuequests.editor.QuestEditorConstants.EDITOR_LANGUAGES;
 import static dev.veryue.vuequests.editor.QuestEditorConstants.EDITOR_RESOURCES;
 
 public class QuestEditorHttpHandler implements HttpHandler {
@@ -71,8 +73,11 @@ public class QuestEditorHttpHandler implements HttpHandler {
         try (exchange) {
             boolean head = exchange.getRequestMethod().equals("HEAD");
             try {
-                if (exchange.getRequestURI().getPath().startsWith(API + "/")) handleApi(exchange, head);
-                else serveFrontend(exchange, head);
+                if (exchange.getRequestURI().getPath().startsWith(API + "/")) {
+                    handleApi(exchange, head);
+                } else {
+                    serveFrontend(exchange, head);
+                }
             } catch (Exception exception) {
                 Throwable cause = exception;
                 while ((cause instanceof ExecutionException || cause instanceof CompletionException) && cause.getCause() != null) cause = cause.getCause();
@@ -88,6 +93,11 @@ public class QuestEditorHttpHandler implements HttpHandler {
     private void handleApi(HttpExchange exchange, boolean head) throws Exception {
         String path = exchange.getRequestURI().getPath();
         String method = exchange.getRequestMethod();
+        if (path.startsWith(API + EDITOR_LANGUAGES + "/")) {
+            String locale = path.substring((API + EDITOR_LANGUAGES + "/").length());
+            handleQuestLanguage(exchange, method, head, locale);
+            return;
+        }
         if ((path.equals(API + EDITOR_COMPONENT_PREVIEW) || path.equals(API + EDITOR_COMPONENT_VALIDATE)) && method.equals("POST")) {
             JsonObject request = readComponentRequest(exchange, path.equals(API + EDITOR_COMPONENT_PREVIEW) ? 128 * 1024 : MAX_REQUEST_BYTES);
             Object response = path.equals(API + EDITOR_COMPONENT_PREVIEW) ? QuestEditorResources.preview(request).get(3, TimeUnit.SECONDS)
@@ -107,7 +117,9 @@ public class QuestEditorHttpHandler implements HttpHandler {
                 return;
             }
             QuestEditorService.SaveRequest request = JSON.fromJson(new String(body, StandardCharsets.UTF_8), QuestEditorService.SaveRequest.class);
-            if (request == null) throw new IllegalArgumentException("Supply a JSON quest document.");
+            if (request == null) {
+                throw new IllegalArgumentException("Supply a JSON quest document.");
+            }
             json(exchange, STATUS_OK, service.save(request).get(60, TimeUnit.SECONDS), head);
             return;
         }
@@ -118,35 +130,63 @@ public class QuestEditorHttpHandler implements HttpHandler {
         }
         switch (path) {
             case API + EDITOR -> json(exchange, STATUS_OK, service.load().get(30, TimeUnit.SECONDS), head);
+            case API + EDITOR_LANGUAGES -> json(exchange, STATUS_OK, QuestEditorResources.listQuestLanguages().get(10, TimeUnit.SECONDS), head);
             case API + EDITOR_RESOURCES -> {
-                String currentEtag = "\"" + QuestEditorAssets.revision() + "\"";
-                if (currentEtag.equals(exchange.getRequestHeaders().getFirst("If-None-Match"))) {
-                    exchange.getResponseHeaders().set("ETag", currentEtag);
-                    exchange.getResponseHeaders().set("Cache-Control", "no-cache");
-                    exchange.sendResponseHeaders(304, -1);
-                    return;
-                }
-                JsonObject resources = QuestEditorResources.describe().get(3, TimeUnit.SECONDS);
-                String etag = "\"" + resources.get("assetRevision").getAsString() + "\"";
+                String locale = optionalParameter(exchange, "locale");
+                JsonObject resources = QuestEditorResources.describe(locale).get(3, TimeUnit.SECONDS);
+                String etag = "\"" + resources.get("assetRevision").getAsString() + "-" + resources.get("language").getAsString() + "\"";
                 exchange.getResponseHeaders().set("ETag", etag);
-                if (etag.equals(exchange.getRequestHeaders().getFirst("If-None-Match"))) exchange.sendResponseHeaders(304, -1);
-                else json(exchange, STATUS_OK, resources, head);
+                exchange.getResponseHeaders().set("Cache-Control", "no-cache");
+                if (etag.equals(exchange.getRequestHeaders().getFirst("If-None-Match"))) {
+                    exchange.sendResponseHeaders(304, -1);
+                } else {
+                    json(exchange, STATUS_OK, resources, head);
+                }
             }
             case API + ASSETS_FILE -> {
                 String resourcePath = parameter(exchange, "path");
                 byte[] resource = QuestEditorResources.read(resourcePath).get(3, TimeUnit.SECONDS);
                 assetCacheHeaders(exchange);
-                if (resource == null) error(exchange, STATUS_NOT_FOUND, "Resource not found.", head);
-                else {
+                if (resource == null) {
+                    error(exchange, STATUS_NOT_FOUND, "Resource not found.", head);
+                } else {
                     send(exchange, STATUS_OK, resource, contentType(resourcePath), head);
                 }
             }
             case API + ASSETS_LIST -> {
-                var files = QuestEditorResources.list(parameter(exchange, "path")).get(3, TimeUnit.SECONDS);
+                List<String> files = QuestEditorResources.list(parameter(exchange, "path")).get(3, TimeUnit.SECONDS);
                 assetCacheHeaders(exchange);
                 json(exchange, STATUS_OK, files, head);
             }
             default -> error(exchange, STATUS_NOT_FOUND, "Endpoint not found.", head);
+        }
+    }
+
+    private void handleQuestLanguage(HttpExchange exchange, String method, boolean head, String locale) throws Exception {
+        switch (method) {
+            case "GET", "HEAD" -> json(exchange, STATUS_OK, QuestEditorResources.readQuestLanguage(locale).get(10, TimeUnit.SECONDS), head);
+            case "PUT" -> {
+                String contentType = exchange.getRequestHeaders().getFirst("Content-Type");
+                if (!validOrigin(exchange) || contentType == null || !contentType.startsWith("application/json")) {
+                    error(exchange, STATUS_FORBIDDEN, "Save requests must originate from the editor.", head);
+                    return;
+                }
+                byte[] body = exchange.getRequestBody().readNBytes(MAX_REQUEST_BYTES + 1);
+                if (body.length > MAX_REQUEST_BYTES) {
+                    error(exchange, STATUS_PAYLOAD_TOO_LARGE, "The quest language catalog is too large.", head);
+                    return;
+                }
+                JsonObject request = JSON.fromJson(new String(body, StandardCharsets.UTF_8), JsonObject.class);
+                if (request == null) {
+                    throw new IllegalArgumentException("Supply a JSON quest language catalog.");
+                }
+                checkJsonDepth(request, 0);
+                json(exchange, STATUS_OK, QuestEditorResources.saveQuestLanguage(locale, request).get(30, TimeUnit.SECONDS), head);
+            }
+            default -> {
+                exchange.getResponseHeaders().set("Allow", "GET, HEAD, PUT");
+                error(exchange, STATUS_METHOD_NOT_ALLOWED, "Method not allowed.", head);
+            }
         }
     }
 
@@ -156,17 +196,26 @@ public class QuestEditorHttpHandler implements HttpHandler {
             throw new IllegalArgumentException("Component requests must originate from the editor and contain JSON.");
         }
         byte[] body = exchange.getRequestBody().readNBytes(maximumBytes + 1);
-        if (body.length > maximumBytes) throw new IllegalArgumentException("The component request is too large.");
+        if (body.length > maximumBytes) {
+            throw new IllegalArgumentException("The component request is too large.");
+        }
         JsonObject request = JSON.fromJson(new String(body, StandardCharsets.UTF_8), JsonObject.class);
-        if (request == null) throw new IllegalArgumentException("Supply a component request.");
+        if (request == null) {
+            throw new IllegalArgumentException("Supply a component request.");
+        }
         checkJsonDepth(request, 0);
         return request;
     }
 
     private static void checkJsonDepth(JsonElement element, int depth) {
-        if (depth > 64) throw new IllegalArgumentException("Component nesting exceeds 64 levels.");
-        if (element.isJsonObject()) element.getAsJsonObject().entrySet().forEach(entry -> checkJsonDepth(entry.getValue(), depth + 1));
-        else if (element.isJsonArray()) element.getAsJsonArray().forEach(child -> checkJsonDepth(child, depth + 1));
+        if (depth > 64) {
+            throw new IllegalArgumentException("Component nesting exceeds 64 levels.");
+        }
+        if (element.isJsonObject()) {
+            element.getAsJsonObject().entrySet().forEach(entry -> checkJsonDepth(entry.getValue(), depth + 1));
+        } else if (element.isJsonArray()) {
+            element.getAsJsonArray().forEach(child -> checkJsonDepth(child, depth + 1));
+        }
     }
 
     private void serveFrontend(HttpExchange exchange, boolean head) throws IOException {
@@ -206,21 +255,33 @@ public class QuestEditorHttpHandler implements HttpHandler {
 
     private boolean validOrigin(HttpExchange exchange) {
         String origin = exchange.getRequestHeaders().getFirst("Origin");
-        if (origin == null) return true;
+        if (origin == null) {
+            return true;
+        }
         String hostname = URI.create(origin).getHost();
         String host = URI.create("http://" + exchange.getRequestHeaders().getFirst("Host")).getHost();
         return hostname != null && hostname.equalsIgnoreCase(host);
     }
 
     private String parameter(HttpExchange exchange, String name) {
+        String value = optionalParameter(exchange, name);
+        if (value == null) {
+            throw new IllegalArgumentException("Missing " + name + " parameter.");
+        }
+        return value;
+    }
+
+    private String optionalParameter(HttpExchange exchange, String name) {
         String query = exchange.getRequestURI().getRawQuery();
-        if (query != null) for (String entry : query.split("&")) {
-            String[] pair = entry.split("=", 2);
-            if (URLDecoder.decode(pair[0], StandardCharsets.UTF_8).equals(name)) {
-                return pair.length == 2 ? URLDecoder.decode(pair[1], StandardCharsets.UTF_8) : "";
+        if (query != null) {
+            for (String entry : query.split("&")) {
+                String[] pair = entry.split("=", 2);
+                if (URLDecoder.decode(pair[0], StandardCharsets.UTF_8).equals(name)) {
+                    return pair.length == 2 ? URLDecoder.decode(pair[1], StandardCharsets.UTF_8) : "";
+                }
             }
         }
-        throw new IllegalArgumentException("Missing " + name + " parameter.");
+        return null;
     }
 
     private void assetCacheHeaders(HttpExchange exchange) {
@@ -246,7 +307,9 @@ public class QuestEditorHttpHandler implements HttpHandler {
     private void send(HttpExchange exchange, int status, byte[] content, String type, boolean head) throws IOException {
         exchange.getResponseHeaders().set("Content-Type", type);
         exchange.getResponseHeaders().set("X-Content-Type-Options", "nosniff");
-        if (!exchange.getResponseHeaders().containsKey("Cache-Control")) exchange.getResponseHeaders().set("Cache-Control", "no-store");
+        if (!exchange.getResponseHeaders().containsKey("Cache-Control")) {
+            exchange.getResponseHeaders().set("Cache-Control", "no-store");
+        }
         if (head) {
             exchange.getResponseHeaders().set("Content-Length", Integer.toString(content.length));
             exchange.sendResponseHeaders(status, -1);

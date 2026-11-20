@@ -24,7 +24,7 @@ public abstract class User {
     public static final Codec<Map<UUID, QuestObjectiveProgress<?, ?>>> QUEST_OBJECTIVE_PROGRESS_CODEC = Codec
             .unboundedMap(UUIDUtil.STRING_CODEC, QuestObjectiveProgress.CODEC)
             .validate(progressById -> {
-                for (var entry : progressById.entrySet()) {
+                for (Map.Entry<UUID, QuestObjectiveProgress<?, ?>> entry : progressById.entrySet()) {
                     if (!entry.getKey().equals(entry.getValue().getObjectiveId())) {
                         return DataResult.error(() -> "Progress map key does not match objective UUID " + entry.getKey());
                     }

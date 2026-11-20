@@ -33,8 +33,14 @@ public class QuestEditorResources {
     }
 
     public static CompletableFuture<JsonObject> describe() {
+        return describe(null);
+    }
+
+    public static CompletableFuture<JsonObject> describe(String locale) {
         EditorResourceSource source = source();
-        if (source != null) return source.describe();
+        if (source != null) {
+            return source.describe(locale);
+        }
         try {
             return CompletableFuture.completedFuture(describeAssets());
         } catch (IOException exception) {
@@ -44,7 +50,9 @@ public class QuestEditorResources {
 
     public static CompletableFuture<byte[]> read(String path) {
         EditorResourceSource source = source();
-        if (source != null) return source.read(path);
+        if (source != null) {
+            return source.read(path);
+        }
         try {
             return CompletableFuture.completedFuture(QuestEditorAssets.read(path));
         } catch (IOException | IllegalArgumentException exception) {
@@ -54,7 +62,9 @@ public class QuestEditorResources {
 
     public static CompletableFuture<List<String>> list(String path) {
         EditorResourceSource source = source();
-        if (source != null) return source.list(path);
+        if (source != null) {
+            return source.list(path);
+        }
         try {
             return CompletableFuture.completedFuture(QuestEditorAssets.list(path));
         } catch (IOException | IllegalArgumentException exception) {
@@ -64,8 +74,26 @@ public class QuestEditorResources {
 
     public static CompletableFuture<JsonObject> preview(JsonObject request) {
         EditorResourceSource source = source();
-        if (source == null) return CompletableFuture.failedFuture(new EditorResourcesUnavailableException("Native text rendering requires the local Minecraft client hosting this world."));
+        if (source == null) {
+            return CompletableFuture.failedFuture(new EditorResourcesUnavailableException("Native text rendering requires the local Minecraft client hosting this world."));
+        }
         return source.preview(request);
+    }
+
+    private static EditorResourceSource languageSource() {
+        EditorResourceSource source = source();
+        if (source == null) {
+            throw new EditorResourcesUnavailableException("Quest translations require the local Minecraft client hosting this world.");
+        }
+        return source;
+    }
+
+    public static CompletableFuture<JsonObject> listQuestLanguages() { return languageSource().listQuestLanguages(); }
+
+    public static CompletableFuture<JsonObject> readQuestLanguage(String locale) { return languageSource().readQuestLanguage(locale); }
+
+    public static CompletableFuture<JsonObject> saveQuestLanguage(String locale, JsonObject request) {
+        return languageSource().saveQuestLanguage(locale, request);
     }
 
     private static JsonObject describeAssets() throws IOException {
@@ -86,7 +114,9 @@ public class QuestEditorResources {
                     String child = path + "/" + name;
                     if (name.endsWith(".json")) {
                         byte[] bytes = QuestEditorAssets.read(child);
-                        if (bytes == null) continue;
+                        if (bytes == null) {
+                            continue;
+                        }
                         JsonObject font = new JsonObject();
                         font.addProperty("id", namespace + ":" + child.substring(("assets/" + namespace + "/font/").length(), child.length() - 5));
                         font.addProperty("loaded", false);
@@ -94,14 +124,18 @@ public class QuestEditorResources {
                             font.add("definition", JsonParser.parseString(new String(bytes, StandardCharsets.UTF_8)));
                         } catch (RuntimeException ignored) { }
                         fonts.add(font);
-                    } else if (!name.contains(".")) paths.add(child);
+                    } else if (!name.contains(".")) {
+                        paths.add(child);
+                    }
                 }
             }
             byte[] language = QuestEditorAssets.read("assets/" + namespace + "/lang/en_us.json");
             if (language != null) {
                 try {
                     JsonParser.parseString(new String(language, StandardCharsets.UTF_8)).getAsJsonObject().entrySet().forEach(entry -> {
-                        if (!entry.getValue().isJsonPrimitive()) return;
+                        if (!entry.getValue().isJsonPrimitive()) {
+                            return;
+                        }
                         JsonObject translation = new JsonObject();
                         translation.addProperty("key", entry.getKey());
                         translation.addProperty("value", entry.getValue().getAsString());

@@ -11,6 +11,7 @@ import dev.veryue.vuequests.editor.api.models.requests.ModifyQuestTextRequest;
 import dev.veryue.vuequests.editor.api.models.responses.QuestResult;
 import dev.veryue.vuequests.editor.api.models.responses.RegistrySearchResponse;
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
@@ -76,6 +77,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static dev.veryue.vuequests.editor.QuestEditorConstants.API_CONTEXTS;
@@ -231,7 +233,7 @@ public class QuestApiVerification {
                 """, QuestObjective.class);
         check(collect.getCount() == 128 && collect.getStack().getCount() == 1,
                 "An explicit Collect Item count overrides the legacy stack count");
-        var saved = QuestObjective.CODEC.encodeStart(ops, collect).getOrThrow().getAsJsonObject();
+        JsonObject saved = QuestObjective.CODEC.encodeStart(ops, collect).getOrThrow().getAsJsonObject();
         check(saved.get("count").getAsInt() == 128 && !saved.getAsJsonObject("item").has("count"),
                 "Collect Item serializes its target separately from the stack");
         ObjectiveSlayEntity legacySlay = (ObjectiveSlayEntity) json.fromJson("""
@@ -241,7 +243,7 @@ public class QuestApiVerification {
         ObjectiveSlayEntity slay = (ObjectiveSlayEntity) json.fromJson("""
                 {"type":"vuequests:entity","entity":"minecraft:armor_stand","count":130}
                 """, QuestObjective.class);
-        var savedSlay = QuestObjective.CODEC.encodeStart(ops, slay).getOrThrow().getAsJsonObject();
+        JsonObject savedSlay = QuestObjective.CODEC.encodeStart(ops, slay).getOrThrow().getAsJsonObject();
         check(savedSlay.get("count").getAsInt() == 130 && ((ObjectiveSlayEntity)
                 QuestObjective.CODEC.parse(ops, savedSlay).getOrThrow()).getCount() == 130,
                 "Slay Entity round-trips a target above 99");
@@ -633,7 +635,7 @@ public class QuestApiVerification {
         Files.copy(assets.resolve(squarePath), extra.resolve(squarePath));
         QuestEditorAssets.setRoots(List.of(assets));
         try {
-            var bundled = QuestEditorAssets.questBackgrounds();
+            List<Identifier> bundled = QuestEditorAssets.questBackgrounds();
             for (String shape : List.of("circle", "four_point_star", "rounded_square")) {
                 String spriteName = "background_icon_" + shape;
                 var spriteId = Identifier.parse("vuequests:quest_backgrounds/" + spriteName);
@@ -642,7 +644,7 @@ public class QuestApiVerification {
                         "Bundled " + shape + " has a sprite sidecar");
             }
             QuestEditorAssets.setRoots(List.of(extra, assets));
-            var catalog = QuestEditorResources.describe().join().getAsJsonArray("questBackgrounds");
+            JsonArray catalog = QuestEditorResources.describe().join().getAsJsonArray("questBackgrounds");
             check(catalog.size() == bundled.size() + 1, "Background discovery includes nested PNGs and deduplicates across asset roots");
             check(catalog.contains(new JsonPrimitive("test:quest_backgrounds/shapes/diamond")), "Custom namespaced sprite appears in the editor catalog");
             check(catalog.contains(new JsonPrimitive(QuestDisplay.DEFAULT_BACKGROUND_SPRITE.toString())), "Bundled square appears in the editor catalog");
@@ -657,7 +659,7 @@ public class QuestApiVerification {
     }
 
     private static void verifyHttp() throws Exception {
-        try (var workers = Executors.newVirtualThreadPerTaskExecutor(); HttpClient client = HttpClient.newHttpClient()) {
+        try (ExecutorService workers = Executors.newVirtualThreadPerTaskExecutor(); HttpClient client = HttpClient.newHttpClient()) {
             HttpServer listener = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
             QuestApiHttpHandler handler = new QuestApiHttpHandler(new QuestApiTestService());
             for (String context : API_CONTEXTS) listener.createContext(context, handler);
@@ -667,7 +669,7 @@ public class QuestApiVerification {
             try {
                 HttpResponse<String> contract = get(client, base + "/api/openapi.json");
                 check(contract.statusCode() == 200, "Bundled contract served");
-                var paths = JsonParser.parseString(contract.body()).getAsJsonObject().getAsJsonObject("paths");
+                JsonObject paths = JsonParser.parseString(contract.body()).getAsJsonObject().getAsJsonObject("paths");
                 check(paths.keySet().containsAll(WRITE_ROUTES) && paths.keySet().containsAll(READ_ROUTES), "Contract covers every API route");
                 check(get(client, base + "/api/create/quest").statusCode() == 405, "GET cannot mutate");
                 check(get(client, base + "/api/create/nope").statusCode() == 404, "Unknown route returns 404");
@@ -699,11 +701,15 @@ public class QuestApiVerification {
             String securedUrl = "http://127.0.0.1:" + secured.getAddress().getPort() + "/api/check/sections";
             try {
                 check(get(client, securedUrl).statusCode() == 401, "Configured token required");
-                var authorized = HttpRequest.newBuilder(URI.create(securedUrl)).header("Authorization", "Bearer verification-token").build();
+                HttpRequest authorized = HttpRequest.newBuilder(URI.create(securedUrl)).header("Authorization", "Bearer verification-token").build();
                 check(client.send(authorized, HttpResponse.BodyHandlers.ofString()).statusCode() == 200, "Configured bearer token accepted");
             } finally {
                 secured.stop(0);
-                if (previous == null) System.clearProperty("vuequests.api.token"); else System.setProperty("vuequests.api.token", previous);
+                if (previous == null) {
+                    System.clearProperty("vuequests.api.token");
+                } else {
+                    System.setProperty("vuequests.api.token", previous);
+                }
             }
         }
     }
@@ -713,19 +719,25 @@ public class QuestApiVerification {
     }
 
     private static HttpResponse<String> post(HttpClient client, String url, String body, String type, String origin) throws Exception {
-        var request = HttpRequest.newBuilder(URI.create(url)).header("Content-Type", type).POST(HttpRequest.BodyPublishers.ofString(body));
-        if (origin != null) request.header("Origin", origin);
+        HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(url)).header("Content-Type", type).POST(HttpRequest.BodyPublishers.ofString(body));
+        if (origin != null) {
+            request.header("Origin", origin);
+        }
         return client.send(request.build(), HttpResponse.BodyHandlers.ofString());
     }
 
     private static void check(boolean condition, String message) {
-        if (!condition) throw new AssertionError(message);
+        if (!condition) {
+            throw new AssertionError(message);
+        }
         checks++;
     }
 
     private static void expect(Class<? extends Throwable> type, Runnable action, String message) {
         try { action.run(); } catch (Throwable exception) {
-            if (!type.isInstance(exception)) throw new AssertionError(message + ": " + exception, exception);
+            if (!type.isInstance(exception)) {
+                throw new AssertionError(message + ": " + exception, exception);
+            }
             checks++;
             return;
         }

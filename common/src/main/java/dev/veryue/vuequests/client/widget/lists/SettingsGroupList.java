@@ -41,11 +41,17 @@ public class SettingsGroupList extends AbstractWidget {
     }
 
     public void select(int index) {
-        if (groups.isEmpty()) return;
+        if (groups.isEmpty()) {
+            return;
+        }
         selected = Mth.clamp(index, 0, groups.size() - 1);
         setMessage(groups.get(selected));
-        if (selected * ROW_HEIGHT < scroll) scroll = selected * ROW_HEIGHT;
-        if ((selected + 1) * ROW_HEIGHT > scroll + getHeight()) scroll = (selected + 1) * ROW_HEIGHT - getHeight();
+        if (selected * ROW_HEIGHT < scroll) {
+            scroll = selected * ROW_HEIGHT;
+        }
+        if ((selected + 1) * ROW_HEIGHT > scroll + getHeight()) {
+            scroll = (selected + 1) * ROW_HEIGHT - getHeight();
+        }
         onSelect.accept(selected);
     }
 
@@ -55,7 +61,9 @@ public class SettingsGroupList extends AbstractWidget {
         graphics.enableScissor(getX(), getY(), getRight(), getBottom());
         for (int index = 0; index < groups.size(); index++) {
             int y = getY() + index * ROW_HEIGHT - (int) scroll;
-            if (y + ROW_HEIGHT <= getY() || y >= getBottom()) continue;
+            if (y + ROW_HEIGHT <= getY() || y >= getBottom()) {
+                continue;
+            }
             boolean current = index == selected;
             boolean hovered = isMouseOver(mouseX, mouseY) && mouseY >= y && mouseY < y + ROW_HEIGHT;
             Component label = groups.get(index).copy().withStyle(style -> style.withBold(current));
@@ -83,7 +91,9 @@ public class SettingsGroupList extends AbstractWidget {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double deltaX, double deltaY) {
-        if (!isMouseOver(mouseX, mouseY)) return false;
+        if (!isMouseOver(mouseX, mouseY)) {
+            return false;
+        }
         scroll = Mth.clamp(scroll - deltaY * ROW_HEIGHT, 0, Math.max(0, groups.size() * ROW_HEIGHT - getHeight()));
         return true;
     }

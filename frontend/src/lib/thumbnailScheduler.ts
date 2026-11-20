@@ -10,17 +10,23 @@ export class ThumbnailScheduler<T> {
   idle(): Promise<void> { return this.running }
   get size() { return this.jobs.size }
   request(key: string, run: () => Promise<T>, signal: AbortSignal): Promise<T> {
-    if (signal.aborted) return Promise.reject(aborted())
+    if (signal.aborted) {
+      return Promise.reject(aborted())
+    }
     let job = this.jobs.get(key)
     if (!job) {
-      if (this.jobs.size >= 256) return Promise.reject(new ThumbnailQueueFullError())
+      if (this.jobs.size >= 256) {
+        return Promise.reject(new ThumbnailQueueFullError())
+      }
       job = { key, run, subscribers: new Set(), started: false }; this.jobs.set(key, job)
     }
     const current = job
     return new Promise<T>((resolve, reject) => {
       const cancel = () => {
         subscriber.detach(); current.subscribers.delete(subscriber); reject(aborted())
-        if (!current.started && !current.subscribers.size) this.jobs.delete(key)
+        if (!current.started && !current.subscribers.size) {
+          this.jobs.delete(key)
+        }
       }
       const subscriber: Subscriber<T> = { resolve, reject, detach: () => signal.removeEventListener('abort', cancel) }
       current.subscribers.add(subscriber); signal.addEventListener('abort', cancel, { once: true })
@@ -32,9 +38,13 @@ export class ThumbnailScheduler<T> {
     this.jobs.clear()
   }
   private async pump() {
-    if (this.active) return
+    if (this.active) {
+      return
+    }
     const job = this.jobs.values().next().value
-    if (!job) return
+    if (!job) {
+      return
+    }
     this.active = true; job.started = true
     let finished!: () => void
     this.running = new Promise<void>(resolve => { finished = resolve })
@@ -42,7 +52,9 @@ export class ThumbnailScheduler<T> {
     catch (error) { for (const subscriber of job.subscribers) subscriber.reject(error) }
     finally {
       for (const subscriber of job.subscribers) subscriber.detach()
-      if (this.jobs.get(job.key) === job) this.jobs.delete(job.key)
+      if (this.jobs.get(job.key) === job) {
+        this.jobs.delete(job.key)
+      }
       this.active = false; finished(); queueMicrotask(() => { void this.pump() })
     }
   }

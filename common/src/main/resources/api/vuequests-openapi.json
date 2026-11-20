@@ -1170,22 +1170,19 @@
           "insertion": {
             "type": "string"
           },
-          "clickEvent": {
+          "click_event": {
             "type": "object",
+            "description": "Native click action and its action-specific fields.",
             "properties": {
               "action": {
-                "type": "string"
-              },
-              "value": {
                 "type": "string"
               }
             },
             "required": [
-              "action",
-              "value"
+              "action"
             ]
           },
-          "hoverEvent": {
+          "hover_event": {
             "type": "object",
             "additionalProperties": true
           },

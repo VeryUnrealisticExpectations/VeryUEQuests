@@ -51,7 +51,9 @@ export function QuestCanvas({ section, selected, epoch, assetRevision, textConte
   }, [])
   const zoomAt = useCallback((direction: number, point: Position = { x: size.x / 2, y: size.y / 2 }) => {
     const next = Math.max(0, Math.min(ZOOM_LEVELS.length - 1, zoomLevel + direction))
-    if (next === zoomLevel) return
+    if (next === zoomLevel) {
+      return
+    }
     const world = toWorld(point)
     const scaleChange = scale - ZOOM_LEVELS[next] * CSS_PIXELS_PER_GUI_UNIT
     setPan({ x: pan.x + world.x * scaleChange, y: pan.y + world.y * scaleChange })
@@ -59,17 +61,20 @@ export function QuestCanvas({ section, selected, epoch, assetRevision, textConte
   }, [size, pan, scale, toWorld, zoomLevel])
   useEffect(() => {
     const element = viewport.current!
-    const wheel = (event: WheelEvent) => { event.preventDefault(); if (event.deltaY) zoomAt(event.deltaY < 0 ? 1 : -1, local(event.clientX, event.clientY)) }
+    const wheel = (event: WheelEvent) => { event.preventDefault(); if (event.deltaY) { zoomAt(event.deltaY < 0 ? 1 : -1, local(event.clientX, event.clientY)) } }
     element.addEventListener('wheel', wheel, { passive: false })
     return () => element.removeEventListener('wheel', wheel)
   }, [zoomAt, local])
   const reset = () => { setPan({ x: 0, y: 0 }); setZoomLevel(DEFAULT_ZOOM_LEVEL) }
   const selectQuest = (quest: Quest, event?: MouseEvent<HTMLButtonElement>) => {
-    if (event && event.detail > 1) return
+    if (event && event.detail > 1) {
+      return
+    }
     if (didDrag.current) { didDrag.current = false; return }
     if (connecting) {
-      if (!source) setConnection({ ...connection, source: quest.quest_id })
-      else {
+      if (!source) {
+        setConnection({ ...connection, source: quest.quest_id })
+      } else {
         connectionClick.current = quest.quest_id
         onConnect(source, quest.quest_id)
         cancelConnection()
@@ -82,13 +87,17 @@ export function QuestCanvas({ section, selected, epoch, assetRevision, textConte
   const startQuestDrag = (event: PointerEvent<HTMLButtonElement>, quest: Quest) => {
     event.stopPropagation()
     didDrag.current = false
-    if (disabled || connecting || event.button !== 0) return
+    if (disabled || connecting || event.button !== 0) {
+      return
+    }
     gesture.current = { type: 'quest', id: quest.quest_id, pointer: event.pointerId, capture: event.currentTarget,
       start: { x: event.clientX, y: event.clientY }, origin: quest.position, moved: false }
     event.currentTarget.setPointerCapture(event.pointerId)
   }
   const startPan = (event: PointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0 && event.button !== 1 || (event.target as Element).closest('button')) return
+    if (event.button !== 0 && event.button !== 1 || (event.target as Element).closest('button')) {
+      return
+    }
     event.preventDefault()
     gesture.current = { type: 'pan', pointer: event.pointerId, capture: event.currentTarget,
       start: { x: event.clientX, y: event.clientY }, origin: pan, moved: false }
@@ -97,10 +106,14 @@ export function QuestCanvas({ section, selected, epoch, assetRevision, textConte
   }
   const finishGesture = (event: PointerEvent<HTMLDivElement>, cancelled = false) => {
     const current = gesture.current
-    if (!current || current.pointer !== event.pointerId) return
+    if (!current || current.pointer !== event.pointerId) {
+      return
+    }
     gesture.current = null
     didDrag.current = !cancelled && current.moved
-    if (current.capture.hasPointerCapture(event.pointerId)) current.capture.releasePointerCapture(event.pointerId)
+    if (current.capture.hasPointerCapture(event.pointerId)) {
+      current.capture.releasePointerCapture(event.pointerId)
+    }
     if (current.type === 'pan' && !current.moved && event.button === 0 && !cancelled) {
       cancelConnection()
       onSelect(undefined)
@@ -124,17 +137,24 @@ export function QuestCanvas({ section, selected, epoch, assetRevision, textConte
       <button type="button" className="mc-button mc-button--green mc-button--small" disabled={!section || disabled} onClick={addAtCenter}>+ Add quest</button>
       <button type="button" className="mc-button mc-button--gray mc-button--small" disabled={!section || disabled || section.quests.length < 2} aria-pressed={connecting}
         onClick={() => setConnection({ active: !connecting, disabled, section: section?.section_id })}>Connect</button>
-      <button type="button" className="mc-button mc-button--gray mc-button--small" disabled={!selected || disabled} onClick={() => { cancelConnection(); if (selected) onEdit(selected) }}>Edit quest</button>
+      <button type="button" className="mc-button mc-button--gray mc-button--small" disabled={!selected || disabled} onClick={() => { cancelConnection(); if (selected) { onEdit(selected) } }}>Edit quest</button>
     </header>
     <div ref={viewport} className={'canvas-viewport ' + (connecting ? 'is-connecting' : '')} tabIndex={0} aria-label="Quest map"
       onPointerDown={startPan} onPointerMove={event => {
         setMouse(local(event.clientX, event.clientY))
         const current = gesture.current
-        if (!current || current.pointer !== event.pointerId) return
+        if (!current || current.pointer !== event.pointerId) {
+          return
+        }
         const dx = event.clientX - current.start.x, dy = event.clientY - current.start.y
-        if (Math.abs(dx) + Math.abs(dy) > 3) current.moved = true
-        if (current.type === 'pan') setPan({ x: current.origin.x + dx, y: current.origin.y + dy })
-        else if (!disabled && current.moved) onMove(current.id!, snapQuestPosition({ x: current.origin.x + dx / scale, y: current.origin.y + dy / scale }, event))
+        if (Math.abs(dx) + Math.abs(dy) > 3) {
+          current.moved = true
+        }
+        if (current.type === 'pan') {
+          setPan({ x: current.origin.x + dx, y: current.origin.y + dy })
+        } else if (!disabled && current.moved) {
+          onMove(current.id!, snapQuestPosition({ x: current.origin.x + dx / scale, y: current.origin.y + dy / scale }, event))
+        }
       }} onPointerUp={event => finishGesture(event)} onPointerCancel={event => finishGesture(event, true)}
       onLostPointerCapture={event => {
         const current = gesture.current
@@ -145,7 +165,9 @@ export function QuestCanvas({ section, selected, epoch, assetRevision, textConte
           onAdd(snapQuestPosition(toWorld(local(event.clientX, event.clientY)), event))
         }
       }} onKeyDown={event => {
-        if ((event.target as Element).closest('.quest-node')) return
+        if ((event.target as Element).closest('.quest-node')) {
+          return
+        }
         if (event.key === 'Home') { event.preventDefault(); reset() }
         else if (event.key === '+' || event.key === '=') { event.preventDefault(); zoomAt(1) }
         else if (event.key === '-') { event.preventDefault(); zoomAt(-1) }
@@ -164,16 +186,22 @@ export function QuestCanvas({ section, selected, epoch, assetRevision, textConte
           onPointerDown={event => startQuestDrag(event, quest)} onSelect={event => selectQuest(quest, event)}
           onContextMenu={event => {
             event.preventDefault(); event.stopPropagation()
-            if (disabled) return
+            if (disabled) {
+              return
+            }
             const current = gesture.current
             gesture.current = null
-            if (current?.capture.hasPointerCapture(current.pointer)) current.capture.releasePointerCapture(current.pointer)
+            if (current?.capture.hasPointerCapture(current.pointer)) {
+              current.capture.releasePointerCapture(current.pointer)
+            }
             didDrag.current = false
             connectionClick.current = undefined
             setConnection({ active: true, source: quest.quest_id, disabled, section: section?.section_id })
             event.currentTarget.focus()
           }} onEdit={event => {
-            if (!disabled && !connecting && (!event || connectionClick.current !== quest.quest_id)) onEdit(quest.quest_id)
+            if (!disabled && !connecting && (!event || connectionClick.current !== quest.quest_id)) {
+              onEdit(quest.quest_id)
+            }
           }} />)}
       </div>
       {!section && <div className="canvas-empty"><h3>Create your first section</h3><p>Add a section on the left to begin your quest book.</p></div>}

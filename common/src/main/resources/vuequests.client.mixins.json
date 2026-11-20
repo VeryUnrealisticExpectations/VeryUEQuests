@@ -8,7 +8,8 @@
     "FontManagerAccessor",
     "FontManagerMixin",
     "GuiGraphicsExtractorAccessor",
-    "MinecraftAccessor"
+    "MinecraftAccessor",
+    "TranslatableContentsMixin"
   ],
   "injectors": {
     "defaultRequire": 1

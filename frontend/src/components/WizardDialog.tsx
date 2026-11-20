@@ -27,14 +27,20 @@ export function WizardDialog<Id extends string>({ title, titleAside, stages, sta
   return <Dialog title={title} titleAside={titleAside} size="wizard" onClose={onClose} onEscape={panelTitle ? onClosePanel : onClose}>
     <form className="quest-wizard" noValidate onSubmit={event => {
       event.preventDefault()
-      if (!next && (event.nativeEvent as SubmitEvent).submitter?.id === 'quest-wizard-submit') onSubmit()
+      if (!next && (event.nativeEvent as SubmitEvent).submitter?.id === 'quest-wizard-submit') {
+        onSubmit()
+      }
     }} onKeyDown={event => {
-      if (event.defaultPrevented) return
+      if (event.defaultPrevented) {
+        return
+      }
       if (event.key === 'Escape' && panelTitle) {
         event.preventDefault()
         event.stopPropagation()
         onClosePanel()
-      } else if (event.key === 'Enter' && event.target instanceof HTMLInputElement) event.preventDefault()
+      } else if (event.key === 'Enter' && event.target instanceof HTMLInputElement) {
+        event.preventDefault()
+      }
     }}>
       <nav className="wizard-stepper" aria-label="Quest stages">
         <ol>{stages.map((entry, number) => <li key={entry.id} data-complete={entry.id !== stage && entry.complete || undefined}>

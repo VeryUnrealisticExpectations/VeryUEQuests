@@ -4,9 +4,11 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.veryue.vuequests.registry.RewardTypes;
 import net.minecraft.advancements.AdvancementHolder;
+import net.minecraft.advancements.AdvancementProgress;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.server.PlayerAdvancements;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -45,8 +47,8 @@ public class RewardAdvancement extends RewardType<Identifier> {
         if (advancement == null) {
             return false;
         }
-        var advancements = player.getAdvancements();
-        var progress = advancements.getOrStartProgress(advancement);
+        PlayerAdvancements advancements = player.getAdvancements();
+        AdvancementProgress progress = advancements.getOrStartProgress(advancement);
         for (String criterion : progress.getRemainingCriteria()) {
             advancements.award(advancement, criterion);
         }

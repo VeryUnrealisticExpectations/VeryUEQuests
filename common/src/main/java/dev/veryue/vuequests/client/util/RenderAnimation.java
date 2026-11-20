@@ -22,7 +22,9 @@ public class RenderAnimation {
     }
 
     public float value(float nextTarget, long durationMillis) {
-        if (durationMillis < 0) throw new IllegalArgumentException("Animation duration must not be negative.");
+        if (durationMillis < 0) {
+            throw new IllegalArgumentException("Animation duration must not be negative.");
+        }
         long now = clock.getAsLong();
         float current = valueAt(now);
         long nextDuration = TimeUnit.MILLISECONDS.toNanos(durationMillis);
@@ -36,7 +38,9 @@ public class RenderAnimation {
     }
 
     private float valueAt(long now) {
-        if (durationNanos == 0) return target;
+        if (durationNanos == 0) {
+            return target;
+        }
         float progress = (float) Math.clamp((now - startedAt) / (double) durationNanos, 0, 1);
         float eased = progress * progress * (3 - 2 * progress);
         return start + (target - start) * eased;
