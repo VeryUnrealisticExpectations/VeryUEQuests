@@ -1,6 +1,6 @@
 package dev.veryue.vuequests.client.widget.panels;
 
-import org.lwjgl.sdl.SDLScancode;
+import org.lwjgl.glfw.GLFW;
 
 import net.minecraft.client.input.KeyEvent;
 
@@ -12,7 +12,6 @@ import dev.veryue.vuequests.client.ClientTeamInvitation;
 import dev.veryue.vuequests.client.widget.controls.TeamMemberRow;
 import dev.veryue.vuequests.models.TeamSetting;
 import dev.veryue.vuequests.network.*;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -20,7 +19,6 @@ import net.minecraft.client.gui.components.*;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.util.FormattedCharSequence;
-import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.Comparator;
 import java.util.List;
@@ -298,7 +296,7 @@ public class TeamSettingsPanel extends SettingsPanel {
     public boolean keyPressed(KeyEvent event) {
         int keyCode = event.key();
         int modifiers = event.modifiers();
-        if (keyCode == SDLScancode.SDL_SCANCODE_RETURN || keyCode == SDLScancode.SDL_SCANCODE_KP_ENTER) {
+        if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
             Button action = getFocused() == nameBox ? applyButton : getFocused() == inviteBox ? sendButton : null;
             if (action != null && action.active) {
                 action.playDownSound(Minecraft.getInstance().getSoundManager());

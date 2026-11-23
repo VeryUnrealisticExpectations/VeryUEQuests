@@ -323,7 +323,7 @@ public class QuestCanvas extends QuestPanel {
             return false;
         }
         if (button == InputConstants.MOUSE_BUTTON_RIGHT && !panning && ClientQuestData.isDebugEnabled()
-                && (InputConstants.isKeyDown(InputConstants.KEY_LSHIFT) || InputConstants.isKeyDown(InputConstants.KEY_RSHIFT)) && copyQuestIdAt(mouseX, mouseY)) {
+                && (InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), InputConstants.KEY_LSHIFT) || InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), InputConstants.KEY_RSHIFT)) && copyQuestIdAt(mouseX, mouseY)) {
             return true;
         }
         if (viewport().containsPoint((int) mouseX, (int) mouseY)
@@ -350,7 +350,7 @@ public class QuestCanvas extends QuestPanel {
         }
         Minecraft minecraft = Minecraft.getInstance();
         minecraft.keyboardHandler.setClipboard(node.getQuest().questId().toString());
-        SystemToast.addOrUpdate(minecraft.gui.toastManager(), QUEST_ID_COPIED, Component.translatable("screen.vuequests.debug.copied"), null);
+        SystemToast.addOrUpdate(minecraft.getToastManager(), QUEST_ID_COPIED, Component.translatable("screen.vuequests.debug.copied"), null);
         return true;
     }
 

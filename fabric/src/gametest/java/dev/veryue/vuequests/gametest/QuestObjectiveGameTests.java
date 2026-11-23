@@ -14,12 +14,13 @@ import dev.veryue.vuequests.models.objective.ObjectiveTravelDimension;
 import dev.veryue.vuequests.models.objective.ObjectiveTravelStructure;
 import dev.veryue.vuequests.network.InteractQuestObjectivePayload;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.stats.Stats;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
@@ -56,14 +57,14 @@ public class QuestObjectiveGameTests {
 
     @GameTest(maxTicks = 100)
     public void slayEntityProgressAndCompletion(GameTestHelper helper) {
-        var scenario = new QuestTestScenario<>(helper, new ObjectiveSlayEntity(UUID.randomUUID(), EntityTypes.CHICKEN, 2));
-        var cow = helper.spawn(EntityTypes.COW, new BlockPos(2, 2, 2));
+        var scenario = new QuestTestScenario<>(helper, new ObjectiveSlayEntity(UUID.randomUUID(), EntityType.CHICKEN, 2));
+        var cow = helper.spawn(EntityType.COW, new BlockPos(2, 2, 2));
         cow.hurtServer(helper.getLevel(), scenario.player.damageSources().playerAttack(scenario.player), 1000);
         scenario.assertPending();
-        var first = helper.spawn(EntityTypes.CHICKEN, new BlockPos(2, 2, 2));
+        var first = helper.spawn(EntityType.CHICKEN, new BlockPos(2, 2, 2));
         first.hurtServer(helper.getLevel(), scenario.player.damageSources().playerAttack(scenario.player), 1000);
         scenario.assertProgress(1);
-        var second = helper.spawn(EntityTypes.CHICKEN, new BlockPos(2, 2, 2));
+        var second = helper.spawn(EntityType.CHICKEN, new BlockPos(2, 2, 2));
         second.hurtServer(helper.getLevel(), scenario.player.damageSources().playerAttack(scenario.player), 1000);
         scenario.assertComplete(2);
         helper.succeed();
@@ -207,8 +208,9 @@ public class QuestObjectiveGameTests {
         var previous = chunk.getStartForStructure(structure);
         boolean referenced = chunk.getReferencesForStructure(structure).contains(chunk.getPos().pack());
         var start = new StructureStart(structure, chunk.getPos(), 0, new PiecesContainer(List.of(piece)));
-        helper.getLevel().structureManager().setStartForStructure(structure, start, chunk);
-        helper.getLevel().structureManager().addReferenceForStructure(structure, chunk.getPos().pack(), chunk);
+        SectionPos section = SectionPos.of(pos);
+        helper.getLevel().structureManager().setStartForStructure(section, structure, start, chunk);
+        helper.getLevel().structureManager().addReferenceForStructure(section, structure, chunk.getPos().pack(), chunk);
         QuestTestCleanup.add(helper, () -> {
             chunk.setStartForStructure(structure, previous == null ? StructureStart.INVALID_START : previous);
             if (!referenced) {

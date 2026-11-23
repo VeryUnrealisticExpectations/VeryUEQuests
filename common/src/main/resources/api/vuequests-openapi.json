@@ -1122,7 +1122,7 @@
             }
           }
         ],
-        "description": "Minecraft 26.3 native text component, validated by ComponentSerialization.CODEC. Supports literal strings, component objects and component arrays, including translations, styles, click/hover events, score, selector, keybind and NBT components."
+        "description": "Minecraft 26.1.2 native text component, validated by ComponentSerialization.CODEC. Supports literal strings, component objects and component arrays, including translations, styles, click/hover events, score, selector, keybind and NBT components."
       },
       "ComponentObject": {
         "type": "object",

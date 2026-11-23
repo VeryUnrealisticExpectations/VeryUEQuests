@@ -24,7 +24,7 @@ public class VeryUEKeyMappings {
 
     public static final KeyMapping OPEN_QUEST_MENU = new KeyMapping(
             "key." + MOD_ID + ".open_quest_menu",
-            InputConstants.Type.KEYBOARD,
+            InputConstants.Type.KEYSYM,
             InputConstants.KEY_J,
             KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "quests"))
     );
@@ -32,14 +32,14 @@ public class VeryUEKeyMappings {
     public static void onClientTick(Minecraft client, Consumer<CustomPacketPayload> sendToServer, QuestCanvasKeyMappings canvasKeys, QuestMenuKeyMappings menuKeys) {
         while (OPEN_QUEST_MENU.consumeClick()) {
             QuestView view = ClientQuestData.getQuestView();
-            if (client.player != null && client.gui.screen() == null && view != null) {
+            if (client.player != null && client.screen == null && view != null) {
                 QuestMenuNavigation navigation = new QuestMenuNavigation(menuKeys, List.of(
                         new QuestMenuPage(Component.translatable("screen.vuequests.quests"), menu -> view == QuestView.LIST ? new LinearQuestScreen(sendToServer, menu) : new GraphQuestScreen(sendToServer, canvasKeys, menu)),
                         new QuestMenuPage(Component.translatable("screen.vuequests.settings"), menu -> new QuestSettingsScreen(menu, sendToServer))
                 ));
                 Screen screen = navigation.select(0);
-                client.gui.setScreen(screen);
-                if (client.gui.screen() == screen) {
+                client.setScreen(screen);
+                if (client.screen == screen) {
                     sendToServer.accept(QuestScreenOpenedPayload.INSTANCE);
                 }
             }

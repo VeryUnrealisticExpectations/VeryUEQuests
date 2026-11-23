@@ -1,6 +1,5 @@
 package dev.veryue.vuequests.editor.api;
 
-import net.minecraft.world.entity.EntityTypes;
 import com.google.common.collect.ImmutableMap;
 import dev.veryue.vuequests.editor.api.models.QuestApiDocument;
 import dev.veryue.vuequests.editor.api.models.requests.CreateQuestRequest;
@@ -92,7 +91,7 @@ public class QuestApiVerification {
     public static void main(String[] arguments) throws Exception {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
-        var registries = VanillaRegistries.createWorldLookup();
+        var registries = VanillaRegistries.createLookup();
         VeryUERegistries.init();
         check(QuestApiTestObjective.TYPE.schema() != null, "Custom schema metadata");
         check(QuestApiTestObjective.LEGACY.schema() == null, "Legacy registration compatibility");
@@ -266,7 +265,7 @@ public class QuestApiVerification {
         QuestData data = new QuestData(Map.of(), Map.of(quest.questId(), quest));
         player.completeObjective(collect);
         Entity killedEntity = mock(Entity.class);
-        doReturn(EntityTypes.ARMOR_STAND).when(killedEntity).getType();
+        doReturn(EntityType.ARMOR_STAND).when(killedEntity).getType();
         var death = ObjectiveContext.createContext(null)
                 .withParameter(ObjectiveContext.ENTITY, killedEntity).build();
         check(player.incrementObjectiveProgress(legacySlay, death).getCurrentProgress() == null,
@@ -356,7 +355,7 @@ public class QuestApiVerification {
         expect(IllegalArgumentException.class, () -> collected.isComplete(other), "Completion rejects a different objective UUID");
         expect(IllegalArgumentException.class, () -> collected.increment(player, other, context), "Increments reject a different objective UUID");
 
-        ObjectiveSlayEntity slay = new ObjectiveSlayEntity(UUID.randomUUID(), EntityTypes.ZOMBIE);
+        ObjectiveSlayEntity slay = new ObjectiveSlayEntity(UUID.randomUUID(), EntityType.ZOMBIE);
         QuestObjectiveProgress<EntityType<?>, Integer> slain = player.incrementObjectiveProgress(slay, context);
         check(!slain.isComplete(slay), "An entity objective without progress is incomplete");
         slain.setCurrentProgress(0);
@@ -450,7 +449,7 @@ public class QuestApiVerification {
         ObjectiveContext context = new ObjectiveContext(null, Map.of());
         ObjectiveCollectItem collect = new ObjectiveCollectItem(UUID.randomUUID(), new ItemStack(Items.OAK_LOG, 5));
         ObjectiveCollectItem zero = new ObjectiveCollectItem(UUID.randomUUID(), new ItemStack(Items.OAK_LOG, 5));
-        ObjectiveSlayEntity slay = new ObjectiveSlayEntity(UUID.randomUUID(), EntityTypes.ZOMBIE);
+        ObjectiveSlayEntity slay = new ObjectiveSlayEntity(UUID.randomUUID(), EntityType.ZOMBIE);
         QuestApiTextProgressObjective text = new QuestApiTextProgressObjective(UUID.randomUUID(), "done");
         player.incrementObjectiveProgress(collect, context).setCurrentProgress(2);
         player.incrementObjectiveProgress(zero, context).setCurrentProgress(0);
@@ -487,7 +486,7 @@ public class QuestApiVerification {
         JsonObject entries = invalidId.getAsJsonObject("quest_objective_progress");
         entries.add(UUID.randomUUID().toString(), entries.remove(collect.getObjectiveId().toString()));
         check(PlayerUser.CODEC.parse(JsonOps.INSTANCE, invalidId).error().isPresent(), "Progress map UUIDs must match the stored objective UUIDs");
-        ObjectiveSlayEntity changedType = new ObjectiveSlayEntity(collect.getObjectiveId(), EntityTypes.ZOMBIE);
+        ObjectiveSlayEntity changedType = new ObjectiveSlayEntity(collect.getObjectiveId(), EntityType.ZOMBIE);
         expect(IllegalArgumentException.class, () -> restored.incrementObjectiveProgress(changedType, context),
                 "Loaded progress rejects an objective whose registered type has changed");
         QuestObjectiveProgress<Integer, Integer> unsupported = new QuestObjectiveProgress<>(UUID.randomUUID(), QuestApiTestObjective.LEGACY, 1);

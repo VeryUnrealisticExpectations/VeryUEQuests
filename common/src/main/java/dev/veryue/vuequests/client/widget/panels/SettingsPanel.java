@@ -31,7 +31,7 @@ public abstract class SettingsPanel extends AbstractContainerWidget {
     private double scroll;
 
     protected SettingsPanel(Component title) {
-        super(0, 0, 1, 1, title);
+        super(0, 0, 1, 1, title, defaultSettings(0));
     }
 
     protected abstract void rebuildControls();

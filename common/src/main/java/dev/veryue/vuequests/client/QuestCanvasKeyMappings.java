@@ -1,8 +1,9 @@
 package dev.veryue.vuequests.client;
 
-import org.lwjgl.sdl.SDLScancode;
+import org.lwjgl.glfw.GLFW;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
 
 import java.util.function.BiFunction;
@@ -83,7 +84,7 @@ public class QuestCanvasKeyMappings {
         if (matchesDefaultZoom(zoomIn, key, InputConstants.KEY_ADD)) {
             return zoomIn;
         }
-        if (matchesDefaultZoom(zoomOut, key, SDLScancode.SDL_SCANCODE_KP_MINUS)) {
+        if (matchesDefaultZoom(zoomOut, key, GLFW.GLFW_KEY_KP_SUBTRACT)) {
             return zoomOut;
         }
         return null;
@@ -91,12 +92,12 @@ public class QuestCanvasKeyMappings {
 
     private static boolean matchesDefaultZoom(KeyMapping mapping, InputConstants.Key key, int keypadKey) {
         return mapping.isDefault() && (key.equals(mapping.getDefaultKey())
-                || key.equals(InputConstants.Type.KEYBOARD.getOrCreate(keypadKey)));
+                || key.equals(InputConstants.Type.KEYSYM.getOrCreate(keypadKey)));
     }
 
     private static boolean matchesVanilla(KeyMapping mapping, InputConstants.Key key) {
-        return mapping.matches(key) && (!mapping.isDefault() || !isArrow(key.getValue())
-                || InputConstants.isKeyDown(InputConstants.KEY_LSHIFT) || InputConstants.isKeyDown(InputConstants.KEY_RSHIFT));
+        return InputConstants.getKey(mapping.saveString()).equals(key) && (!mapping.isDefault() || !isArrow(key.getValue())
+                || InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), InputConstants.KEY_LSHIFT) || InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), InputConstants.KEY_RSHIFT));
     }
 
     private static boolean isArrow(int keyCode) {
@@ -111,6 +112,6 @@ public class QuestCanvasKeyMappings {
     }
 
     private static KeyMapping createMapping(String name, int keyCode) {
-        return new KeyMapping(name, InputConstants.Type.KEYBOARD, keyCode, CATEGORY);
+        return new KeyMapping(name, InputConstants.Type.KEYSYM, keyCode, CATEGORY);
     }
 }

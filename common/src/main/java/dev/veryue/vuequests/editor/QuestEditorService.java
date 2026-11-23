@@ -27,7 +27,6 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.core.Holder;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.DefaultAttributes;
 import net.minecraft.world.item.Item;
@@ -221,7 +220,7 @@ public class QuestEditorService {
                 .map(AdvancementHolder::id).map(Identifier::toString).sorted().toList();
         List<String> lootTables = server.reloadableRegistries().lookup().lookupOrThrow(Registries.LOOT_TABLE).listElementIds().map(ResourceKey::identifier)
                 .map(Identifier::toString).sorted().toList();
-        AttributeSupplier playerAttributes = DefaultAttributes.getSupplier(EntityTypes.PLAYER);
+        AttributeSupplier playerAttributes = DefaultAttributes.getSupplier(EntityType.PLAYER);
         List<RegistryEntry> attributes = BuiltInRegistries.ATTRIBUTE.listElements().filter(playerAttributes::hasAttribute)
                 .map(holder -> new RegistryEntry(holder.key().identifier().toString(),
                         Component.translatable(holder.value().getDescriptionId()).getString(), null))

@@ -90,8 +90,8 @@ public abstract class QuestMenuScreen extends Screen {
         if (screen == this) {
             return false;
         }
-        minecraft.gui.setScreen(screen);
-        return minecraft.gui.screen() == screen;
+        minecraft.setScreen(screen);
+        return minecraft.screen == screen;
     }
 
     protected boolean handleMenuShortcut(InputConstants.Key key) {

@@ -16,11 +16,6 @@
       "dev.veryue.vuequests.gametest.TeamPersistenceGameTests",
       "dev.veryue.vuequests.gametest.TeamLifecycleGameTests"
     ],
-    "fabric-client-gametest": [
-      "dev.veryue.vuequests.gametest.TeamClientGameTests",
-      "dev.veryue.vuequests.gametest.QuestSingleplayerGameTests",
-      "dev.veryue.vuequests.gametest.QuestDedicatedServerGameTests"
-    ],
     "main": [
       "dev.veryue.vuequests.gametest.TeamLifecycleInitializer"
     ]

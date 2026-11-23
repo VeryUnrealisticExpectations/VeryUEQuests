@@ -25,15 +25,6 @@ public class QuestSectionToggle extends Button {
     }
 
     @Override
-    protected void extractTooltipForNextRenderPass(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
-        if (isHovered()) {
-            graphics.setTooltipForNextFrame(font, getMessage(), mouseX, mouseY);
-        } else {
-            super.extractTooltipForNextRenderPass(graphics, mouseX, mouseY);
-        }
-    }
-
-    @Override
     protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         graphics.nextStratum();
         QuestWidgetSprites.blit(graphics, QuestWidgetSprites.SECTION_PANEL, getX(), getY(), getWidth(), getHeight(),

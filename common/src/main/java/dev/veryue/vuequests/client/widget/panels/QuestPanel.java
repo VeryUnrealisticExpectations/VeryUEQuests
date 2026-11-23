@@ -25,7 +25,7 @@ public abstract class QuestPanel extends AbstractContainerWidget {
     private boolean panelFocused;
 
     public QuestPanel(Font font, Component title, Identifier sprite) {
-        super(0, 0, 0, 0, title);
+        super(0, 0, 0, 0, title, defaultSettings(0));
         this.font = font;
         this.sprite = sprite;
     }

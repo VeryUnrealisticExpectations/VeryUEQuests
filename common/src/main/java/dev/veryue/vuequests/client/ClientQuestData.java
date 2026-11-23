@@ -54,7 +54,7 @@ public class ClientQuestData {
             ClientTeamData.refresh();
             Minecraft minecraft = Minecraft.getInstance();
             if (!ready && minecraft != null && minecraft.player != null) {
-                minecraft.gui.hud.getChat().addClientSystemMessage(message);
+                minecraft.gui.getChat().addClientSystemMessage(message);
             }
         }
     }
@@ -119,7 +119,7 @@ public class ClientQuestData {
                 if (playerUser.hasCompletedObjective(objective) && !previousUser.hasCompletedObjective(objective)) {
                     Minecraft minecraft = Minecraft.getInstance();
                     Component message = Component.empty().append(quest.display().title()).append("\n").append(objective.getActionText());
-                    minecraft.gui.toastManager().addToast(new SystemToast(OBJECTIVE_COMPLETED,
+                    minecraft.getToastManager().addToast(new SystemToast(OBJECTIVE_COMPLETED,
                             Component.translatable("toast.vuequests.objective_completed").withStyle(ChatFormatting.GREEN), message));
                 }
             }
@@ -169,7 +169,7 @@ public class ClientQuestData {
 
     public static void toggleDebug() {
         debugEnabled = !debugEnabled;
-        Minecraft.getInstance().gui.hud.getChat().addClientSystemMessage(Component.translatable(debugEnabled
+        Minecraft.getInstance().gui.getChat().addClientSystemMessage(Component.translatable(debugEnabled
                 ? "commands.vuequests.debug.enabled" : "commands.vuequests.debug.disabled"));
     }
 

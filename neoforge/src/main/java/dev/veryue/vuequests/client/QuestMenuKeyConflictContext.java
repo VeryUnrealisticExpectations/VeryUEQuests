@@ -10,7 +10,7 @@ public enum QuestMenuKeyConflictContext implements IKeyConflictContext {
 
     @Override
     public boolean isActive() {
-        return Minecraft.getInstance().gui.screen() instanceof QuestMenuScreen;
+        return Minecraft.getInstance().screen instanceof QuestMenuScreen;
     }
 
     @Override

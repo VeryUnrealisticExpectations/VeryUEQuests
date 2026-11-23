@@ -36,7 +36,7 @@ public class TeamMemberRow extends AbstractContainerWidget {
     private boolean actionsEnabled = true;
 
     public TeamMemberRow(Font font, GameProfile profile, boolean owner, boolean canKick, Consumer<UUID> onKick) {
-        super(0, 0, 1, HEIGHT, Component.literal(profile.name()));
+        super(0, 0, 1, HEIGHT, Component.literal(profile.name()), defaultSettings(0));
         this.font = font;
         this.profile = profile;
         skinLookup = Minecraft.getInstance().getSkinManager().createLookup(profile, false);

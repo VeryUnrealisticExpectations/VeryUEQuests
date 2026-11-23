@@ -20,7 +20,6 @@ import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import org.slf4j.Logger;
 
 import java.util.List;
-import net.minecraft.util.Prediction;
 import java.util.UUID;
 
 public class RewardLootTable extends RewardType<Identifier> {
@@ -72,7 +71,7 @@ public class RewardLootTable extends RewardType<Identifier> {
             LOGGER.warn("Could not roll loot table {} for quest reward {}", getValue(), getRewardId(), exception);
             return false;
         }
-        items.forEach(stack -> player.getInventory().placeItemBackInInventory(stack, Prediction.SERVER_ONLY));
+        items.forEach(player.getInventory()::placeItemBackInInventory);
         return true;
     }
 }

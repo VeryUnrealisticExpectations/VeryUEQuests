@@ -88,7 +88,7 @@ public class GraphQuestScreen extends QuestMenuScreen {
     }
 
     private void openQuest(Quest quest) {
-        minecraft.gui.setScreen(new QuestDetailsScreen(this, quest, sendToServer));
+        minecraft.setScreen(new QuestDetailsScreen(this, quest, sendToServer));
     }
 
     private void refreshData() {

@@ -10,7 +10,7 @@ public enum QuestCanvasKeyConflictContext implements IKeyConflictContext {
 
     @Override
     public boolean isActive() {
-        return Minecraft.getInstance().gui.screen() instanceof GraphQuestScreen;
+        return Minecraft.getInstance().screen instanceof GraphQuestScreen;
     }
 
     @Override

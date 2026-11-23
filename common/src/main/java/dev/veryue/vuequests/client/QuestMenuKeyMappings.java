@@ -21,7 +21,7 @@ public class QuestMenuKeyMappings {
     private final BiPredicate<KeyMapping, InputConstants.Key> matches;
 
     public QuestMenuKeyMappings() {
-        this((name, keyCode) -> new KeyMapping(name, InputConstants.Type.KEYBOARD, keyCode, CATEGORY),
+        this((name, keyCode) -> new KeyMapping(name, InputConstants.Type.KEYSYM, keyCode, CATEGORY),
                 QuestMenuKeyMappings::matchesVanilla);
     }
 
@@ -51,6 +51,6 @@ public class QuestMenuKeyMappings {
     }
 
     private static boolean matchesVanilla(KeyMapping mapping, InputConstants.Key key) {
-        return mapping.matches(key);
+        return InputConstants.getKey(mapping.saveString()).equals(key);
     }
 }

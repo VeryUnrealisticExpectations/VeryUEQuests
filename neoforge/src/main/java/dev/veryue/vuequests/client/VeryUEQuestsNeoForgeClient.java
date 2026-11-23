@@ -30,11 +30,11 @@ public class VeryUEQuestsNeoForgeClient {
 
     private final QuestCanvasKeyMappings canvasKeys = new QuestCanvasKeyMappings(
             (name, keyCode) -> new KeyMapping(name, QuestCanvasKeyConflictContext.INSTANCE, KeyModifier.SHIFT,
-                    InputConstants.Type.KEYBOARD, keyCode, QuestCanvasKeyMappings.CATEGORY),
+                    InputConstants.Type.KEYSYM, keyCode, QuestCanvasKeyMappings.CATEGORY),
             KeyMapping::isActiveAndMatches);
     private final QuestMenuKeyMappings menuKeys = new QuestMenuKeyMappings(
             (name, keyCode) -> new KeyMapping(name, QuestMenuKeyConflictContext.INSTANCE,
-                    InputConstants.Type.KEYBOARD, keyCode, QuestMenuKeyMappings.CATEGORY),
+                    InputConstants.Type.KEYSYM, keyCode, QuestMenuKeyMappings.CATEGORY),
             KeyMapping::isActiveAndMatches);
 
     public VeryUEQuestsNeoForgeClient(IEventBus eventBus) {
