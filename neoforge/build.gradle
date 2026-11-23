@@ -3,6 +3,12 @@ plugins {
     id 'net.neoforged.moddev'
 }
 
+dependencies {
+    if (fancyMenuEnabled) {
+        compileOnly 'curse.maven:fancymenu-367706:9537189'
+    }
+}
+
 neoForge {
     version = neoforge_version
     // Automatically enable neoforge AccessTransformers if the file exists

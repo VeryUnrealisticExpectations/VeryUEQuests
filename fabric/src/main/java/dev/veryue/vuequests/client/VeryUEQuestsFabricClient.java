@@ -2,6 +2,7 @@ package dev.veryue.vuequests.client;
 
 import dev.veryue.vuequests.client.editor.ClientEditorResources;
 import dev.veryue.vuequests.client.lang.ClientQuestLanguages;
+import dev.veryue.vuequests.client.screens.LinearQuestCustomization;
 import dev.veryue.vuequests.network.*;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -18,6 +19,10 @@ public class VeryUEQuestsFabricClient implements ClientModInitializer {
 
     private final QuestCanvasKeyMappings canvasKeys = new QuestCanvasKeyMappings();
     private final QuestMenuKeyMappings menuKeys = new QuestMenuKeyMappings();
+    private final QuestMenuActions questActions = new QuestMenuActions(
+            () -> sendToServer(QuestScreenOpenedPayload.INSTANCE),
+            (questId, objectiveId) -> sendToServer(new InteractQuestObjectivePayload(questId, objectiveId)),
+            (questId, rewardId) -> sendToServer(new ClaimQuestRewardPayload(questId, rewardId)));
 
     @Override
     public void onInitializeClient() {
@@ -41,7 +46,11 @@ public class VeryUEQuestsFabricClient implements ClientModInitializer {
         KeyMappingHelper.registerKeyMapping(VeryUEKeyMappings.OPEN_QUEST_MENU);
         canvasKeys.register(KeyMappingHelper::registerKeyMapping);
         menuKeys.register(KeyMappingHelper::registerKeyMapping);
-        ClientTickEvents.END_CLIENT_TICK.register(client -> VeryUEKeyMappings.onClientTick(client, this::sendToServer, canvasKeys, menuKeys));
+        if (FabricLoader.getInstance().isModLoaded(LinearQuestCustomization.FANCY_MENU_MOD_ID)) {
+            LinearQuestCustomization.initialize();
+        }
+        ClientTickEvents.END_CLIENT_TICK.register(client ->
+                VeryUEKeyMappings.onClientTick(client, questActions, this::sendToServer, canvasKeys, menuKeys));
         ClientTickEvents.END_CLIENT_TICK.register(ClientEditorResources::tick);
     }
 

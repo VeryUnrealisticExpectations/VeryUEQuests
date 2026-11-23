@@ -2,6 +2,22 @@ plugins {
     id 'multiloader-common'
 }
 
+ext.fancyMenuEnabled = providers.gradleProperty('vuequestsFancyMenu')
+        .map { it.toBoolean() }
+        .orElse(true)
+        .get()
+
+if (fancyMenuEnabled) {
+    sourceSets.main.java.srcDir(rootProject.file('common/src/fancymenu/java'))
+    repositories {
+        maven {
+            name = 'CurseMaven'
+            url = uri('https://www.cursemaven.com')
+            content { includeModule('curse.maven', 'fancymenu-367706') }
+        }
+    }
+}
+
 configurations {
     commonJava{
         canBeResolved = true
