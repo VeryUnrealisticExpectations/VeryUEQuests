@@ -20,6 +20,9 @@ public class QuestWidgetSprites {
     public static final ResourceLocation CANVAS = sprite("canvas");
     public static final ResourceLocation DETAILS_PANEL = sprite("details_panel");
     public static final ResourceLocation CLOSE = sprite("close");
+    public static final int DEPENDENCY_LOCK_SIZE = 16;
+    private static final ResourceLocation DEPENDENCY_LOCK = sprite("dependency_lock");
+    private static final ResourceLocation DEPENDENCY_LOCK_HIGHLIGHTED = sprite("dependency_lock_highlighted");
     public static final ResourceLocation REWARD_UNCLAIMED = sprite("reward_unclaimed");
     public static final ResourceLocation REWARD_CLAIMED = sprite("reward_claimed");
     public static final ResourceLocation ACKNOWLEDGED = sprite("objective_acknowledged");
@@ -54,6 +57,13 @@ public class QuestWidgetSprites {
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         graphics.blitSprite(claimed ? REWARD_CLAIMED : REWARD_UNCLAIMED, x, y, 200, 16, 16);
+    }
+
+    public static void blitDependencyLock(GuiGraphics graphics, int x, int y, boolean highlighted) {
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        graphics.blitSprite(highlighted ? DEPENDENCY_LOCK_HIGHLIGHTED : DEPENDENCY_LOCK,
+                x, y, 200, DEPENDENCY_LOCK_SIZE, DEPENDENCY_LOCK_SIZE);
     }
 
     public static void blitObjectiveProgress(GuiGraphics graphics, int x, int y, double progress) {

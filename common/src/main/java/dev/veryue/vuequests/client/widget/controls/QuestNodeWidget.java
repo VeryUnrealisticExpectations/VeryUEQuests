@@ -2,6 +2,7 @@ package dev.veryue.vuequests.client.widget.controls;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.veryue.vuequests.client.ClientQuestData;
+import dev.veryue.vuequests.client.widget.QuestDependencyTooltip;
 import dev.veryue.vuequests.client.widget.QuestWidgetSprites;
 import dev.veryue.vuequests.models.quest.Quest;
 import net.minecraft.ChatFormatting;
@@ -21,6 +22,8 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static dev.veryue.vuequests.client.widget.QuestWidgetSprites.DEPENDENCY_LOCK_SIZE;
+
 public class QuestNodeWidget extends Button {
 
     public static final int SIZE = 24;
@@ -35,6 +38,7 @@ public class QuestNodeWidget extends Button {
     private final Quest quest;
     private final ItemStack icon;
     private final Tooltip questTooltip;
+    private final QuestDependencyTooltip dependencies;
     private boolean locked;
 
     public QuestNodeWidget(Quest quest, Consumer<Quest> onSelect) {
@@ -42,6 +46,7 @@ public class QuestNodeWidget extends Button {
         this.quest = quest;
         icon = new ItemStack(quest.display().icon());
         questTooltip = Tooltip.create(tooltipText(quest));
+        dependencies = new QuestDependencyTooltip(quest);
     }
 
     private static Component tooltipText(Quest quest) {
@@ -63,8 +68,17 @@ public class QuestNodeWidget extends Button {
         return tooltip;
     }
 
-    public void renderQuestTooltip(GuiGraphics graphics, Font font, int mouseX, int mouseY) {
-        graphics.renderTooltip(font, tooltipLines(Minecraft.getInstance()), mouseX, mouseY);
+    public void renderQuestTooltip(GuiGraphics graphics, Font font, int mouseX, int mouseY, double offsetX, double offsetY) {
+        if (isDependencyLockHovered(mouseX - offsetX, mouseY - offsetY)) {
+            dependencies.render(graphics, font, mouseX, mouseY);
+        } else {
+            graphics.renderTooltip(font, tooltipLines(Minecraft.getInstance()), mouseX, mouseY);
+        }
+    }
+
+    private boolean isDependencyLockHovered(double mouseX, double mouseY) {
+        return !dependencies.isEmpty() && mouseX >= getX() && mouseX < getX() + getWidth() * DEPENDENCY_LOCK_SIZE / (double) SIZE
+                && mouseY >= getBottom() - getHeight() * DEPENDENCY_LOCK_SIZE / (double) SIZE && mouseY < getBottom();
     }
 
     private List<FormattedCharSequence> tooltipLines(Minecraft minecraft) {
@@ -112,10 +126,13 @@ public class QuestNodeWidget extends Button {
             QuestWidgetSprites.blitTinted(graphics, quest.display().backgroundSprite(), 0, 0, SIZE, SIZE, backgroundTint(complete, allRewardsClaimed));
             graphics.setColor(brightness, brightness, brightness, 1);
             graphics.renderItem(icon, 4, 4);
+            graphics.setColor(1, 1, 1, 1);
             boolean showBadge = quest.rewards().isEmpty() ? complete : allRewardsClaimed || canClaimRewards;
             if (showBadge) {
-                graphics.setColor(1, 1, 1, 1);
                 QuestWidgetSprites.blitClaimBadge(graphics, 0, 0, allRewardsClaimed);
+            }
+            if (!dependencies.isEmpty()) {
+                QuestWidgetSprites.blitDependencyLock(graphics, 0, SIZE - DEPENDENCY_LOCK_SIZE, isDependencyLockHovered(mouseX, mouseY));
             }
         } finally {
             graphics.setColor(1, 1, 1, 1);

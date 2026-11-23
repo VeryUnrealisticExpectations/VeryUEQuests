@@ -275,7 +275,7 @@ public class QuestCanvas extends QuestPanel {
             graphics.disableScissor();
         }
         if (hovered != null) {
-            hovered.renderQuestTooltip(graphics, font, mouseX, mouseY);
+            hovered.renderQuestTooltip(graphics, font, mouseX, mouseY, renderOffsetX, renderOffsetY);
         }
     }
 

@@ -106,6 +106,8 @@
     "screen.vuequests.collapse_sections": "Collapse",
     "screen.vuequests.prerequisites": "Complete first",
     "screen.vuequests.unknown_prerequisite": "Unavailable quest",
+    "screen.vuequests.dependencies": "Dependencies",
+    "screen.vuequests.dependency_entry": "%1$s: %2$s",
     "screen.vuequests.objectives": "Objectives",
     "screen.vuequests.description": "Description",
     "screen.vuequests.rewards": "Rewards",
