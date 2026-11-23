@@ -1,9 +1,9 @@
 package dev.veryue.vuequests.client.widget;
 
-import net.minecraft.client.renderer.RenderPipelines;
 import dev.veryue.vuequests.client.util.GuiSpriteRenderer;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
@@ -29,19 +29,18 @@ public class LinearQuestSprites {
         GuiSpriteRenderer.blit(graphics, FRAME, x, y, width, height, 0xFFFFFFFF);
     }
 
-    public static void heading(GuiGraphicsExtractor graphics, Font font, Component heading, int x, int y, int width) {
+    public static void heading(GuiGraphicsExtractor graphics, Font font, Component heading, int x, int y, int width,
+                               boolean showDecoration, LinearQuestHeadingDecoration decoration) {
         int textWidth = font.width(heading);
         float textScale = Math.min(1, width / (float) Math.max(1, textWidth));
         int armWidth = Math.max(0, (width - textWidth) / 2 - 8);
-
-        if (armWidth >= 10) {
-            graphics.blitSprite(RenderPipelines.GUI_TEXTURED, BREAKLINE, x, y, armWidth, 9);
+        if (showDecoration && armWidth >= 10) {
+            drawDecoration(graphics, decoration, x, y, armWidth);
             graphics.pose().pushMatrix();
             graphics.pose().translate(x + width, y);
             graphics.pose().scale(-1, 1);
-
             try {
-                graphics.blitSprite(RenderPipelines.GUI_TEXTURED, BREAKLINE, 0, 0, armWidth, 9);
+                drawDecoration(graphics, decoration, 0, 0, armWidth);
             } finally {
                 graphics.pose().popMatrix();
             }
@@ -51,5 +50,13 @@ public class LinearQuestSprites {
         graphics.pose().scale(textScale, textScale);
         graphics.text(font, heading, -textWidth / 2, 0, 0xFFE0E0E0);
         graphics.pose().popMatrix();
+    }
+
+    private static void drawDecoration(GuiGraphicsExtractor graphics, LinearQuestHeadingDecoration decoration, int x, int y, int width) {
+        if (decoration == null) {
+            graphics.blitSprite(RenderPipelines.GUI_TEXTURED, BREAKLINE, x, y, width, 9);
+        } else {
+            decoration.draw(graphics, x, y, width, 9);
+        }
     }
 }

@@ -21,6 +21,7 @@ public abstract class QuestMenuScreen extends Screen {
     protected static final int HEADER_HEIGHT = 24;
     protected static final int HEADER_GAP = 6;
     private static final int HEADER_PADDING = 7;
+    private static final int CHEVRON_GAP = 3;
 
     protected final QuestMenuNavigation navigation;
     protected final QuestMenuKeyMappings menuKeys;
@@ -31,6 +32,7 @@ public abstract class QuestMenuScreen extends Screen {
     protected int headerX;
     protected int headerY;
     protected int headerWidth;
+    private int headerHeight = HEADER_HEIGHT;
 
     private final List<QuestMenuTabButton> tabs = new ArrayList<>();
     private QuestMenuKeyButton previousButton;
@@ -44,7 +46,7 @@ public abstract class QuestMenuScreen extends Screen {
 
     @Override
     protected void init() {
-        previousButton = addRenderableWidget(new QuestMenuKeyButton(font, menuKeys.previous,
+        previousButton = addRenderableWidget(new QuestMenuKeyButton(font, menuKeys.previous, true,
                 button -> selectPage(navigation.getSelectedIndex() - 1)));
         tabs.clear();
         List<QuestMenuPage> pages = navigation.getPages();
@@ -53,7 +55,7 @@ public abstract class QuestMenuScreen extends Screen {
             tabs.add(addRenderableWidget(new QuestMenuTabButton(font, pages.get(index).getTitle(),
                     () -> navigation.getSelectedIndex() == pageIndex, button -> selectPage(pageIndex))));
         }
-        nextButton = addRenderableWidget(new QuestMenuKeyButton(font, menuKeys.next,
+        nextButton = addRenderableWidget(new QuestMenuKeyButton(font, menuKeys.next, false,
                 button -> selectPage(navigation.getSelectedIndex() + 1)));
         previousButton.active = nextButton.active = pages.size() > 1;
     }
@@ -69,11 +71,22 @@ public abstract class QuestMenuScreen extends Screen {
     }
 
     protected void positionHeader(int x, int y, int width) {
+        positionHeader(x, y, width, HEADER_HEIGHT, false);
+    }
+
+    protected int minimumHeaderWidth() {
+        return 2 * (QuestMenuKeyButton.SIZE + 2 * HEADER_PADDING) + tabs.size();
+    }
+
+    protected void positionHeader(int x, int y, int width, int height, boolean chevrons) {
         headerX = x;
         headerY = y;
         headerWidth = width;
+        headerHeight = height;
         int keySize = QuestMenuKeyButton.SIZE;
-        int keyY = y + (HEADER_HEIGHT - keySize) / 2;
+        int keyY = y + (height - keySize) / 2;
+        previousButton.setChevron(chevrons);
+        nextButton.setChevron(chevrons);
         previousButton.setRectangle(keySize, keySize, x + HEADER_PADDING, keyY);
         nextButton.setRectangle(keySize, keySize, x + width - HEADER_PADDING - keySize, keyY);
         int tabsX = x + keySize + 2 * HEADER_PADDING;
@@ -81,7 +94,17 @@ public abstract class QuestMenuScreen extends Screen {
         for (int index = 0; index < tabs.size(); index++) {
             int start = tabsX + tabsWidth * index / tabs.size();
             int end = tabsX + tabsWidth * (index + 1) / tabs.size();
-            tabs.get(index).setRectangle(end - start, HEADER_HEIGHT, start, y);
+            QuestMenuTabButton tab = tabs.get(index);
+            int spaceForLabel = end - start - 2 * (keySize + CHEVRON_GAP);
+            if (chevrons && index == navigation.getSelectedIndex() && spaceForLabel > 2 * HEADER_PADDING) {
+                int labelWidth = Math.min(spaceForLabel, font.width(tab.getMessage()) + 2 * HEADER_PADDING);
+                int labelX = start + (end - start - labelWidth) / 2;
+                previousButton.setX(labelX - keySize - CHEVRON_GAP);
+                nextButton.setX(labelX + labelWidth + CHEVRON_GAP);
+                tab.setRectangle(labelWidth, height, labelX, y);
+            } else {
+                tab.setRectangle(end - start, height, start, y);
+            }
         }
     }
 
@@ -113,8 +136,6 @@ public abstract class QuestMenuScreen extends Screen {
 
     @Override
     public boolean keyPressed(KeyEvent event) {
-        int keyCode = event.key();
-        int modifiers = event.modifiers();
         return handleMenuShortcut(InputConstants.getKey(event))
                 || super.keyPressed(event);
     }
@@ -125,7 +146,7 @@ public abstract class QuestMenuScreen extends Screen {
         double mouseY = event.y();
         int button = event.button();
         if (button == InputConstants.MOUSE_BUTTON_LEFT && mouseX >= headerX && mouseX < headerX + headerWidth
-                && mouseY >= headerY && mouseY < headerY + HEADER_HEIGHT) {
+                && mouseY >= headerY && mouseY < headerY + headerHeight) {
             return super.mouseClicked(event, doubleClick);
         }
         return handleMenuShortcut(InputConstants.Type.MOUSE.getOrCreate(button)) || super.mouseClicked(event, doubleClick);

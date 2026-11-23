@@ -4,6 +4,7 @@ import net.minecraft.client.input.KeyEvent;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.veryue.vuequests.client.ClientQuestData;
 import dev.veryue.vuequests.client.QuestCanvasKeyMappings;
+import dev.veryue.vuequests.client.QuestMenuActions;
 import dev.veryue.vuequests.client.widget.QuestWidgetSprites;
 import dev.veryue.vuequests.client.widget.controls.QuestSectionToggle;
 import dev.veryue.vuequests.client.widget.panels.QuestCanvas;
@@ -11,7 +12,6 @@ import dev.veryue.vuequests.client.widget.panels.QuestSectionPanel;
 import dev.veryue.vuequests.data.quest.QuestData;
 import dev.veryue.vuequests.models.quest.Quest;
 import dev.veryue.vuequests.models.quest.Section;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
@@ -24,13 +24,12 @@ import net.minecraft.util.profiling.Profiler;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Consumer;
 
 import static dev.veryue.vuequests.VeryUEConstants.MOD_ID;
 
 public class GraphQuestScreen extends QuestMenuScreen {
 
-    private final Consumer<CustomPacketPayload> sendToServer;
+    private final QuestMenuActions questActions;
     private final QuestCanvasKeyMappings canvasKeys;
     private QuestSectionPanel sectionPanel;
     private QuestSectionToggle sectionToggle;
@@ -38,10 +37,10 @@ public class GraphQuestScreen extends QuestMenuScreen {
     private QuestData data;
     private UUID selectedSection;
 
-    public GraphQuestScreen(Consumer<CustomPacketPayload> sendToServer, QuestCanvasKeyMappings canvasKeys,
+    public GraphQuestScreen(QuestMenuActions questActions, QuestCanvasKeyMappings canvasKeys,
                             QuestMenuNavigation navigation) {
         super(Component.translatable("screen." + MOD_ID + ".quest_menu"), navigation);
-        this.sendToServer = sendToServer;
+        this.questActions = questActions;
         this.canvasKeys = canvasKeys;
     }
 
@@ -88,7 +87,7 @@ public class GraphQuestScreen extends QuestMenuScreen {
     }
 
     private void openQuest(Quest quest) {
-        minecraft.setScreen(new QuestDetailsScreen(this, quest, sendToServer));
+        minecraft.setScreen(new QuestDetailsScreen(this, quest, questActions));
     }
 
     private void refreshData() {

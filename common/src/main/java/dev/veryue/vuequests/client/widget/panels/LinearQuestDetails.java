@@ -1,11 +1,10 @@
 package dev.veryue.vuequests.client.widget.panels;
 
-import dev.veryue.vuequests.client.util.ClientTextUtil;
-import dev.veryue.vuequests.client.mixin.GuiGraphicsExtractorAccessor;
-import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.input.KeyEvent;
+import com.mojang.blaze3d.platform.InputConstants;
 import dev.veryue.vuequests.client.ClientQuestData;
+import dev.veryue.vuequests.client.mixin.GuiGraphicsExtractorAccessor;
 import dev.veryue.vuequests.client.util.ClientRenderUtil;
+import dev.veryue.vuequests.client.util.ClientTextUtil;
 import dev.veryue.vuequests.client.util.RenderAnimation;
 import dev.veryue.vuequests.client.widget.LinearQuestSprites;
 import dev.veryue.vuequests.client.widget.QuestWidgetSprites;
@@ -21,17 +20,21 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractTextAreaWidget;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
-import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.util.profiling.Profiler;
+import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.item.ItemStack;
-import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +57,7 @@ public class LinearQuestDetails extends AbstractTextAreaWidget {
     private static final Component OBJECTIVES = Component.translatable("screen.vuequests.objectives");
     private static final Component REWARDS = Component.translatable("screen.vuequests.rewards");
     private static final Component NONE = Component.translatable("screen.vuequests.none");
+    private static final LinearQuestDetailPart[] PARTS = LinearQuestDetailPart.values();
     private final Font font;
     private final Predicate<Style> onTextClick;
     private final Consumer<RewardType<?>> onRewardClick;
@@ -65,13 +69,10 @@ public class LinearQuestDetails extends AbstractTextAreaWidget {
     private List<ItemStack> objectiveIcons = List.of();
     private List<ItemStack> rewardIcons = List.of();
     private int[] objectiveOffsets = new int[0];
-    private int progressWidth;
     private boolean progressBelow;
-    private int descriptionTop;
-    private int objectivesHeading;
-    private int objectivesTop;
-    private int rewardsHeading;
-    private int rewardsTop;
+    private Map<LinearQuestDetailPart, LinearQuestDetailPlacement> placements = Map.of();
+    private final Map<LinearQuestDetailPart, LinearQuestDetailBox> boxes = new EnumMap<>(LinearQuestDetailPart.class);
+    private final Map<LinearQuestDetailPart, Integer> partScroll = new EnumMap<>(LinearQuestDetailPart.class);
     private int rewardColumns = 1;
     private int contentHeight;
     private int keyboardAction = -1;
@@ -80,7 +81,7 @@ public class LinearQuestDetails extends AbstractTextAreaWidget {
 
     public LinearQuestDetails(Font font, Predicate<Style> onTextClick, Consumer<RewardType<?>> onRewardClick,
                               Consumer<QuestObjective<?, ?>> onObjectiveClick) {
-        super(0, 0, 1, 1, Component.empty(), defaultSettings(22), false, false);
+        super(0, 0, 1, 1, Component.translatable("screen.vuequests.no_available_quests"), defaultSettings(22), false, false);
         this.font = font;
         this.onTextClick = onTextClick;
         this.onRewardClick = onRewardClick;
@@ -93,6 +94,7 @@ public class LinearQuestDetails extends AbstractTextAreaWidget {
         if (changed) {
             setScrollAmount(0);
             keyboardAction = -1;
+            partScroll.clear();
             objectiveInsets.clear();
             rewardScales.clear();
         } else if (quest != null) {
@@ -109,68 +111,266 @@ public class LinearQuestDetails extends AbstractTextAreaWidget {
         return quest;
     }
 
-    public void fit(int width, int height) {
+    public void setLayout(int width, int height, Map<LinearQuestDetailPart, LinearQuestDetailPlacement> placements) {
+        if (getWidth() != width || getHeight() != height || !this.placements.equals(placements)) {
+            this.placements = placements;
+            fit(width, height);
+        }
+    }
+
+    private void fit(int width, int height) {
         setSize(Math.max(1, width), Math.max(1, height));
+        boxes.clear();
+        contentHeight = 0;
         if (quest == null) {
-            contentHeight = 0;
             return;
         }
-        if (keyboardAction >= quest.objectives().size() + quest.rewards().size()) {
-            keyboardAction = -1;
-        }
-        int textWidth = Math.max(1, width - totalInnerPadding());
-        title = font.split(quest.display().title(), Math.max(1, (int) (textWidth / TITLE_SCALE)));
+
+        int titleWidth = partWidth(LinearQuestDetailPart.TITLE);
+        title = font.split(quest.display().title(), Math.max(1, (int) (titleWidth / titleScale())));
         description = quest.display().description().getString().isBlank() ? List.of()
-                : font.split(quest.display().description(), textWidth);
-        descriptionTop = Mth.ceil(title.size() * lineHeight() * TITLE_SCALE) + GAP;
-        objectivesHeading = descriptionTop + description.size() * lineHeight() + GAP;
-        objectivesTop = objectivesHeading + font.lineHeight + GAP;
-        progressWidth = quest.objectives().stream().mapToInt(objective -> font.width(objective.getProgressText(ClientQuestData.getUser())))
+                : font.split(quest.display().description(), partWidth(LinearQuestDetailPart.DESCRIPTION));
+
+        int objectiveWidth = partWidth(LinearQuestDetailPart.OBJECTIVES_LIST);
+        int objectiveGap = objectiveGap();
+        int progressWidth = quest.objectives().stream().mapToInt(objective -> font.width(objective.getProgressText(ClientQuestData.getUser())))
                 .max().orElse(0);
-        progressBelow = textWidth - ICON - 8 - OBJECTIVE_INSET - progressWidth - 8 < 80;
-        int actionWidth = Math.max(1, textWidth - ICON - 8 - (int) OBJECTIVE_INSET - (progressBelow ? 0 : progressWidth + 8));
+        progressBelow = objectiveWidth - ICON - 8 - OBJECTIVE_INSET - progressWidth - 8 < 80;
+        int actionWidth = Math.max(1, objectiveWidth - ICON - 8 - (int) OBJECTIVE_INSET - (progressBelow ? 0 : progressWidth + 8));
         actions = quest.objectives().stream().map(objective -> font.split(objective.getActionText(), actionWidth)).toList();
         objectiveOffsets = new int[actions.size() + 1];
         for (int i = 0; i < actions.size(); i++) {
             objectiveOffsets[i + 1] = objectiveOffsets[i] + Math.max(ICON, actions.get(i).size() * lineHeight() + 3)
-                    + (progressBelow ? lineHeight() + 2 : 0) + 7;
+                    + (progressBelow ? lineHeight() + 2 : 0) + objectiveGap;
         }
-        rewardsHeading = objectivesTop + (actions.isEmpty() ? lineHeight() : objectiveOffsets[actions.size()]) + GAP;
-        rewardsTop = rewardsHeading + font.lineHeight + GAP;
-        rewardColumns = Math.max(1, (textWidth + REWARD_STEP - ICON) / REWARD_STEP);
-        contentHeight = rewardsTop + (rewardIcons.isEmpty() ? lineHeight()
-                : (Mth.positiveCeilDiv(rewardIcons.size(), rewardColumns) - 1) * REWARD_STEP + ICON + REWARD_PADDING);
+
+        int rewardStep = rewardStep();
+        rewardColumns = Math.max(1, (partWidth(LinearQuestDetailPart.REWARDS_LIST) + rewardStep - ICON) / rewardStep);
+        if (keyboardAction >= actions.size() + rewardIcons.size()) {
+            keyboardAction = -1;
+        }
+        EnumSet<LinearQuestDetailPart> resolving = EnumSet.noneOf(LinearQuestDetailPart.class);
+        for (LinearQuestDetailPart part : PARTS) {
+            LinearQuestDetailBox box = resolveBox(part, resolving);
+            if (!box.pinned()) {
+                contentHeight = Math.max(contentHeight, box.bounds().bottom() - innerPadding());
+            }
+        }
+        partScroll.replaceAll((part, scroll) -> Math.min(scroll, boxes.get(part).maxScroll()));
         setScrollAmount(scrollAmount());
     }
 
-    @Override
-    protected void extractBackground(GuiGraphicsExtractor graphics) {
+    private LinearQuestDetailBox resolveBox(LinearQuestDetailPart part, EnumSet<LinearQuestDetailPart> resolving) {
+        LinearQuestDetailBox existing = boxes.get(part);
+        if (existing != null) {
+            return existing;
+        }
+        if (!resolving.add(part)) {
+            return null;
+        }
+        LinearQuestDetailPlacement placement = placements.get(part);
+        LinearQuestDetailPart follow = placement == null ? part.previous() : placement.follow();
+        LinearQuestDetailBox previous = follow == null ? null : resolveBox(follow, resolving);
+        boolean pinned = placement != null && previous == null;
+        int left = placement == null ? innerPadding() : placement.bounds().left();
+        int top = placement == null ? innerPadding() : placement.bounds().top();
+        int flowTop = 0;
+        if (previous != null) {
+            int gap = placement == null ? GAP : placement.gap();
+            top = previous.bounds().bottom() + (isHeaderVisible(follow) ? gap : 0);
+            flowTop = previous.pinned() && previous.bounds().height() > 0 ? previous.bounds().bottom() : previous.flowTop();
+        }
+        int naturalHeight = naturalHeight(part);
+        int height = pinned && isHeaderVisible(part) ? placement.bounds().height() : naturalHeight;
+        LinearQuestDetailBox result = new LinearQuestDetailBox(new ScreenRectangle(left, top, partWidth(part), height), pinned, naturalHeight,
+                flowTop);
+        boxes.put(part, result);
+        resolving.remove(part);
+        return result;
+    }
+
+    private int naturalHeight(LinearQuestDetailPart part) {
+        return switch (part) {
+            case TITLE -> Mth.ceil(title.size() * lineHeight() * titleScale());
+            case DESCRIPTION -> description.size() * lineHeight();
+            case OBJECTIVES_HEADER, REWARDS_HEADER -> isHeaderVisible(part) ? font.lineHeight : 0;
+            case OBJECTIVES_LIST -> actions.isEmpty() ? lineHeight() : objectiveOffsets[actions.size()];
+            case REWARDS_LIST -> rewardIcons.isEmpty() ? lineHeight()
+                    : (Mth.positiveCeilDiv(rewardIcons.size(), rewardColumns) - 1) * rewardStep() + ICON + REWARD_PADDING;
+        };
+    }
+
+    private boolean isHeaderVisible(LinearQuestDetailPart part) {
+        LinearQuestDetailPlacement placement = placements.get(part);
+        return !part.isHeader() || placement == null || placement.showHeader();
+    }
+
+    private int partWidth(LinearQuestDetailPart part) {
+        LinearQuestDetailPlacement placement = placements.get(part);
+        return placement == null ? Math.max(1, getWidth() - totalInnerPadding()) : placement.bounds().width();
+    }
+
+    private float titleScale() {
+        LinearQuestDetailPlacement placement = placements.get(LinearQuestDetailPart.TITLE);
+        return placement == null ? TITLE_SCALE : placement.textScale();
+    }
+
+    private int objectiveGap() {
+        LinearQuestDetailPlacement placement = placements.get(LinearQuestDetailPart.OBJECTIVES_LIST);
+        return placement == null ? 7 : placement.spacing();
+    }
+
+    private int rewardStep() {
+        LinearQuestDetailPlacement placement = placements.get(LinearQuestDetailPart.REWARDS_LIST);
+        return placement == null ? REWARD_STEP : ICON + placement.spacing();
     }
 
     @Override
     protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-        if (quest == null) {
-            int y = top();
-            for (FormattedCharSequence line : font.split(getMessage(), Math.max(1, getWidth() - totalInnerPadding()))) {
-                graphics.text(font, line, textX(), y, 0xFFBBBBBB);
-                y += lineHeight();
+        graphics.pose().pushMatrix();
+        // Cancel the inherited scroll transform so pinned sections retain their screen coordinates.
+        graphics.pose().translate(0, (float) scrollAmount());
+        try {
+            if (quest == null) {
+                drawLines(graphics, font.split(getMessage(), partWidth(LinearQuestDetailPart.DESCRIPTION)),
+                        getX() + innerPadding(), getY() + innerPadding(), partWidth(LinearQuestDetailPart.DESCRIPTION),
+                        LinearQuestTextAlignment.LEFT, 0xFFBBBBBB);
+                return;
             }
+            LinearQuestDetailPart hovered = inside(mouseX, mouseY) ? interactivePartAt(mouseX, mouseY) : null;
+            for (LinearQuestDetailPart part : PARTS) {
+                if (!boxes.get(part).pinned()) {
+                    renderPart(graphics, part, hovered, mouseX, mouseY);
+                }
+            }
+            for (LinearQuestDetailPart part : PARTS) {
+                if (boxes.get(part).pinned()) {
+                    renderPart(graphics, part, hovered, mouseX, mouseY);
+                }
+            }
+        } finally {
+            graphics.pose().popMatrix();
+        }
+    }
+
+    private void renderPart(GuiGraphicsExtractor graphics, LinearQuestDetailPart part, LinearQuestDetailPart hovered, int mouseX, int mouseY) {
+        LinearQuestDetailBox box = boxes.get(part);
+        if (box.bounds().height() <= 0) {
             return;
         }
+        int x = partX(part);
+        int y = partY(part);
+        int width = box.bounds().width();
+        if (placements.isEmpty()) {
+            drawPart(graphics, part, hovered, mouseX, mouseY, x, y, width);
+            return;
+        }
+        int clipTop = box.pinned() ? getY() + box.bounds().top() : y;
+        ScreenRectangle region = new ScreenRectangle(x, clipTop, width, box.bounds().height());
+        ScreenRectangle viewport = new ScreenRectangle(getX(), getY() + box.flowTop(), getWidth(),
+                Math.max(0, getHeight() - box.flowTop()));
+        ScreenRectangle visible = region.intersection(viewport);
+        if (visible == null) {
+            return;
+        }
+        List<ScreenRectangle> regions = new ArrayList<>();
+        regions.add(visible);
+        if (!box.pinned()) {
+            // A fixed title or sidebar should not have scrolling text drawn through it.
+            for (LinearQuestDetailBox fixed : boxes.values()) {
+                if (fixed.pinned() && fixed.bounds().height() > 0) {
+                    ScreenRectangle bounds = fixed.bounds();
+                    cutOut(regions, new ScreenRectangle(getX() + bounds.left(), getY() + bounds.top(), bounds.width(), bounds.height()));
+                }
+            }
+        }
+        for (ScreenRectangle clip : regions) {
+            graphics.enableScissor(clip.left(), clip.top(), clip.right(), clip.bottom());
+            try {
+                drawPart(graphics, part, hovered, mouseX, mouseY, x, y, width);
+            } finally {
+                graphics.disableScissor();
+            }
+        }
+    }
+
+    private void cutOut(List<ScreenRectangle> regions, ScreenRectangle obstacle) {
+        for (int i = regions.size() - 1; i >= 0; i--) {
+            ScreenRectangle bounds = regions.get(i);
+            ScreenRectangle overlap = bounds.intersection(obstacle);
+            if (overlap != null) {
+                regions.remove(i);
+                addRegion(regions, bounds.left(), bounds.top(), bounds.right(), overlap.top());
+                addRegion(regions, bounds.left(), overlap.bottom(), bounds.right(), bounds.bottom());
+                addRegion(regions, bounds.left(), overlap.top(), overlap.left(), overlap.bottom());
+                addRegion(regions, overlap.right(), overlap.top(), bounds.right(), overlap.bottom());
+            }
+        }
+    }
+
+    private void addRegion(List<ScreenRectangle> regions, int left, int top, int right, int bottom) {
+        if (right > left && bottom > top) {
+            regions.add(new ScreenRectangle(left, top, right - left, bottom - top));
+        }
+    }
+
+    private void drawPart(GuiGraphicsExtractor graphics, LinearQuestDetailPart part, LinearQuestDetailPart hovered,
+                          int mouseX, int mouseY, int x, int y, int width) {
+        switch (part) {
+            case TITLE -> renderTitle(graphics, part, x, y, width);
+            case DESCRIPTION -> drawLines(graphics, description, x, y, width,
+                    alignment(part, LinearQuestTextAlignment.LEFT), 0xFFCCCCCC);
+            case OBJECTIVES_HEADER, REWARDS_HEADER -> renderHeading(graphics, part, x, y, width);
+            case OBJECTIVES_LIST -> renderObjectives(graphics, x, y, width, hovered == part ? objectiveAt(mouseY) : -1);
+            case REWARDS_LIST -> renderRewards(graphics, x, y, width, hovered == part ? rewardAt(mouseX, mouseY) : -1);
+        }
+    }
+
+    private void renderTitle(GuiGraphicsExtractor graphics, LinearQuestDetailPart part, int x, int y, int width) {
+        LinearQuestTextAlignment alignment = alignment(part, LinearQuestTextAlignment.CENTER);
+        float scale = titleScale();
+        int unscaledWidth = (int) (width / scale);
         graphics.pose().pushMatrix();
-        graphics.pose().translate(getX() + getWidth() / 2F, top());
-        graphics.pose().scale(TITLE_SCALE, TITLE_SCALE);
+        if (alignment == LinearQuestTextAlignment.CENTER) {
+            graphics.pose().translate(x + width / 2F, y);
+        } else {
+            graphics.pose().translate(x, y);
+        }
+        graphics.pose().scale(scale, scale);
         for (int i = 0; i < title.size(); i++) {
-            graphics.text(font, title.get(i), -font.width(title.get(i)) / 2, i * lineHeight(), 0xFFFFFFFF);
+            int textWidth = font.width(title.get(i));
+            int offset = alignment == LinearQuestTextAlignment.CENTER ? -textWidth / 2 : alignment.offset(unscaledWidth, textWidth);
+            graphics.text(font, title.get(i), offset, i * lineHeight(), 0xFFFFFFFF);
         }
         graphics.pose().popMatrix();
-        drawLines(graphics, description, textX(), top() + descriptionTop, 0xFFCCCCCC);
-        LinearQuestSprites.heading(graphics, font, OBJECTIVES, textX(), top() + objectivesHeading, textWidth());
-        if (actions.isEmpty()) graphics.centeredText(font, NONE, getX() + getWidth() / 2, top() + objectivesTop, 0xFFAAAAAA);
-        int hoveredObjective = inside(mouseX, mouseY) ? objectiveAt(mouseY) : -1;
+    }
+
+    private LinearQuestTextAlignment alignment(LinearQuestDetailPart part, LinearQuestTextAlignment fallback) {
+        LinearQuestDetailPlacement placement = placements.get(part);
+        return placement == null ? fallback : placement.alignment();
+    }
+
+    private Component headingLabel(LinearQuestDetailPart part) {
+        LinearQuestDetailPlacement placement = placements.get(part);
+        if (placement != null && placement.label() != null) {
+            return placement.label();
+        }
+        return part == LinearQuestDetailPart.OBJECTIVES_HEADER ? OBJECTIVES : REWARDS;
+    }
+
+    private void renderHeading(GuiGraphicsExtractor graphics, LinearQuestDetailPart part, int x, int y, int width) {
+        LinearQuestDetailPlacement placement = placements.get(part);
+        LinearQuestSprites.heading(graphics, font, headingLabel(part), x, y, width,
+                placement == null || placement.showDecoration(), placement == null ? null : placement.decoration());
+    }
+
+    private void renderObjectives(GuiGraphicsExtractor graphics, int x, int top, int width, int hoveredObjective) {
+        if (actions.isEmpty()) {
+            graphics.centeredText(font, NONE, x + width / 2, top, 0xFFAAAAAA);
+        }
         for (int i = 0; i < actions.size(); i++) {
-            int y = top() + objectivesTop + objectiveOffsets[i];
-            if (!withinContentAreaTopBottom(y, top() + objectivesTop + objectiveOffsets[i + 1])) {
+            int y = top + objectiveOffsets[i];
+            if (!visibleRow(y, top + objectiveOffsets[i + 1])) {
                 continue;
             }
             QuestObjective<?, ?> objective = quest.objectives().get(i);
@@ -180,22 +380,27 @@ public class LinearQuestDetails extends AbstractTextAreaWidget {
             boolean inset = hoveredObjective == i || (isFocused() && keyboardAction == i);
             ClientRenderUtil.renderInset(graphics.pose(), animation, inset, OBJECTIVE_INSET, INSET_DURATION_MS, amount -> {
                 if (objective instanceof ObjectiveAcknowledge) {
-                    QuestWidgetSprites.blitAcknowledgement(graphics, textX(), y,
+                    QuestWidgetSprites.blitAcknowledgement(graphics, x, y,
                             ClientQuestData.getUser() != null && ClientQuestData.getUser().hasCompletedObjective(objective));
-                } else graphics.item(icon, textX(), y);
-                drawLines(graphics, lines, textX() + ICON + 8, y + 3, 0xFFDDDDDD);
+                } else {
+                    graphics.item(icon, x, y);
+                }
+                drawLines(graphics, lines, x + ICON + 8, y + 3, width, LinearQuestTextAlignment.LEFT, 0xFFDDDDDD);
             });
             Component progress = objective.getProgressText(ClientQuestData.getUser());
-            int progressY = progressBelow ? y + Math.max(ICON, actions.get(i).size() * lineHeight() + 3) + 2 : y + 3;
-            graphics.text(font, progress, textX() + textWidth() - font.width(progress), progressY, 0xFFCCCCCC);
+            int progressY = progressBelow ? y + Math.max(ICON, lines.size() * lineHeight() + 3) + 2 : y + 3;
+            graphics.text(font, progress, x + width - font.width(progress), progressY, 0xFFCCCCCC);
         }
-        LinearQuestSprites.heading(graphics, font, REWARDS, textX(), top() + rewardsHeading, textWidth());
-        if (rewardIcons.isEmpty()) graphics.centeredText(font, NONE, getX() + getWidth() / 2, top() + rewardsTop, 0xFFAAAAAA);
-        int hoveredReward = inside(mouseX, mouseY) ? rewardAt(mouseX, mouseY) : -1;
+    }
+
+    private void renderRewards(GuiGraphicsExtractor graphics, int left, int top, int width, int hoveredReward) {
+        if (rewardIcons.isEmpty()) {
+            graphics.centeredText(font, NONE, left + width / 2, top, 0xFFAAAAAA);
+        }
         for (int i = 0; i < rewardIcons.size(); i++) {
             int x = rewardX(i);
-            int y = top() + rewardsTop + i / rewardColumns * REWARD_STEP;
-            if (!withinContentAreaTopBottom(y - REWARD_PADDING, y + ICON + REWARD_PADDING)) {
+            int y = top + i / rewardColumns * rewardStep();
+            if (!visibleRow(y - REWARD_PADDING, y + ICON + REWARD_PADDING)) {
                 continue;
             }
             RewardType<?> reward = quest.rewards().get(i);
@@ -216,16 +421,18 @@ public class LinearQuestDetails extends AbstractTextAreaWidget {
         ProfilerFiller profiler = Profiler.get();
         profiler.push("quest_details");
         try {
-            renderDetails(graphics, mouseX, mouseY, partialTick);
+            super.extractWidgetRenderState(graphics, mouseX, mouseY, partialTick);
+            if (quest != null && inside(mouseX, mouseY)) {
+                renderHover(graphics, mouseX, mouseY);
+            }
         } finally {
             profiler.pop();
         }
     }
 
-    private void renderDetails(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-        super.extractWidgetRenderState(graphics, mouseX, mouseY, partialTick);
-        if (quest == null || !inside(mouseX, mouseY)) return;
-        int reward = rewardAt(mouseX, mouseY);
+    private void renderHover(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+        LinearQuestDetailPart hovered = interactivePartAt(mouseX, mouseY);
+        int reward = hovered == LinearQuestDetailPart.REWARDS_LIST ? rewardAt(mouseX, mouseY) : -1;
         if (reward >= 0) {
             RewardType<?> value = quest.rewards().get(reward);
             if (value instanceof RewardItem item) {
@@ -233,10 +440,14 @@ public class LinearQuestDetails extends AbstractTextAreaWidget {
                 List<Component> lines = new ArrayList<>(Screen.getTooltipFromItem(Minecraft.getInstance(), stack));
                 lines.add(Component.translatable("screen.vuequests.reward.quantity", stack.getCount()).withStyle(ChatFormatting.GRAY));
                 graphics.setTooltipForNextFrame(font, lines, stack.getTooltipImage(), mouseX, mouseY);
-            } else graphics.setTooltipForNextFrame(font, value.getDisplayName(), mouseX, mouseY);
-        } else {
+            } else {
+                graphics.setTooltipForNextFrame(font, value.getDisplayName(), mouseX, mouseY);
+            }
+        } else if (hovered == LinearQuestDetailPart.DESCRIPTION) {
             Style style = styleAt(mouseX, mouseY);
-            if (style != null) ((GuiGraphicsExtractorAccessor) graphics).vuequests$componentHoverEffect(font, style, mouseX, mouseY);
+            if (style != null) {
+                ((GuiGraphicsExtractorAccessor) graphics).vuequests$componentHoverEffect(font, style, mouseX, mouseY);
+            }
         }
     }
 
@@ -244,25 +455,46 @@ public class LinearQuestDetails extends AbstractTextAreaWidget {
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         double mouseX = event.x();
         double mouseY = event.y();
-        int button = event.button();
-        if (quest == null || button != InputConstants.MOUSE_BUTTON_LEFT || !inside(mouseX, mouseY)) return false;
-        int objective = objectiveAt(mouseY);
-        if (objective >= 0) {
+        if (quest == null || event.button() != InputConstants.MOUSE_BUTTON_LEFT || !inside(mouseX, mouseY)) {
+            return false;
+        }
+        LinearQuestDetailPart hovered = interactivePartAt(mouseX, mouseY);
+        int action = switch (hovered) {
+            case OBJECTIVES_LIST -> objectiveAt(mouseY);
+            case REWARDS_LIST -> {
+                int reward = rewardAt(mouseX, mouseY);
+                yield reward < 0 ? -1 : actions.size() + reward;
+            }
+            case null, default -> -1;
+        };
+        if (action >= 0) {
             playDownSound(Minecraft.getInstance().getSoundManager());
-            keyboardAction = objective;
-            interact(keyboardAction);
+            keyboardAction = action;
+            interact(action);
             return true;
         }
-        int reward = rewardAt(mouseX, mouseY);
-        if (reward >= 0) {
-            playDownSound(Minecraft.getInstance().getSoundManager());
-            keyboardAction = actions.size() + reward;
-            interact(keyboardAction);
+        Style style = hovered == LinearQuestDetailPart.DESCRIPTION ? styleAt(mouseX, mouseY) : null;
+        if (style != null && onTextClick.test(style)) {
             return true;
         }
-        Style style = styleAt(mouseX, mouseY);
-        if (style != null && onTextClick.test(style)) return true;
         return super.mouseClicked(event, doubleClick);
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (quest != null && inside(mouseX, mouseY) && scrollY != 0) {
+            LinearQuestDetailPart part = interactivePartAt(mouseX, mouseY);
+            if (part != null && boxes.get(part).maxScroll() > 0) {
+                int previous = partScroll.getOrDefault(part, 0);
+                int next = Mth.clamp(previous - Mth.sign(scrollY) * Mth.ceil(Math.abs(scrollY) * scrollRate()),
+                        0, boxes.get(part).maxScroll());
+                if (previous != next) {
+                    partScroll.put(part, next);
+                    return true;
+                }
+            }
+        }
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
     private void interact(int index) {
@@ -285,10 +517,10 @@ public class LinearQuestDetails extends AbstractTextAreaWidget {
 
     @Override
     public boolean keyPressed(KeyEvent event) {
-        int keyCode = event.key();
-        int modifiers = event.modifiers();
-        if (quest == null) return false;
-        switch (keyCode) {
+        if (quest == null) {
+            return false;
+        }
+        switch (event.key()) {
             case InputConstants.KEY_UP -> setScrollAmount(scrollAmount() - 22);
             case InputConstants.KEY_DOWN -> setScrollAmount(scrollAmount() + 22);
             case InputConstants.KEY_PAGEUP -> setScrollAmount(scrollAmount() - getHeight());
@@ -297,27 +529,76 @@ public class LinearQuestDetails extends AbstractTextAreaWidget {
             case InputConstants.KEY_END -> setScrollAmount(maxScrollAmount());
             case InputConstants.KEY_LEFT, InputConstants.KEY_RIGHT -> {
                 int count = actions.size() + rewardIcons.size();
-                if (count == 0) return false;
-                keyboardAction = Math.floorMod(keyboardAction + (keyCode == InputConstants.KEY_RIGHT ? 1 : -1), count);
-                int y = keyboardAction < actions.size() ? objectivesTop + objectiveOffsets[keyboardAction]
-                        : rewardsTop + (keyboardAction - actions.size()) / rewardColumns * REWARD_STEP;
-                if (y < scrollAmount()) {
-                    setScrollAmount(y);
+                if (count == 0) {
+                    return false;
                 }
-                if (y + ICON > scrollAmount() + height - totalInnerPadding()) {
-                    setScrollAmount(y + ICON - height + totalInnerPadding());
-                }
+                keyboardAction = Math.floorMod(keyboardAction + (event.key() == InputConstants.KEY_RIGHT ? 1 : -1), count);
+                revealAction();
             }
-            case InputConstants.KEY_RETURN, InputConstants.KEY_NUMPADENTER, InputConstants.KEY_SPACE -> { interact(keyboardAction); }
-            default -> { return super.keyPressed(event); }
+            case InputConstants.KEY_RETURN, InputConstants.KEY_NUMPADENTER, InputConstants.KEY_SPACE -> interact(keyboardAction);
+            default -> {
+                return super.keyPressed(event);
+            }
         }
         return true;
     }
 
+    private void revealAction() {
+        boolean objective = keyboardAction < actions.size();
+        LinearQuestDetailPart part = objective ? LinearQuestDetailPart.OBJECTIVES_LIST : LinearQuestDetailPart.REWARDS_LIST;
+        LinearQuestDetailBox box = boxes.get(part);
+        int y = objective ? objectiveOffsets[keyboardAction] : (keyboardAction - actions.size()) / rewardColumns * rewardStep();
+        if (box.pinned()) {
+            int scroll = partScroll.getOrDefault(part, 0);
+            partScroll.put(part, Mth.clamp(revealOffset(scroll, y, 0, box.bounds().height()), 0, box.maxScroll()));
+        } else {
+            y += box.bounds().top() - innerPadding();
+            int topInset = Math.max(0, box.flowTop() - innerPadding());
+            setScrollAmount(revealOffset((int) scrollAmount(), y, topInset, height - totalInnerPadding()));
+        }
+    }
+
+    private int revealOffset(int scroll, int y, int topInset, int viewportHeight) {
+        if (y < scroll + topInset) {
+            return y - topInset;
+        }
+        return Math.max(scroll, y + ICON - viewportHeight);
+    }
+
+    private LinearQuestDetailPart interactivePartAt(double mouseX, double mouseY) {
+        if (placements.isEmpty()) {
+            if (objectiveAt(mouseY) >= 0) {
+                return LinearQuestDetailPart.OBJECTIVES_LIST;
+            }
+            return rewardAt(mouseX, mouseY) >= 0 ? LinearQuestDetailPart.REWARDS_LIST : LinearQuestDetailPart.DESCRIPTION;
+        }
+        for (int i = PARTS.length - 1; i >= 0; i--) {
+            LinearQuestDetailPart part = PARTS[i];
+            if (boxes.get(part).pinned() && contains(part, mouseX, mouseY)) {
+                return part;
+            }
+        }
+        for (int i = PARTS.length - 1; i >= 0; i--) {
+            LinearQuestDetailPart part = PARTS[i];
+            if (!boxes.get(part).pinned() && contains(part, mouseX, mouseY)) {
+                return part;
+            }
+        }
+        return null;
+    }
+
+    private boolean contains(LinearQuestDetailPart part, double mouseX, double mouseY) {
+        LinearQuestDetailBox box = boxes.get(part);
+        int x = partX(part);
+        int y = box.pinned() ? getY() + box.bounds().top() : partY(part);
+        return mouseX >= x && mouseX < x + box.bounds().width()
+                && mouseY >= Math.max(y, getY() + box.flowTop()) && mouseY < y + box.bounds().height();
+    }
+
     private int objectiveAt(double mouseY) {
-        double y = mouseY + scrollAmount() - top() - objectivesTop;
+        double y = mouseY - partY(LinearQuestDetailPart.OBJECTIVES_LIST);
         for (int i = 0; i < actions.size(); i++) {
-            if (y >= objectiveOffsets[i] && y < objectiveOffsets[i + 1] - 7) {
+            if (y >= objectiveOffsets[i] && y < objectiveOffsets[i + 1] - objectiveGap()) {
                 return i;
             }
         }
@@ -325,12 +606,13 @@ public class LinearQuestDetails extends AbstractTextAreaWidget {
     }
 
     private int rewardAt(double mouseX, double mouseY) {
-        double y = mouseY + scrollAmount() - top() - rewardsTop;
+        double y = mouseY - partY(LinearQuestDetailPart.REWARDS_LIST);
         if (y < -REWARD_PADDING) {
             return -1;
         }
-        int row = (int) ((y + REWARD_PADDING) / REWARD_STEP);
-        if (y - row * REWARD_STEP >= ICON + REWARD_PADDING) {
+        int step = rewardStep();
+        int row = (int) ((y + REWARD_PADDING) / step);
+        if (y - row * step >= ICON + REWARD_PADDING) {
             return -1;
         }
         int first = row * rewardColumns;
@@ -343,40 +625,72 @@ public class LinearQuestDetails extends AbstractTextAreaWidget {
     }
 
     private int rewardX(int index) {
+        int step = rewardStep();
         int first = index / rewardColumns * rewardColumns;
         int count = Math.min(rewardColumns, rewardIcons.size() - first);
-        return getX() + (getWidth() - ((count - 1) * REWARD_STEP + ICON)) / 2 + (index - first) * REWARD_STEP;
+        LinearQuestDetailPart part = LinearQuestDetailPart.REWARDS_LIST;
+        return partX(part) + (partWidth(part) - ((count - 1) * step + ICON)) / 2 + (index - first) * step;
     }
 
     private Style styleAt(double mouseX, double mouseY) {
-        double y = mouseY + scrollAmount() - top() - descriptionTop;
+        LinearQuestDetailPart part = LinearQuestDetailPart.DESCRIPTION;
+        double y = mouseY - partY(part);
         int index = (int) (y / lineHeight());
         if (y < 0 || index >= description.size() || y % lineHeight() >= font.lineHeight) {
             return null;
         }
-        double x = mouseX - textX();
-        return x < 0 || x >= font.width(description.get(index)) ? null
-                : ClientTextUtil.styleAtWidth(font, description.get(index), (int) x);
+        FormattedCharSequence line = description.get(index);
+        int textWidth = font.width(line);
+        double x = mouseX - partX(part) - alignment(part, LinearQuestTextAlignment.LEFT).offset(partWidth(part), textWidth);
+        return x < 0 || x >= textWidth ? null : ClientTextUtil.styleAtWidth(font, line, (int) x);
     }
 
     private boolean inside(double x, double y) {
         return active && visible && x >= getX() + 1 && x < getRight() - 1 && y >= getY() + 1 && y < getBottom() - 1;
     }
 
-    private void drawLines(GuiGraphicsExtractor graphics, List<FormattedCharSequence> lines, int x, int y, int color) {
+    private boolean visibleRow(int top, int bottom) {
+        return bottom >= getY() && top <= getBottom();
+    }
+
+    private void drawLines(GuiGraphicsExtractor graphics, List<FormattedCharSequence> lines, int x, int y, int width,
+                           LinearQuestTextAlignment alignment, int color) {
         for (FormattedCharSequence line : lines) {
-            if (withinContentAreaTopBottom(y, y + lineHeight())) graphics.text(font, line, x, y, color);
+            if (visibleRow(y, y + lineHeight())) {
+                int offset = alignment == LinearQuestTextAlignment.LEFT ? 0 : alignment.offset(width, font.width(line));
+                graphics.text(font, line, x + offset, y, color);
+            }
             y += lineHeight();
         }
     }
 
-    private int lineHeight() { return font.lineHeight + 2; }
-    private int textX() { return getX() + innerPadding(); }
-    private int textWidth() { return Math.max(1, getWidth() - totalInnerPadding()); }
-    private int top() { return getY() + innerPadding(); }
-    @Override protected int getInnerHeight() { return contentHeight; }
-    @Override protected void extractScrollbar(GuiGraphicsExtractor graphics, int mouseX, int mouseY) { }
-    @Override protected double scrollRate() { return 22; }
+    private int partX(LinearQuestDetailPart part) {
+        return getX() + boxes.get(part).bounds().left();
+    }
+
+    private int partY(LinearQuestDetailPart part) {
+        LinearQuestDetailBox box = boxes.get(part);
+        int scroll = box.pinned() ? partScroll.getOrDefault(part, 0) : (int) scrollAmount();
+        return getY() + box.bounds().top() - scroll;
+    }
+
+    private int lineHeight() {
+        return font.lineHeight + 2;
+    }
+
+    @Override
+    protected int getInnerHeight() {
+        return contentHeight;
+    }
+
+    @Override
+    protected void extractScrollbar(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+    }
+
+    @Override
+    protected double scrollRate() {
+        return 22;
+    }
 
     @Override
     protected void updateWidgetNarration(NarrationElementOutput output) {
@@ -386,10 +700,14 @@ public class LinearQuestDetails extends AbstractTextAreaWidget {
         }
         List<Component> contents = new ArrayList<>();
         contents.add(quest.display().description());
-        contents.add(OBJECTIVES);
+        if (isHeaderVisible(LinearQuestDetailPart.OBJECTIVES_HEADER)) {
+            contents.add(headingLabel(LinearQuestDetailPart.OBJECTIVES_HEADER));
+        }
         quest.objectives().forEach(objective -> contents.add(Component.empty().append(objective.getActionText())
                 .append(" ").append(objective.getProgressText(ClientQuestData.getUser()))));
-        contents.add(REWARDS);
+        if (isHeaderVisible(LinearQuestDetailPart.REWARDS_HEADER)) {
+            contents.add(headingLabel(LinearQuestDetailPart.REWARDS_HEADER));
+        }
         quest.rewards().forEach(reward -> contents.add(reward.getDisplayName()));
         output.add(NarratedElementType.HINT, contents.toArray(Component[]::new));
         output.add(NarratedElementType.USAGE, Component.translatable("narration.vuequests.linear_details_usage"));

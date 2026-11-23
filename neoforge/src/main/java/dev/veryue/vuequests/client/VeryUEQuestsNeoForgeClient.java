@@ -3,6 +3,10 @@ package dev.veryue.vuequests.client;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.veryue.vuequests.client.editor.ClientEditorResources;
 import dev.veryue.vuequests.client.lang.ClientQuestLanguages;
+import dev.veryue.vuequests.client.screens.LinearQuestCustomization;
+import dev.veryue.vuequests.network.ClaimQuestRewardPayload;
+import dev.veryue.vuequests.network.InteractQuestObjectivePayload;
+import dev.veryue.vuequests.network.QuestScreenOpenedPayload;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
@@ -11,7 +15,9 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.event.lifecycle.FMLConstructModEvent;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
@@ -36,14 +42,26 @@ public class VeryUEQuestsNeoForgeClient {
             (name, keyCode) -> new KeyMapping(name, QuestMenuKeyConflictContext.INSTANCE,
                     InputConstants.Type.KEYSYM, keyCode, QuestMenuKeyMappings.CATEGORY),
             KeyMapping::isActiveAndMatches);
+    private final QuestMenuActions questActions = new QuestMenuActions(
+            () -> sendToServer(QuestScreenOpenedPayload.INSTANCE),
+            (questId, objectiveId) -> sendToServer(new InteractQuestObjectivePayload(questId, objectiveId)),
+            (questId, rewardId) -> sendToServer(new ClaimQuestRewardPayload(questId, rewardId)));
 
     public VeryUEQuestsNeoForgeClient(IEventBus eventBus) {
         ClientQuestLanguages.initialize(FMLPaths.CONFIGDIR.get());
         ClientEditorResources.initialize();
         eventBus.addListener(this::registerReloadListeners);
         eventBus.addListener(this::registerKeyMappings);
+        eventBus.addListener(this::onConstructMod);
         NeoForge.EVENT_BUS.addListener(this::onClientTick);
         NeoForge.EVENT_BUS.addListener(this::onLoggingOut);
+    }
+
+    private void onConstructMod(FMLConstructModEvent event) {
+        // FancyMenu reads saved layouts before NeoForge's client setup event.
+        if (ModList.get().isLoaded(LinearQuestCustomization.FANCY_MENU_MOD_ID)) {
+            event.enqueueWork(LinearQuestCustomization::initialize);
+        }
     }
 
     private void registerReloadListeners(AddClientReloadListenersEvent event) {
@@ -65,7 +83,7 @@ public class VeryUEQuestsNeoForgeClient {
 
     private void onClientTick(ClientTickEvent.Post event) {
         ClientEditorResources.tick(Minecraft.getInstance());
-        VeryUEKeyMappings.onClientTick(Minecraft.getInstance(), this::sendToServer, canvasKeys, menuKeys);
+        VeryUEKeyMappings.onClientTick(Minecraft.getInstance(), questActions, this::sendToServer, canvasKeys, menuKeys);
     }
 
     private void sendToServer(CustomPacketPayload payload) {

@@ -1,13 +1,11 @@
 package dev.veryue.vuequests.client.screens;
 
 import dev.veryue.vuequests.client.ClientQuestData;
+import dev.veryue.vuequests.client.QuestMenuActions;
 import dev.veryue.vuequests.client.util.GuiSpriteRenderer;
 import dev.veryue.vuequests.client.widget.QuestWidgetSprites;
 import dev.veryue.vuequests.client.widget.panels.QuestDetailsPanel;
 import dev.veryue.vuequests.models.quest.Quest;
-import dev.veryue.vuequests.network.ClaimQuestRewardPayload;
-import dev.veryue.vuequests.network.InteractQuestObjectivePayload;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.ImageButton;
 import net.minecraft.client.gui.components.Tooltip;
@@ -15,8 +13,6 @@ import net.minecraft.client.gui.components.WidgetSprites;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
-
-import java.util.function.Consumer;
 
 public class QuestDetailsScreen extends Screen {
 
@@ -27,7 +23,7 @@ public class QuestDetailsScreen extends Screen {
 
     private final GraphQuestScreen parent;
     private Quest quest;
-    private final Consumer<CustomPacketPayload> sendToServer;
+    private final QuestMenuActions questActions;
     private QuestDetailsPanel details;
     private ImageButton closeButton;
     private int panelX;
@@ -35,11 +31,11 @@ public class QuestDetailsScreen extends Screen {
     private int panelWidth;
     private int panelHeight;
 
-    public QuestDetailsScreen(GraphQuestScreen parent, Quest quest, Consumer<CustomPacketPayload> sendToServer) {
+    public QuestDetailsScreen(GraphQuestScreen parent, Quest quest, QuestMenuActions questActions) {
         super(quest.display().title());
         this.parent = parent;
         this.quest = quest;
-        this.sendToServer = sendToServer;
+        this.questActions = questActions;
     }
 
     @Override
@@ -50,8 +46,8 @@ public class QuestDetailsScreen extends Screen {
     @Override
     protected void init() {
         details = addRenderableWidget(new QuestDetailsPanel(font, quest, this::handleTextClick,
-                reward -> sendToServer.accept(new ClaimQuestRewardPayload(quest.questId(), reward.getRewardId())),
-                objective -> sendToServer.accept(new InteractQuestObjectivePayload(quest.questId(), objective.getObjectiveId()))));
+                reward -> questActions.claimReward().accept(quest.questId(), reward.getRewardId()),
+                objective -> questActions.interactWithObjective().accept(quest.questId(), objective.getObjectiveId())));
         Component close = Component.translatable("screen.vuequests.close");
         WidgetSprites closeSprites = new WidgetSprites(QuestWidgetSprites.CLOSE, QuestWidgetSprites.CLOSE);
         closeButton = addRenderableWidget(new ImageButton(0, 0, CLOSE_SIZE, CLOSE_SIZE, closeSprites, button -> onClose(), close));
@@ -112,7 +108,9 @@ public class QuestDetailsScreen extends Screen {
     }
 
     private boolean handleTextClick(Style style) {
-        if (style.getClickEvent() == null) return false;
+        if (style.getClickEvent() == null) {
+            return false;
+        }
         defaultHandleGameClickEvent(style.getClickEvent(), minecraft, this);
         return true;
     }
