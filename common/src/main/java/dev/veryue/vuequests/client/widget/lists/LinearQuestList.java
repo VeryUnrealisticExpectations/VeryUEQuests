@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 public class LinearQuestList extends AbstractWidget {
 
     private static final int ROW_HEIGHT = 22;
+    private static final int COMPACT_ROW_HEIGHT = 18;
     private static final int HEADING_HEIGHT = 20;
     private static final int GROUP_GAP = 12;
     private static final float INSET = 6;
@@ -40,6 +41,7 @@ public class LinearQuestList extends AbstractWidget {
     private List<Quest> entries = List.of();
     private List<ItemStack> icons = List.of();
     private int availableCount;
+    private int rowHeight = ROW_HEIGHT;
     private UUID selected;
     private double scroll;
     private final Map<UUID, RenderAnimation> rowInsets = new HashMap<>();
@@ -48,6 +50,15 @@ public class LinearQuestList extends AbstractWidget {
         super(0, 0, 1, 1, Component.translatable("screen.vuequests.quest_menu"));
         this.font = font;
         this.onSelect = onSelect;
+    }
+
+    public void setCompactRows(boolean compact) {
+        int newHeight = compact ? COMPACT_ROW_HEIGHT : ROW_HEIGHT;
+        if (rowHeight != newHeight) {
+            scroll = scroll * newHeight / rowHeight;
+            rowHeight = newHeight;
+            clampScroll();
+        }
     }
 
     public void setQuests(List<Quest> quests) {
@@ -77,20 +88,20 @@ public class LinearQuestList extends AbstractWidget {
             if (top < scroll) {
                 scroll = top;
             }
-            if (top + ROW_HEIGHT > scroll + height) {
-                scroll = top + ROW_HEIGHT - height;
+            if (top + rowHeight > scroll + height) {
+                scroll = top + rowHeight - height;
             }
             clampScroll();
         }
     }
 
     private int rowTop(int index) {
-        return HEADING_HEIGHT + index * ROW_HEIGHT
+        return HEADING_HEIGHT + index * rowHeight
                 + (index >= availableCount ? HEADING_HEIGHT + GROUP_GAP : 0);
     }
 
     private int contentHeight() {
-        return 2 * HEADING_HEIGHT + GROUP_GAP + entries.size() * ROW_HEIGHT;
+        return 2 * HEADING_HEIGHT + GROUP_GAP + entries.size() * rowHeight;
     }
 
     private void clampScroll() {
@@ -113,28 +124,29 @@ public class LinearQuestList extends AbstractWidget {
         graphics.enableScissor(getX(), getY(), getRight(), getBottom());
         int top = getY() - (int) scroll;
         graphics.drawString(font, Component.translatable("screen.vuequests.available"), getX() + 3, top + 3, 0xFFE0E0E0);
-        int completedTop = top + HEADING_HEIGHT + availableCount * ROW_HEIGHT + GROUP_GAP;
+        int completedTop = top + HEADING_HEIGHT + availableCount * rowHeight + GROUP_GAP;
         graphics.drawString(font, Component.translatable("screen.vuequests.completed"), getX() + 3, completedTop + 3, 0xFFA0A0A0);
         for (int i = 0; i < entries.size(); i++) {
             int y = top + rowTop(i);
-            if (y + ROW_HEIGHT <= getY() || y >= getBottom()) {
+            if (y + rowHeight <= getY() || y >= getBottom()) {
                 continue;
             }
             Quest quest = entries.get(i);
             boolean current = quest.questId().equals(selected);
-            boolean hovered = isMouseOver(mouseX, mouseY) && mouseY >= y && mouseY < y + ROW_HEIGHT;
+            boolean hovered = isMouseOver(mouseX, mouseY) && mouseY >= y && mouseY < y + rowHeight;
             RenderAnimation animation = rowInsets.computeIfAbsent(quest.questId(), id -> new RenderAnimation(current ? INSET : 0));
             ItemStack icon = icons.get(i);
             boolean completed = i >= availableCount;
             ClientRenderUtil.renderInset(graphics.pose(), animation, current || hovered, INSET, INSET_DURATION_MS, inset -> {
-                graphics.renderItem(icon, getX() + 3, y + 3);
+                int iconY = y + (rowHeight - 16) / 2;
+                graphics.renderItem(icon, getX() + 3, iconY);
                 if (completed) {
                     boolean allRewardsClaimed = quest.rewards().stream().allMatch(ClientQuestData::isRewardClaimed);
-                    QuestWidgetSprites.blitClaimBadge(graphics, getX() + 3, y + 3, allRewardsClaimed);
+                    QuestWidgetSprites.blitClaimBadge(graphics, getX() + 3, iconY, allRewardsClaimed);
                 }
                 Component styledTitle = quest.display().title().copy().withStyle(style -> style.withBold(current));
                 FormattedCharSequence title = Language.getInstance().getVisualOrder(font.substrByWidth(styledTitle, Math.max(1, width - 27 - Mth.ceil(inset))));
-                graphics.drawString(font, title, getX() + 25, y + 7,
+                graphics.drawString(font, title, getX() + 25, y + (rowHeight - font.lineHeight) / 2 + 1,
                         current ? 0xFFFFFFFF : completed ? 0xFF999999 : 0xFFCCCCCC);
             });
         }
@@ -148,7 +160,7 @@ public class LinearQuestList extends AbstractWidget {
         }
         double y = mouseY - getY() + scroll;
         for (int i = 0; i < entries.size(); i++) {
-            if (y >= rowTop(i) && y < rowTop(i) + ROW_HEIGHT) {
+            if (y >= rowTop(i) && y < rowTop(i) + rowHeight) {
                 playDownSound(Minecraft.getInstance().getSoundManager());
                 select(entries.get(i), false);
                 return true;
@@ -162,7 +174,7 @@ public class LinearQuestList extends AbstractWidget {
         if (!isMouseOver(mouseX, mouseY)) {
             return false;
         }
-        scroll -= deltaY * ROW_HEIGHT;
+        scroll -= deltaY * rowHeight;
         clampScroll();
         return true;
     }
@@ -183,8 +195,8 @@ public class LinearQuestList extends AbstractWidget {
             case GLFW.GLFW_KEY_DOWN -> current + 1;
             case GLFW.GLFW_KEY_HOME -> 0;
             case GLFW.GLFW_KEY_END -> entries.size() - 1;
-            case GLFW.GLFW_KEY_PAGE_UP -> current - Math.max(1, height / ROW_HEIGHT);
-            case GLFW.GLFW_KEY_PAGE_DOWN -> current + Math.max(1, height / ROW_HEIGHT);
+            case GLFW.GLFW_KEY_PAGE_UP -> current - Math.max(1, height / rowHeight);
+            case GLFW.GLFW_KEY_PAGE_DOWN -> current + Math.max(1, height / rowHeight);
             default -> Integer.MIN_VALUE;
         };
         if (next == Integer.MIN_VALUE) {

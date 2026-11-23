@@ -2,6 +2,15 @@ plugins {
     id 'multiloader-common'
 }
 
+ext.fancyMenuEnabled = providers.gradleProperty('vuequestsFancyMenu')
+        .map { it.toBoolean() }
+        .orElse(minecraft_version == '1.21.1')
+        .get()
+
+if (fancyMenuEnabled) {
+    sourceSets.main.java.srcDir(rootProject.file('common/src/fancymenu/java'))
+}
+
 configurations {
     commonJava{
         canBeResolved = true

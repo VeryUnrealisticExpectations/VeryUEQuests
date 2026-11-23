@@ -31,21 +31,22 @@ public class LinearQuestSprites {
         GuiSpriteRenderer.blit(graphics, FRAME, x, y, width, height, 0xFFFFFFFF);
     }
 
-    public static void heading(GuiGraphics graphics, Font font, Component heading, int x, int y, int width) {
+    public static void heading(GuiGraphics graphics, Font font, Component heading, int x, int y, int width,
+                               boolean showDecoration, LinearQuestHeadingDecoration decoration) {
         int textWidth = font.width(heading);
         float textScale = Math.min(1, width / (float) Math.max(1, textWidth));
         int armWidth = Math.max(0, (width - textWidth) / 2 - 8);
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        if (armWidth >= 10) {
-            graphics.blitSprite(BREAKLINE, x, y, armWidth, 9);
+        if (showDecoration && armWidth >= 10) {
+            drawDecoration(graphics, decoration, x, y, armWidth);
             graphics.pose().pushPose();
             graphics.pose().translate(x + width, y, 0);
             graphics.pose().scale(-1, 1, 1);
             boolean culling = GL11.glIsEnabled(GL11.GL_CULL_FACE);
             RenderSystem.disableCull();
             try {
-                graphics.blitSprite(BREAKLINE, 0, 0, armWidth, 9);
+                drawDecoration(graphics, decoration, 0, 0, armWidth);
             } finally {
                 if (culling) {
                     RenderSystem.enableCull();
@@ -58,5 +59,13 @@ public class LinearQuestSprites {
         graphics.pose().scale(textScale, textScale, 1);
         graphics.drawString(font, heading, -textWidth / 2, 0, 0xFFE0E0E0);
         graphics.pose().popPose();
+    }
+
+    private static void drawDecoration(GuiGraphics graphics, LinearQuestHeadingDecoration decoration, int x, int y, int width) {
+        if (decoration == null) {
+            graphics.blitSprite(BREAKLINE, x, y, width, 9);
+        } else {
+            decoration.draw(graphics, x, y, width, 9);
+        }
     }
 }
