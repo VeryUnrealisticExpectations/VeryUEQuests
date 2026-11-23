@@ -251,8 +251,8 @@ public class QuestCanvas extends QuestPanel {
                 if (node.getRight() + renderOffsetX > viewport.left() && node.getX() + renderOffsetX < viewport.right()
                         && node.getBottom() + renderOffsetY > viewport.top() && node.getY() + renderOffsetY < viewport.bottom()) {
                     node.setLocked(!ClientQuestData.prerequisitesMet(node.getQuest()));
-                    node.extractRenderState(graphics, node == hovered ? (int) (mouseX - renderOffsetX) : -1,
-                            node == hovered ? (int) (mouseY - renderOffsetY) : -1, partialTick);
+                    node.extractRenderState(graphics, node == hovered ? Mth.floor(mouseX - renderOffsetX) : -1,
+                            node == hovered ? Mth.floor(mouseY - renderOffsetY) : -1, partialTick);
                     renderedNodes++;
                 }
             }
@@ -274,8 +274,13 @@ public class QuestCanvas extends QuestPanel {
                     getX() + 4, getBottom() - font.lineHeight - 2, 0xFFE0E0E0);
             graphics.disableScissor();
         }
+    }
+
+    public void extractHoveredTooltip(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+        QuestNodeWidget hovered = panning ? null : nodeAt(mouseX, mouseY);
         if (hovered != null) {
-            hovered.renderQuestTooltip(graphics, font, mouseX, mouseY);
+            hovered.extractQuestTooltip(graphics, font, mouseX, mouseY,
+                    Mth.floor(mouseX - renderOffsetX), Mth.floor(mouseY - renderOffsetY));
         }
     }
 

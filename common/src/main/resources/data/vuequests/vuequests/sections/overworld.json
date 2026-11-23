@@ -687,7 +687,8 @@
         }
       ],
       "dependencies": [
-        "090c3cd4-2f81-5f5c-9ed7-58ce469425a2"
+        "090c3cd4-2f81-5f5c-9ed7-58ce469425a2",
+        "8d486ad4-42fd-5f2e-b2d5-22de186a25ca"
       ]
     },
     {
@@ -805,5 +806,6 @@
       ],
       "dependencies": []
     }
-  ]
+  ],
+  "priority": 0
 }

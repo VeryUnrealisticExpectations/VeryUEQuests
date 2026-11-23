@@ -147,6 +147,7 @@ public class GraphQuestScreen extends QuestMenuScreen {
             refreshData();
             profiler.popPush("widgets");
             super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+            canvas.extractHoveredTooltip(graphics, mouseX, mouseY);
         } finally {
             profiler.pop();
             profiler.pop();

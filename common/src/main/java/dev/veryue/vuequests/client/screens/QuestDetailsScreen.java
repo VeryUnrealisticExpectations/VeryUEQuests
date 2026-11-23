@@ -2,6 +2,7 @@ package dev.veryue.vuequests.client.screens;
 
 import dev.veryue.vuequests.client.ClientQuestData;
 import dev.veryue.vuequests.client.util.GuiSpriteRenderer;
+import dev.veryue.vuequests.client.widget.QuestDependencyTooltip;
 import dev.veryue.vuequests.client.widget.QuestWidgetSprites;
 import dev.veryue.vuequests.client.widget.panels.QuestDetailsPanel;
 import dev.veryue.vuequests.models.quest.Quest;
@@ -18,6 +19,8 @@ import net.minecraft.network.chat.Style;
 
 import java.util.function.Consumer;
 
+import static dev.veryue.vuequests.client.widget.QuestWidgetSprites.DEPENDENCY_LOCK_SIZE;
+
 public class QuestDetailsScreen extends Screen {
 
     private static final int MAX_WIDTH = 320;
@@ -28,6 +31,7 @@ public class QuestDetailsScreen extends Screen {
     private final GraphQuestScreen parent;
     private Quest quest;
     private final Consumer<CustomPacketPayload> sendToServer;
+    private QuestDependencyTooltip dependencies;
     private QuestDetailsPanel details;
     private ImageButton closeButton;
     private int panelX;
@@ -49,6 +53,7 @@ public class QuestDetailsScreen extends Screen {
 
     @Override
     protected void init() {
+        dependencies = new QuestDependencyTooltip(quest);
         details = addRenderableWidget(new QuestDetailsPanel(font, quest, this::handleTextClick,
                 reward -> sendToServer.accept(new ClaimQuestRewardPayload(quest.questId(), reward.getRewardId())),
                 objective -> sendToServer.accept(new InteractQuestObjectivePayload(quest.questId(), objective.getObjectiveId()))));
@@ -66,6 +71,9 @@ public class QuestDetailsScreen extends Screen {
         }
         panelWidth = Math.max(1, Math.min(MAX_WIDTH, width - 2 * MARGIN));
         int controlsWidth = CLOSE_SIZE + details.scrollbarWidth();
+        if (!dependencies.isEmpty()) {
+            controlsWidth += DEPENDENCY_LOCK_SIZE;
+        }
         int bodyWidth = Math.max(1, panelWidth - 2 * PADDING - controlsWidth);
         int bodyHeight = Math.max(1, height - 2 * (MARGIN + PADDING));
         details.fit(bodyWidth, bodyHeight, controlsWidth / 2);
@@ -85,10 +93,21 @@ public class QuestDetailsScreen extends Screen {
         }
         if (latest != quest) {
             quest = latest;
+            dependencies = new QuestDependencyTooltip(latest);
             details.setQuest(latest);
             repositionElements();
         }
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+        if (!dependencies.isEmpty()) {
+            int lockX = closeButton.getX() - DEPENDENCY_LOCK_SIZE;
+            int lockY = closeButton.getY();
+            boolean highlighted = mouseX >= lockX && mouseX < lockX + DEPENDENCY_LOCK_SIZE
+                    && mouseY >= lockY && mouseY < lockY + DEPENDENCY_LOCK_SIZE;
+            QuestWidgetSprites.blitDependencyLock(graphics, lockX, lockY, highlighted);
+            if (highlighted) {
+                dependencies.extract(graphics, font, mouseX, mouseY);
+            }
+        }
     }
 
     @Override
