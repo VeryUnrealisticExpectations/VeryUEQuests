@@ -20,6 +20,9 @@ public class QuestWidgetSprites {
     public static final Identifier CANVAS = sprite("canvas");
     public static final Identifier DETAILS_PANEL = sprite("details_panel");
     public static final Identifier CLOSE = sprite("close");
+    public static final int DEPENDENCY_LOCK_SIZE = 16;
+    private static final Identifier DEPENDENCY_LOCK = sprite("dependency_lock");
+    private static final Identifier DEPENDENCY_LOCK_HIGHLIGHTED = sprite("dependency_lock_highlighted");
     public static final Identifier REWARD_UNCLAIMED = sprite("reward_unclaimed");
     public static final Identifier REWARD_CLAIMED = sprite("reward_claimed");
     public static final Identifier ACKNOWLEDGED = sprite("objective_acknowledged");
@@ -52,6 +55,11 @@ public class QuestWidgetSprites {
 
     public static void blitClaimBadge(GuiGraphicsExtractor graphics, int x, int y, boolean claimed) {
         graphics.blitSprite(RenderPipelines.GUI_TEXTURED, claimed ? REWARD_CLAIMED : REWARD_UNCLAIMED, x, y, 16, 16);
+    }
+
+    public static void blitDependencyLock(GuiGraphicsExtractor graphics, int x, int y, boolean highlighted) {
+        graphics.blitSprite(RenderPipelines.GUI_TEXTURED, highlighted ? DEPENDENCY_LOCK_HIGHLIGHTED : DEPENDENCY_LOCK,
+                x, y, DEPENDENCY_LOCK_SIZE, DEPENDENCY_LOCK_SIZE);
     }
 
     public static void blitObjectiveProgress(GuiGraphicsExtractor graphics, int x, int y, double progress) {
